@@ -11,6 +11,8 @@ let KeyUtils = require("./key-utils.js");
 // let DapiGrpc = require("@dashevo/dapi-grpc");
 let Dpp = require("@dashevo/wasm-dpp");
 
+let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+
 const DIP13_ECDSA = 0;
 
 let identityEcdsaPath = "";
@@ -64,7 +66,6 @@ async function main() {
     pubKeyHash: pkh,
   });
 
-  let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
   let utxos = await DashTx.utils.rpc(rpcAuthUrl, "getaddressutxos", {
     addresses: [addr],
   });
@@ -100,6 +101,12 @@ async function main() {
   console.log();
   console.log(`txSigned:`);
   console.log(txSigned);
+
+  // let txid = await DashTx.utils.rpc(
+  //   rpcAuthUrl,
+  //   "sendrawtransaction",
+  //   txSigned.transaction,
+  // );
 
   // let assetLockProof = await YoureAWizardHarry.doMagic();
 
