@@ -18,12 +18,13 @@
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
-    "@dashevo/dapi-grpc": "^1.0.2",
-    "@dashevo/wasm-dpp": "^1.0.2",
+    "@dashevo/dapi-grpc": "^1.1.1",
+    "@dashevo/wasm-dpp": "^1.1.1",
     "@dashincubator/secp256k1": "^1.7.1-5",
+    "cbor-web": "^9.0.2",
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
-    "dashtx": "^0.19.1"
+    "dashtx": "^0.20.1"
   }
 }
