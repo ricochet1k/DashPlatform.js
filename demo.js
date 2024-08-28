@@ -5,7 +5,7 @@ let DashHd = require("dashhd");
 let DashKeys = require("dashkeys");
 let DashTx = require("dashtx");
 let DashPlatform = require("./dashplatform.js");
-let CBOR = require("CBOR");
+let CBOR = require("cbor");
 
 let KeyUtils = require("./key-utils.js");
 
@@ -54,53 +54,80 @@ let KEY_TYPES = {
   ECDSA_SECP256K1: 0,
 };
 
+let network = "testnet";
+let coinType = 5; // DASH
+if (network === "testnet") {
+  coinType = 1; // testnet
+}
+//coinType = 1;
+
 let identityEcdsaPath = "";
 {
   // m/purpose'/coin_type'/feature'/subfeature'/keytype'/identityindex'/keyindex'
   // ex: m/9'/5'/5'/0'/0'/<id>/<key>
   let purposeDip13 = 9;
-  let coinDash = 5;
   let featureId = 5;
   let subfeatureKey = 0;
   let keyType = KEY_TYPES.ECDSA_SECP256K1;
-  identityEcdsaPath = `m/${purposeDip13}'/${coinDash}'/${featureId}'/${subfeatureKey}'/${keyType}'`;
+  identityEcdsaPath = `m/${purposeDip13}'/${coinType}'/${featureId}'/${subfeatureKey}'/${keyType}'`;
 }
 
 async function main() {
   void (await WasmDpp.default());
 
-  let network = "testnet";
-
   let dashTx = DashTx.create(KeyUtils);
 
   // let phrase = await DashPhrase.generate();
   let phrase =
-    "casino reveal crop open ordinary garment spy pizza clown exercise poem enjoy";
+    "wool panel expand embrace try lab rescue reason drop fog stand kangaroo";
+  console.log(`Phrase:`);
+  console.log(phrase);
   let salt = "";
   let seedBytes = await DashPhrase.toSeed(phrase, salt);
-  let walletKey = await DashHd.fromSeed(seedBytes);
+  console.log("Seed:");
+  console.log(DashTx.utils.bytesToHex(seedBytes));
+  let walletKey = await DashHd.fromSeed(seedBytes, { coinType });
+  let walletId = await DashHd.toId(walletKey);
+  console.log(`Wallet ID:`);
+  console.log(walletId);
 
   let accountIndex = 0; // pick the desired account for paying the fee
-  let addressIndex = 8; // pick an address with funds
-  let accountKey = await walletKey.deriveAccount(accountIndex);
-  let use = DashHd.RECEIVE;
-  let xprvKey = await accountKey.deriveXKey(use);
-  let addressKey = await xprvKey.deriveAddress(addressIndex);
-  if (!addressKey.privateKey) {
-    throw new Error("not an error, just a lint hack");
+  let addressIndex = 0; // pick an address with funds
+  let accountKey;
+  for (let a = 0; a <= accountIndex; a += 1) {
+    accountKey = await walletKey.deriveAccount(a);
+
+    for (let usage of [DashHd.RECEIVE, DashHd.CHANGE]) {
+      let xprvKey = await accountKey.deriveXKey(usage);
+
+      let addressKey;
+      let addr;
+      let pkh;
+      let wif;
+      for (let i = 0; i <= addressIndex; i += 1) {
+        addressKey = await xprvKey.deriveAddress(i);
+        if (!addressKey.privateKey) {
+          throw new Error("not an error, just a lint hack");
+        }
+
+        addr = await DashHd.toAddr(addressKey.publicKey, { version: network });
+        let pkhBytes = await DashKeys.addrToPkh(addr, {
+          //@ts-ignore
+          version: network,
+        });
+        pkh = DashKeys.utils.bytesToHex(pkhBytes);
+        wif = await DashHd.toWif(addressKey.privateKey, { version: network });
+        console.log();
+        console.log(
+          `[m/44'/${coinType}'/${a}'/${usage}/${i}] Address: ${addr}`,
+        );
+        // TODO is _this_ the assetLockPrivateKey??
+        console.log(`[m/44'/${coinType}'/${a}/${usage}/${i}] WIF: ${wif}`);
+      }
+    }
   }
 
-  let addr = await DashHd.toAddr(addressKey.publicKey, { version: network });
-  let pkhBytes = await DashKeys.addrToPkh(addr, {
-    //@ts-ignore
-    version: network,
-  });
-  let pkh = DashKeys.utils.bytesToHex(pkhBytes);
-  let wif = await DashHd.toWif(addressKey.privateKey, { version: network });
-  console.log();
-  console.log(`Address: ${addr}`);
-  // TODO is _this_ the assetLockPrivateKey??
-  console.log(`WIF: ${wif}`);
+  process.exit(1);
 
   KeyUtils.set(addr, {
     address: addr,
@@ -226,6 +253,7 @@ async function main() {
   let cbor = CBOR.encodeCanonical(stateTransition);
   console.log(`cbor:`);
   console.log(DashTx.utils.bytesToHex(cbor));
+  console.log(bytesToBase64(cbor));
 
   let sigBytes = await KeyUtils.sign(addressKey.privateKey, cbor);
   let sigHex = DashTx.utils.bytesToHex(sigBytes);
