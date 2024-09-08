@@ -4,7 +4,7 @@
   "description": "A lightweight library Dash Platform identities, data contracts, and documents",
   "main": "dashplatform.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "jshint": "npx -p jshint@2.x -- jshint -c ./.jshintrc ./*.js",
     "lint": "npm run jshint && npm run tsc",
     "prettier": "npx -p prettier@3.x -- prettier -w '**/*.{js,md}'",
@@ -25,6 +25,7 @@
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
-    "dashtx": "^0.20.1"
+    "dashtx": "^0.20.1",
+    "vitest": "^2.0.5"
   }
 }
