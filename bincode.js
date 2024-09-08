@@ -747,3 +747,15 @@ export const StateTransition = Enum('StateTransition', x => 3, {
   // 7: IdentityCreditTransferTransition, //IdentityCreditTransfer(IdentityCreditTransferTransition),
   // 8: MasternodeVoteTransition, //MasternodeVote(MasternodeVoteTransition),
 })
+
+export const StateTransitionSignable = Enum('StateTransition', x => 3, {
+  // 0: DataContractCreateTransition, //DataContractCreate(DataContractCreateTransition),
+  // 1: DataContractUpdateTransition, //DataContractUpdate(DataContractUpdateTransition),
+  // 2: DocumentsBatchTransition, //DocumentsBatch(DocumentsBatchTransition),
+  3: IdentityCreateTransitionSignable, //IdentityCreate(IdentityCreateTransition),
+  // 4: IdentityTopUpTransition, //IdentityTopUp(IdentityTopUpTransition),
+  // 5: IdentityCreditWithdrawalTransition, //IdentityCreditWithdrawal(IdentityCreditWithdrawalTransition),
+  // 6: IdentityUpdateTransition, //IdentityUpdate(IdentityUpdateTransition),
+  // 7: IdentityCreditTransferTransition, //IdentityCreditTransfer(IdentityCreditTransferTransition),
+  // 8: MasternodeVoteTransition, //MasternodeVote(MasternodeVoteTransition),
+})

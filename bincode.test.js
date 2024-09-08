@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest'
 import { fromHex } from './hex'
-import { decode, encode, Identifier, IdentityPublicKey, StateTransition, toJsonCamelCase } from './bincode'
+import { decode, encode, Identifier, IdentityPublicKey, StateTransition, StateTransitionSignable, toJsonCamelCase } from './bincode'
 
 it('should encode/decode IdentityPublicKey', () => {
     const master_key_bytes = fromHex('0000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f00')
@@ -44,7 +44,9 @@ it('should encode/decode StateTransition', () => {
     const asset_lock_private_key = fromHex('33a9f0603ba69b97dff83e08b4ee36cebbc987739e9749615e1727754f2bf2d2')
 
     const state_transition_signable_bytes = fromHex('0300020000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f000100000100002102014603018dc437642dda16f4c7fc50e482dd23e24680bcb3a5966c3b343848e200c601011dbbda5861b12d7523f20aa5e0d42f52de3dcd2d5c2fe919ba67b59f050d206e0000000058c444dd0957767db2c0adea69fd861792bfa75c7e364d83fe85bebebc2a08b436a56617591a6a89237bada6af1f9b46eba47b5d89a8c4e49ff2d0236182307c8967c46529a967b3822e1ba8a173066296d02593f0f59b3a78a30a7eef9c8a120847729e62e4a32954339286b79fe7590221331cd28d576887a263f45b595d499272f656c3f5176987c976239cac16f972d796ad82931d532102a4f95eec7d809e00000800015884e5db9de218238671572340b207ee85b628074e7e467096c267266baf77a4000000001976a91488d9931ea73d60eaf7e5671efc0552b912911f2a88ac000000000200e1f50500000000026a0088130000000000001976a91488d9931ea73d60eaf7e5671efc0552b912911f2a88ac0000000024000100e1f505000000001976a914271c99481ce1460e4fd62d5a11eecc123d78ee3288ac0000')
-
+    const state_transition_signable = decode(StateTransitionSignable, state_transition_signable_bytes.buffer)
+    expect(state_transition_signable_bytes).toEqual(new Uint8Array(encode(StateTransitionSignable, state_transition_signable)))
+    
     // asset_lock_proof
     // 
     // ```json
