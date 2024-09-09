@@ -13,8 +13,8 @@ import { toHex } from "./hex"
  * @param {BinCodeable<T>} _type
  * @param {T} value
  */
-export function encode(_type, value) {
-  const bc = new BinCode(new DataView(new ArrayBuffer(16)));
+export function encode(_type, value, options={}) {
+  const bc = new BinCode(new DataView(new ArrayBuffer(16)), 0, options);
   _type.encode(bc, value);
   return bc.slice();
 }
@@ -24,8 +24,8 @@ export function encode(_type, value) {
  * @param {BinCodeable<T>} _type
  * @param {ArrayBuffer} value
  */
-export function decode(_type, value) {
-  const bc = new BinCode(new DataView(value));
+export function decode(_type, value, options={}) {
+  const bc = new BinCode(new DataView(value), 0, options);
   return _type.decode(bc);
 }
 
@@ -35,10 +35,12 @@ export class BinCode {
    * 
    * @param {DataView} dataview 
    * @param {number} idx 
+   * @param {any} options 
    */
-  constructor(dataview, idx=0) {
+  constructor(dataview, idx=0, options={}) {
     this.dataview = dataview;
     this.idx = idx;
+    this.options = options;
   }
 
   /**
@@ -100,6 +102,7 @@ export function Vec(inner) {
     },
     decode(bc) {
       let len = VarUint.decode(bc);
+      /** @type {any[]} */
       let val = new Array(len);
       for (let i = 0; i < len; i++) {
         val[i] = inner.decode(bc);
@@ -137,13 +140,23 @@ export function Struct(name, inner) {
     }
   }
 }
-  
-/**
+
+/** 
  * @template T
+ * @typedef {{[k in keyof T]: T[k] extends BinCodeable<infer U>? U : never}[keyof T]} EnumType
+ */
+
+/** 
+ * @template T
+ * @typedef {T extends infer U? {[k in keyof U]: U[k]} : never} Expand
+ */
+
+/**
+ * @template {{[k: number]: BinCodeable<any>}} T
  * @param {string} name
- * @param {(val: T) => number} toDiscriminant
- * @param {{[k: number]: BinCodeable<T>}} definitions
- * @returns {BinCodeable<T>}
+ * @param {(val: EnumType<T>) => number} toDiscriminant
+ * @param {T} definitions
+ * @returns {BinCodeable<EnumType<T>>}
  */
 export function Enum(name, toDiscriminant, definitions) {
   return {
@@ -165,7 +178,6 @@ export function Enum(name, toDiscriminant, definitions) {
 /**
  * @template T
  * @param {BinCodeable<T>} inner
- * @returns {BinCodeable<T | null>}
  */
 export function Option(inner) {
   return Enum('Option<' + inner.name + '>', x => x == null? 0 : 1, {
@@ -198,7 +210,7 @@ export function Lazy(makeBincodeable) {
   }
 }
 
-/** @type {BinCodeable<undefined>} */
+/** @type {BinCodeable<never>} */
 export const TODO = {
   name: 'TODO',
   encode(bc, num) {
@@ -216,7 +228,7 @@ export const Nothing = {
   decode(bc) {}
 }
 
-/** @type {BinCodeable<undefined>} */
+/** @type {BinCodeable<null>} */
 export const Null = {
   name: 'Null',
   encode(bc, num) {},
@@ -503,23 +515,24 @@ export function FixedBytes(length) {
   }
 }
 
-export const IdentityCreateTransitionSignable = Lazy(() => 
-  Enum('IdentityCreateTransitionSignable', x => 0, {
-    0: Struct('IdentityCreateTransitionV0Signable', {
-      $version: Constant('0'),
-      // // When signing, we don't sign the signatures for keys
-      // #[platform_signable(into = "Vec<IdentityPublicKeyInCreationSignable>")]
-      public_keys: Vec(IdentityPublicKeyInCreationSignable),
-      asset_lock_proof: RawAssetLockProof,
-      user_fee_increase: UserFeeIncrease,
-      // #[platform_signable(exclude_from_sig_hash)]
-      // signature: BinaryData,
-      // #[cfg_attr(feature = "state-transition-serde-conversion", serde(skip))]
-      // #[platform_signable(exclude_from_sig_hash)]
-      // identity_id: Identifier,
-    })
-  })
-)
+/**
+ * @template T
+ * @param {BinCodeable<T>} inner
+ * @returns {BinCodeable<T>}
+ */
+export function NotSignable(inner) {
+  return {
+    name: 'NotSignable<' + inner.name + '>',
+    encode(bc, value) {
+      if (!bc.options.signable)
+        inner.encode(bc, value);
+    },
+    decode(bc) {
+      if (!bc.options.signable)
+        return inner.decode(bc);
+    }
+  }
+}
 
 export const IdentityCreateTransition = Lazy(() => 
   Enum('IdentityCreateTransition', x => 0, {
@@ -531,10 +544,10 @@ export const IdentityCreateTransition = Lazy(() =>
       asset_lock_proof: RawAssetLockProof,
       user_fee_increase: UserFeeIncrease,
       // #[platform_signable(exclude_from_sig_hash)]
-      signature: BinaryData,
+      signature: NotSignable(BinaryData),
       // #[cfg_attr(feature = "state-transition-serde-conversion", serde(skip))]
       // #[platform_signable(exclude_from_sig_hash)]
-      identity_id: Identifier,
+      identity_id: NotSignable(Identifier),
     })
   })
 )
@@ -584,23 +597,7 @@ export const ContractBounds = Lazy(() =>
   })
 )
 
-export const IdentityPublicKeyInCreationSignable = Enum('IdentityPublicKeyInCreationSignable', x => x.$version, {
-  0: Struct('IdentityPublicKeyInCreationV0Signable', {
-    $version: Constant('0'),
-    id: KeyID,
-    type: KeyType,
-    purpose: Purpose,
-    security_level: SecurityLevel,
-    contract_bounds: Option(ContractBounds),
-    read_only: Bool,
-    data: BinaryData,
-    // /// The signature is needed for ECDSA_SECP256K1 Key type and BLS12_381 Key type
-    // #[platform_signable(exclude_from_sig_hash)]
-    // signature: BinaryData,
-  }),
-})
-
-export const IdentityPublicKeyInCreation = Enum('IdentityPublicKeyInCreation', x => x.$version, {
+export const IdentityPublicKeyInCreation = Enum('IdentityPublicKeyInCreation', x => +x.$version, {
   0: Struct('IdentityPublicKeyInCreationV0', {
     $version: Constant('0'),
     id: KeyID,
@@ -612,7 +609,7 @@ export const IdentityPublicKeyInCreation = Enum('IdentityPublicKeyInCreation', x
     data: BinaryData,
     // /// The signature is needed for ECDSA_SECP256K1 Key type and BLS12_381 Key type
     // #[platform_signable(exclude_from_sig_hash)]
-    signature: BinaryData,
+    signature: NotSignable(BinaryData),
   })
 })
 
@@ -733,26 +730,12 @@ export function toJsonCamelCase(value) {
   return JSON.stringify(value, jsonCamelCaseReplacer)
 }
 
-
-
-// TODO!
+// TODO: Implement all the other transitions
 export const StateTransition = Enum('StateTransition', x => 3, {
   // 0: DataContractCreateTransition, //DataContractCreate(DataContractCreateTransition),
   // 1: DataContractUpdateTransition, //DataContractUpdate(DataContractUpdateTransition),
   // 2: DocumentsBatchTransition, //DocumentsBatch(DocumentsBatchTransition),
   3: IdentityCreateTransition, //IdentityCreate(IdentityCreateTransition),
-  // 4: IdentityTopUpTransition, //IdentityTopUp(IdentityTopUpTransition),
-  // 5: IdentityCreditWithdrawalTransition, //IdentityCreditWithdrawal(IdentityCreditWithdrawalTransition),
-  // 6: IdentityUpdateTransition, //IdentityUpdate(IdentityUpdateTransition),
-  // 7: IdentityCreditTransferTransition, //IdentityCreditTransfer(IdentityCreditTransferTransition),
-  // 8: MasternodeVoteTransition, //MasternodeVote(MasternodeVoteTransition),
-})
-
-export const StateTransitionSignable = Enum('StateTransition', x => 3, {
-  // 0: DataContractCreateTransition, //DataContractCreate(DataContractCreateTransition),
-  // 1: DataContractUpdateTransition, //DataContractUpdate(DataContractUpdateTransition),
-  // 2: DocumentsBatchTransition, //DocumentsBatch(DocumentsBatchTransition),
-  3: IdentityCreateTransitionSignable, //IdentityCreate(IdentityCreateTransition),
   // 4: IdentityTopUpTransition, //IdentityTopUp(IdentityTopUpTransition),
   // 5: IdentityCreditWithdrawalTransition, //IdentityCreditWithdrawal(IdentityCreditWithdrawalTransition),
   // 6: IdentityUpdateTransition, //IdentityUpdate(IdentityUpdateTransition),
