@@ -11,7 +11,7 @@
     "fmt": "npm run prettier",
     "bump": "npm version -m \"chore(release): bump to v%s\"",
     "tsc": "npx -p typescript@5.x -- tsc -p ./jsconfig.json",
-    "reexport-types": "npx -p jswt@1.x -- reexport",
+    "reexport-types": "npx -p jswt@2.x -- reexport",
     "prepublish": "npm run reexport-types"
   },
   "keywords": [],
@@ -26,7 +26,9 @@
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
-    "dashtx": "^0.20.1",
+    "dashtx": "^0.20.1"
+  },
+  "devDependencies": {
     "vitest": "^2.0.5"
   }
 }
