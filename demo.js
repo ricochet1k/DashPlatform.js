@@ -5,7 +5,7 @@ let DashHd = require("dashhd");
 let DashKeys = require("dashkeys");
 let DashTx = require("dashtx");
 let DashPlatform = require("./dashplatform.js");
-let CBOR = require("cbor");
+let Bincode = require("./bincode.js");
 
 let KeyUtils = require("./key-utils.js");
 
@@ -20,7 +20,7 @@ let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
 
 const L1_VERSION_PLATFORM = 3;
 const TYPE_ASSET_LOCK = 8;
-const L2_VERSION_PLATFORM = 1;
+// const L2_VERSION_PLATFORM = 1; // actually constant "0" ??
 const ST_CREATE_IDENTITY = 2;
 
 let KEY_LEVELS = {
@@ -93,19 +93,23 @@ async function main() {
 
   let accountIndex = 0; // pick the desired account for paying the fee
   let addressIndex = 0; // pick an address with funds
-  let accountKey;
+  /** @type {import('dashhd').HDAccount} */ //@ts-expect-error
+  let accountKey = null;
+  /** @type {Required<import('dashhd').HDKey>} */ //@ts-expect-error
+  let addressKey = null;
+  let addr = "";
+  let pkh = "";
+  let wif = "";
   for (let a = 0; a <= accountIndex; a += 1) {
     accountKey = await walletKey.deriveAccount(a);
 
     for (let usage of [DashHd.RECEIVE, DashHd.CHANGE]) {
       let xprvKey = await accountKey.deriveXKey(usage);
 
-      let addressKey;
-      let addr;
-      let pkh;
-      let wif;
       for (let i = 0; i <= addressIndex; i += 1) {
-        addressKey = await xprvKey.deriveAddress(i);
+        let _addressKey = await xprvKey.deriveAddress(i);
+        /** @type {import('dashhd').HDKey} */ //@ts-expect-error
+        addressKey = _addressKey;
         if (!addressKey.privateKey) {
           throw new Error("not an error, just a lint hack");
         }
@@ -127,11 +131,12 @@ async function main() {
     }
   }
 
-  process.exit(1);
+  // process.exit(1);
 
   KeyUtils.set(addr, {
     address: addr,
     publicKey: addressKey.publicKey,
+    //@ts-expect-error - it's not null
     privateKey: addressKey.privateKey,
     pubKeyHash: pkh,
   });
@@ -179,23 +184,22 @@ async function main() {
   //   txSigned.transaction,
   // );
 
-  const INSTANT_ALP = 0;
-  const CHAIN_ALP = 1;
+  // const INSTANT_ALP = 0;
+  // const CHAIN_ALP = 1;
 
   let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
   let nextBlock = blockchaininfo.blocks + 1;
 
-  let fundingOutPointHex = await getFundingOutPointHex(
-    txSigned.transaction,
-    vout,
-  );
+  // TODO - AJ is here
+  let outpoint = await getFundingOutPointHex(txSigned.transaction, vout);
+  let fundingOutPointHex = `${outpoint.txid}${outpoint.voutHex}`;
   let identityId = createIdentityId(fundingOutPointHex);
 
   /** @param {any} magicZmqEmitter */
   async function getAssetLockInstantProof(magicZmqEmitter) {
     let assetLockInstantProof = {
-      type: INSTANT_ALP,
-      instantLock: await magicZmqEmitter.once(
+      // type: INSTANT_ALP,
+      instant_lock: await magicZmqEmitter.once(
         "zmqpubrawtxlocksig",
         /** @param {any} instantLock */
         function (instantLock) {
@@ -203,16 +207,20 @@ async function main() {
         },
       ),
       transaction: txSigned.transaction,
-      outputIndex: vout,
+      output_index: vout,
     };
     return assetLockInstantProof;
   }
 
   async function getAssetLockChainProof() {
     let assetLockChainProof = {
-      type: CHAIN_ALP,
-      coreChainLockedHeight: nextBlock,
-      outPoint: fundingOutPointHex,
+      // type: CHAIN_ALP,
+      core_chain_locked_height: nextBlock,
+      // out_point: fundingOutPointHex,
+      out_point: {
+        txid: outpoint.txid,
+        vout: vout,
+      },
     };
     return assetLockChainProof;
   }
@@ -229,13 +237,85 @@ async function main() {
   let identityKeys = await getIdentityKeys(walletKey, idIndex);
   let stKeys = await getIdentityTransitionKeys(identityKeys);
 
+  // {
+  //   '$version': '0',
+  //   public_keys: [
+  //     {
+  //       '$version': '0',
+  //       id: 0,
+  //       type: 0,
+  //       purpose: 0,
+  //       security_level: 0,
+  //       contract_bounds: null,
+  //       read_only: false,
+  //       data: [Uint8Array],
+  //       signature: [Uint8Array]
+  //     },
+  //     {
+  //       '$version': '0',
+  //       id: 1,
+  //       type: 0,
+  //       purpose: 0,
+  //       security_level: 1,
+  //       contract_bounds: null,
+  //       read_only: false,
+  //       data: [Uint8Array],
+  //       signature: [Uint8Array]
+  //     }
+  //   ],
+  //   asset_lock_proof: {
+  //     instant_lock: Uint8Array(198) [
+  //         1,   1,  29, 187, 218,  88,  97, 177,  45, 117,  35, 242,
+  //        10, 165, 224, 212,  47,  82, 222,  61, 205,  45,  92,  47,
+  //       233,  25, 186, 103, 181, 159,   5,  13,  32, 110,   0,   0,
+  //         0,   0,  88, 196,  68, 221,   9,  87, 118, 125, 178, 192,
+  //       173, 234, 105, 253, 134,  23, 146, 191, 167,  92, 126,  54,
+  //        77, 131, 254, 133, 190, 190, 188,  42,   8, 180,  54, 165,
+  //       102,  23,  89,  26, 106, 137,  35, 123, 173, 166, 175,  31,
+  //       155,  70, 235, 164, 123,  93, 137, 168, 196, 228, 159, 242,
+  //       208,  35,  97, 130,
+  //       ... 98 more items
+  //     ],
+  //     transaction: Uint8Array(158) [
+  //         0,   0,   8,   0,   1,  88, 132, 229, 219, 157, 226,  24,
+  //        35, 134, 113,  87,  35,  64, 178,   7, 238, 133, 182,  40,
+  //         7,  78, 126,  70, 112, 150, 194, 103,  38, 107, 175, 119,
+  //       164,   0,   0,   0,   0,  25, 118, 169,  20, 136, 217, 147,
+  //        30, 167,  61,  96, 234, 247, 229, 103,  30, 252,   5,  82,
+  //       185,  18, 145,  31,  42, 136, 172,   0,   0,   0,   0,   2,
+  //         0, 225, 245,   5,   0,   0,   0,   0,   2, 106,   0, 136,
+  //        19,   0,   0,   0,   0,   0,   0,  25, 118, 169,  20, 136,
+  //       217, 147,  30, 167,
+  //       ... 58 more items
+  //     ],
+  //     output_index: 0
+  //   },
+  //   user_fee_increase: 0,
+  //   signature: Uint8Array(65) [
+  //      31, 234,  28,  94,  59,  12, 146, 200, 208,  47, 213,
+  //      44,  71, 254,  95,  33,  90, 130, 141,   5, 195,  23,
+  //     169, 151, 164, 163,  65, 154,  23, 185,  38,  11, 151,
+  //      23, 204, 238,  38,   3, 191,  90, 228,  17, 187, 161,
+  //     171, 142,  29,  11, 188,  49, 203, 215,  61, 125, 111,
+  //     239, 205, 180, 254, 179,  70,  87, 178, 229,   9
+  //   ],
+  //   identity_id: Uint8Array(32) [
+  //      61, 201,   8,  89, 158, 248, 165, 163,
+  //     197,  16, 196,  48, 162, 125,  66,  17,
+  //     200,   5,  85, 109, 153, 229, 192, 111,
+  //     252,  60, 168, 106,  95, 235,  85, 195
+  //   ]
+  // }
+
   let stateTransition = {
-    protocolVersion: L2_VERSION_PLATFORM,
+    //protocolVersion: L2_VERSION_PLATFORM,
+    $version: "0",
     type: ST_CREATE_IDENTITY,
     // ecdsaSig(assetLockPrivateKey, CBOR(thisStateTransition))
     // "signature":"IBTTgge+/VDa/9+n2q3pb4tAqZYI48AX8X3H/uedRLH5dN8Ekh/sxRRQQS9LaOPwZSCVED6XIYD+vravF2dhYOE=",
-    assetLockProof: assetLockProof,
-    publicKeys: stKeys,
+    asset_lock_proof: assetLockProof,
+    // publicKeys: stKeys,
+    public_keys: stKeys,
     // [
     //   {
     //     id: 0,
@@ -246,20 +326,36 @@ async function main() {
     //     readOnly: false,
     //   },
     // ],
+    user_fee_increase: 0,
   };
   console.log(`stKeys:`);
   console.log(stKeys);
 
-  let cbor = CBOR.encodeCanonical(stateTransition);
-  console.log(`cbor:`);
-  console.log(DashTx.utils.bytesToHex(cbor));
-  console.log(bytesToBase64(cbor));
+  let bcAb = Bincode.encode(Bincode.StateTransition, stateTransition, {
+    signable: true,
+  });
+  let bc = new Uint8Array(bcAb);
+  console.log(`bc:`);
+  console.log(DashTx.utils.bytesToHex(bc));
+  console.log(bytesToBase64(bc));
 
-  let sigBytes = await KeyUtils.sign(addressKey.privateKey, cbor);
+  /** @type {Uint8Array} */ //@ts-expect-error
+  let privBytes = addressKey.privateKey;
+  let sigBytes = await KeyUtils.sign(privBytes, bc);
   let sigHex = DashTx.utils.bytesToHex(sigBytes);
   Object.assign(stateTransition, {
     signature: sigHex,
   });
+  for (let i = 0; i < identityKeys.length; i += 1) {
+    let key = identityKeys[i];
+    let stPub = stateTransition.public_keys[i];
+    let sigBytes = await KeyUtils.sign(key.privateKey, bc);
+    let sigHex = DashTx.utils.bytesToHex(sigBytes);
+    Object.assign(stPub, {
+      signature: sigHex,
+    });
+  }
+
   console.log(JSON.stringify(stateTransition, null, 2));
 
   // let identityId = assetLockProof.createIdentifier();
@@ -285,8 +381,7 @@ async function getFundingOutPointHex(txSignedHex, outputIndex) {
   let txidBE = DashTx.utils.bytesToHex(txidBytes);
   let voutLE = DashTx.utils.toUint32LE(outputIndex);
 
-  let fundingOutPointHex = `${txidBE}${voutLE}`;
-  return fundingOutPointHex;
+  return { txid: txidBE, voutHex: voutLE, vout: outputIndex };
 }
 
 /**
@@ -347,13 +442,15 @@ async function getIdentityKeys(walletKey, idIndex) {
     },
   ];
 
+  let privKeyDescs = [];
   for (let keyDesc of keyDescs) {
     let key = await DashHd.deriveChild(
       identityKey,
       keyDesc.id,
       DashHd.HARDENED,
     );
-    Object.assign(keyDesc, key);
+    let privKeyDesc = Object.assign(keyDesc, key);
+    privKeyDescs.push(privKeyDesc); // for type info
 
     // let dppKey = new WasmDpp.IdentityPublicKey(L2_VERSION_PLATFORM);
     // dppKey.setId(keyDesc.id);
@@ -365,7 +462,7 @@ async function getIdentityKeys(walletKey, idIndex) {
     // dppKeys.push(dppKey);
   }
 
-  return keyDescs;
+  return privKeyDescs;
 }
 
 /**
@@ -397,16 +494,20 @@ function getIdentityTransitionKeys(identityKeys) {
   for (let key of identityKeys) {
     let data = bytesToBase64(key.publicKey);
     let stKey = {
+      $version: "0",
       id: key.id,
       type: key.type,
       purpose: key.purpose,
-      securityLevel: key.securityLevel,
-      data: data,
+      security_level: key.securityLevel,
+      contract_bounds: null,
       // readOnly: key.readOnly,
+      read_only: key.readOnly || false,
+      data: data,
+      // signature: "TODO",
     };
-    if ("readOnly" in key) {
-      Object.assign(stKey, { readOnly: key.readOnly });
-    }
+    // if ("readOnly" in key) {
+    //   Object.assign(stKey, { readOnly: key.readOnly });
+    // }
     stKeys.push(stKey);
   }
   return stKeys;
