@@ -18,6 +18,7 @@
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
+    "@dashevo/dapi-client": "^1.1.1",
     "@dashevo/dapi-grpc": "^1.1.1",
     "@dashevo/wasm-dpp": "^1.1.1",
     "@dashincubator/secp256k1": "^1.7.1-5",
