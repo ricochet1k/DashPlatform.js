@@ -335,28 +335,41 @@ async function main() {
     signable: true,
   });
   let bc = new Uint8Array(bcAb);
-  console.log(`bc:`);
+  console.log(`bc (ready-to-sign):`);
   console.log(DashTx.utils.bytesToHex(bc));
   console.log(bytesToBase64(bc));
 
   /** @type {Uint8Array} */ //@ts-expect-error
   let privBytes = addressKey.privateKey;
   let sigBytes = await KeyUtils.sign(privBytes, bc);
-  let sigHex = DashTx.utils.bytesToHex(sigBytes);
+  // let sigHex = DashTx.utils.bytesToHex(sigBytes);
   Object.assign(stateTransition, {
-    signature: sigHex,
+    identity_id: identityId,
+    // signature: sigHex,
+    signature: sigBytes,
   });
   for (let i = 0; i < identityKeys.length; i += 1) {
     let key = identityKeys[i];
     let stPub = stateTransition.public_keys[i];
     let sigBytes = await KeyUtils.sign(key.privateKey, bc);
-    let sigHex = DashTx.utils.bytesToHex(sigBytes);
+    // let sigHex = DashTx.utils.bytesToHex(sigBytes);
     Object.assign(stPub, {
-      signature: sigHex,
+      // signature: sigHex,
+      signature: sigBytes,
     });
   }
 
   console.log(JSON.stringify(stateTransition, null, 2));
+
+  {
+    let bcAb = Bincode.encode(Bincode.StateTransition, stateTransition, {
+      signable: false,
+    });
+    let bc = new Uint8Array(bcAb);
+    console.log(`bc (signed):`);
+    console.log(DashTx.utils.bytesToHex(bc));
+    console.log(bytesToBase64(bc));
+  }
 
   // let identityId = assetLockProof.createIdentifier();
   // let identity = Dpp.identity.create(identityId, dppKeys);
@@ -390,8 +403,9 @@ async function getFundingOutPointHex(txSignedHex, outputIndex) {
 function createIdentityId(fundingOutPointHex) {
   let fundingOutPointBytes = DashTx.utils.hexToBytes(fundingOutPointHex);
   let identityHashBytes = DashTx.doubleSha256(fundingOutPointBytes);
-  let identityId = b58.encode(identityHashBytes);
-  return identityId;
+  // let identityId = b58.encode(identityHashBytes);
+  // return identityId;
+  return identityHashBytes;
 }
 
 /**

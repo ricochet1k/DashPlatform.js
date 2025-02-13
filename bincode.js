@@ -137,7 +137,7 @@ export function Struct(name, inner) {
     name,
     encode(bc, val) {
       for (const innerKey in inner) {
-        console.log(`DEBUG`, name);
+        console.log(`DEBUG Struct ${name}:`, innerKey);
         // const startIdx = bc.idx;
         inner[innerKey].encode(bc, val[innerKey]);
         // console.log('DEBUG:', 'encode', name + '.' + innerKey, '=', val[innerKey], 'at', startIdx, toHex(bc.dataview.buffer.slice(startIdx, bc.idx)));
@@ -524,7 +524,7 @@ export function FixedBytes(length) {
     encode(bc, val) {
       let idx = bc._idxThenAddExtend(length);
       let bytes = new Uint8Array(bc.dataview.buffer);
-        console.log(`DEBUG val, idx`, val, idx);
+      console.log(`DEBUG val, idx`, val, idx);
       bytes.set(val, idx);
     },
     decode(bc) {
@@ -543,10 +543,15 @@ export function NotSignable(inner) {
   return {
     name: "NotSignable<" + inner.name + ">",
     encode(bc, value) {
-      if (!bc.options.signable) inner.encode(bc, value);
+      console.log(`DEBUG NotSignable<${inner.name}>`, bc, value);
+      if (!bc.options.signable) {
+        inner.encode(bc, value);
+      }
     },
     decode(bc) {
-      if (!bc.options.signable) return inner.decode(bc);
+      if (!bc.options.signable) {
+        return inner.decode(bc);
+      }
     },
   };
 }
