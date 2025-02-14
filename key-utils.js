@@ -11,7 +11,7 @@ let Secp256k1 = require("@dashincubator/secp256k1");
 
 /**
  * @callback KeySet
- * @param {String} id
+ * @param {String} id - typically address
  * @param {KeyInfo} keyInfo
  */
 
@@ -37,7 +37,11 @@ KeyUtils.set = function (id, keyInfo) {
 };
 
 KeyUtils.sign = async function (privKeyBytes, hashBytes) {
-  let sigOpts = { canonical: true, extraEntropy: true };
+  let testing = true;
+  let sigOpts = { canonical: true };
+  if (!testing) {
+    Object.assign({ extraEntropy: true });
+  }
   let sigBytes = await Secp256k1.sign(hashBytes, privKeyBytes, sigOpts);
   return sigBytes;
 };
