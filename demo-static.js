@@ -226,7 +226,7 @@ async function main() {
 
   // TODO - AJ is here
   console.log(`DEBUG funding outpoint`);
-  let outpoint = await getFundingOutPointHex(txSigned.transaction, vout);
+  let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
   console.log(outpoint);
   let fundingOutPointHex = `${outpoint.txid}${outpoint.voutHex}`;
   console.log(fundingOutPointHex);
@@ -397,7 +397,10 @@ async function main() {
   console.log(DashTx.utils.bytesToHex(bc));
   console.log(bytesToBase64(bc));
 
-  let sigBytes = await KeyUtils.sign(assetLockPrivateKey, bc);
+  let sigBytes = new Uint8Array(65);
+  sigBytes[0] = 0x1f;
+  let p1363Bytes = sigBytes.subarray(1);
+  void (await KeyUtils.signP1363(assetLockPrivateKey, bc, p1363Bytes));
   // let sigHex = DashTx.utils.bytesToHex(sigBytes);
   Object.assign(stateTransition, {
     identity_id: identityId,
@@ -407,7 +410,12 @@ async function main() {
   for (let i = 0; i < identityKeys.length; i += 1) {
     let key = identityKeys[i];
     let stPub = stateTransition.public_keys[i];
-    let sigBytes = await KeyUtils.sign(key.privateKey, bc);
+    let sigBytes = new Uint8Array(65);
+    let p1363Bytes = sigBytes.subarray(1);
+    // This isn't ASN.1, P1363, or SEC1.
+    // Not sure what it is (possibly bespoke), but 1f seems to be a magic byte
+    sigBytes[0] = 0x1f;
+    void (await KeyUtils.signP1363(key.privateKey, bc, p1363Bytes));
     // let sigHex = DashTx.utils.bytesToHex(sigBytes);
     Object.assign(stPub, {
       // signature: sigHex,
@@ -444,7 +452,7 @@ async function main() {
  * @param {Hex} txSignedHex
  * @param {Uint32} outputIndex
  */
-async function getFundingOutPointHex(txSignedHex, outputIndex) {
+async function getFundingOutPoint(txSignedHex, outputIndex) {
   let txBytes = DashTx.utils.hexToBytes(txSignedHex);
   let txidBytes = await DashTx.doubleSha256(txBytes);
   let txidBE = DashTx.utils.bytesToHex(txidBytes);
