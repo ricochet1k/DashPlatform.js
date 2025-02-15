@@ -199,11 +199,18 @@ async function main() {
   // txDraft.outputs.sort(DashTx.sortOutputs);
   let vout = txDraft.outputs.indexOf(burnOutput);
 
+  let txProof = DashTx.createRaw(txDraft);
+  txProof.inputs[0].script =
+    "76a91488d9931ea73d60eaf7e5671efc0552b912911f2a88ac";
+  txProof.inputs[0].sequence = "00000000"; // Non-final DashTx.NON_FINAL = "00000000"
+  //@ts-expect-error
+  let txProofHex = await DashTx.serialize(txProof, null);
+  console.log(`txProof:`, txProof);
+  console.log(txProofHex);
   let txSigned = await dashTx.hashAndSignAll(txDraft);
-  console.log();
-  console.log(`txSigned:`);
-  console.log(txSigned);
-  process.exit(1);
+  // console.log();
+  // console.log(`txSigned:`);
+  // console.log(txSigned);
 
   // let txid = await DashTx.utils.rpc(
   //   rpcAuthUrl,
@@ -214,26 +221,43 @@ async function main() {
   // const INSTANT_ALP = 0;
   // const CHAIN_ALP = 1;
 
-  let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
-  let nextBlock = blockchaininfo.blocks + 1;
+  // let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
+  // let nextBlock = blockchaininfo.blocks + 1;
 
   // TODO - AJ is here
+  console.log(`DEBUG funding outpoint`);
   let outpoint = await getFundingOutPointHex(txSigned.transaction, vout);
+  console.log(outpoint);
   let fundingOutPointHex = `${outpoint.txid}${outpoint.voutHex}`;
-  let identityId = createIdentityId(fundingOutPointHex);
+  console.log(fundingOutPointHex);
+  let identityId = await createIdentityId(fundingOutPointHex);
+  console.log(identityId);
 
   /** @param {any} magicZmqEmitter */
   async function getAssetLockInstantProof(magicZmqEmitter) {
     let assetLockInstantProof = {
       // type: INSTANT_ALP,
-      instant_lock: await magicZmqEmitter.once(
-        "zmqpubrawtxlocksig",
-        /** @param {any} instantLock */
-        function (instantLock) {
-          return instantLock.toBase64();
-        },
-      ),
-      transaction: txSigned.transaction,
+      // ex: 01 v1
+      //     01 1 input
+      //     1dbbda5861b12d7523f20aa5e0d42f52de3dcd2d5c2fe919ba67b59f050d206e prev txid
+      //     00000000                                                         prev vout
+      //     58c444dd0957767db2c0adea69fd861792bfa75c7e364d83fe85bebebc2a08b4 txid
+      //     36a56617591a6a89237bada6af1f9b46eba47b5d89a8c4e49ff2d0236182307c cycle hash
+      //     8967c46529a967b3822e1ba8a173066296d02593f0f59b3a LLMQ BLS Sig
+      //     78a30a7eef9c8a120847729e62e4a32954339286b79fe759
+      //     0221331cd28d576887a263f45b595d499272f656c3f51769
+      //     87c976239cac16f972d796ad82931d532102a4f95eec7d80
+      // instant_lock: await magicZmqEmitter.once(
+      //   "zmqpubrawtxlocksig",
+      //   /** @param {any} instantLock */
+      //   function (instantLock) {
+      //     return instantLock.toBase64();
+      //   },
+      // ),
+      // not sure what "previous outpoint" this refers to, as its not the one in the transaction
+      instant_lock:
+        "01011dbbda5861b12d7523f20aa5e0d42f52de3dcd2d5c2fe919ba67b59f050d206e0000000058c444dd0957767db2c0adea69fd861792bfa75c7e364d83fe85bebebc2a08b436a56617591a6a89237bada6af1f9b46eba47b5d89a8c4e49ff2d0236182307c8967c46529a967b3822e1ba8a173066296d02593f0f59b3a78a30a7eef9c8a120847729e62e4a32954339286b79fe7590221331cd28d576887a263f45b595d499272f656c3f5176987c976239cac16f972d796ad82931d532102a4f95eec7d80",
+      transaction: txProofHex,
       output_index: vout,
     };
     return assetLockInstantProof;
@@ -253,15 +277,19 @@ async function main() {
   }
 
   let assetLockProof;
-  let weEvenKnowHowToGetIsdlock = false;
+  let weEvenKnowHowToGetIsdlock = true;
   if (weEvenKnowHowToGetIsdlock) {
     assetLockProof = await getAssetLockInstantProof(null);
   } else {
     assetLockProof = await getAssetLockChainProof();
   }
 
-  let idIndex = 0; // increment to first unused
-  let identityKeys = await getIdentityKeys(walletKey, idIndex);
+  // let idIndex = 0; // increment to first unused
+  // let identityKeys = await getIdentityKeys(walletKey, idIndex);
+  let identityKeys = await getKnownIdentityKeys(
+    { privateKey: masterPrivateKey, publicKey: masterPublicKey },
+    { privateKey: otherPrivateKey, publicKey: otherPublicKey },
+  );
   let stKeys = await getIdentityTransitionKeys(identityKeys);
 
   // {
@@ -366,9 +394,7 @@ async function main() {
   console.log(DashTx.utils.bytesToHex(bc));
   console.log(bytesToBase64(bc));
 
-  /** @type {Uint8Array} */ //@ts-expect-error
-  let privBytes = addressKey.privateKey;
-  let sigBytes = await KeyUtils.sign(privBytes, bc);
+  let sigBytes = await KeyUtils.sign(assetLockPrivateKey, bc);
   // let sigHex = DashTx.utils.bytesToHex(sigBytes);
   Object.assign(stateTransition, {
     identity_id: identityId,
@@ -436,74 +462,64 @@ function createIdentityId(fundingOutPointHex) {
 }
 
 /**
- * @param {DashHd.HDKey} walletKey
- * @param {Uint53} idIndex
+ * @param {Required<Pick<DashHd.HDXKey, "privateKey"|"publicKey">>} masterKey
+ * @param {Required<Pick<DashHd.HDXKey, "privateKey"|"publicKey">>} otherKey
  * @returns {Promise<Array<EvoKey>>}
  */
-async function getIdentityKeys(walletKey, idIndex) {
-  let identityEcdsaKey = await DashHd.derivePath(walletKey, identityEcdsaPath);
-  let identityKey = await DashHd.deriveChild(
-    identityEcdsaKey,
-    idIndex,
-    DashHd.HARDENED,
-  );
-
+async function getKnownIdentityKeys(masterKey, otherKey) {
+  if (!masterKey.privateKey) {
+    throw new Error("linter fail");
+  }
+  if (!otherKey.privateKey) {
+    throw new Error("linter fail");
+  }
   let keyDescs = [
+    // {"$version":"0","id":0,"purpose":0,"securityLevel":0,"contractBounds":null,"type":0,"readOnly":false,"data":[3,58,154,139,30,76,88,26,25,135,114,76,102,151,19,93,49,192,126,231,172,130,126,106,89,206,192,34,176,77,81,5,95],"disabledAt":null}
     {
       id: 0,
       type: KEY_TYPES.ECDSA_SECP256K1,
       purpose: KEY_PURPOSES.AUTHENTICATION,
-      data: "",
       securityLevel: KEY_LEVELS.MASTER,
-      // readOnly: false,
+      readOnly: false,
+      publicKey: masterKey.publicKey,
+      privateKey: masterKey.privateKey,
+      data: "",
     },
+    // {"$version":"0","id":1,"purpose":0,"securityLevel":1,"contractBounds":null,"type":0,"readOnly":false,"data":[2,1,70,3,1,141,196,55,100,45,218,22,244,199,252,80,228,130,221,35,226,70,128,188,179,165,150,108,59,52,56,72,226],"disabledAt":null}
     {
       id: 1,
       type: KEY_TYPES.ECDSA_SECP256K1,
       purpose: KEY_PURPOSES.AUTHENTICATION,
-      data: "",
-      securityLevel: KEY_LEVELS.HIGH,
-      // readOnly: false,
-    },
-    {
-      id: 2,
-      type: KEY_TYPES.ECDSA_SECP256K1,
-      purpose: KEY_PURPOSES.AUTHENTICATION,
-      data: "",
       securityLevel: KEY_LEVELS.CRITICAL,
-      // readOnly: false,
-    },
-    {
-      id: 3,
-      type: KEY_TYPES.ECDSA_SECP256K1,
-      purpose: KEY_PURPOSES.TRANSFER,
+      readOnly: false,
+      privateKey: otherKey.privateKey,
+      publicKey: otherKey.publicKey,
       data: "",
-      securityLevel: KEY_LEVELS.CRITICAL,
-      // readOnly: false,
     },
   ];
+  return keyDescs;
 
-  let privKeyDescs = [];
-  for (let keyDesc of keyDescs) {
-    let key = await DashHd.deriveChild(
-      identityKey,
-      keyDesc.id,
-      DashHd.HARDENED,
-    );
-    let privKeyDesc = Object.assign(keyDesc, key);
-    privKeyDescs.push(privKeyDesc); // for type info
+  // let privKeyDescs = [];
+  // for (let keyDesc of keyDescs) {
+  //   let key = await DashHd.deriveChild(
+  //     identityKey,
+  //     keyDesc.id,
+  //     DashHd.HARDENED,
+  //   );
+  //   let privKeyDesc = Object.assign(keyDesc, key);
+  //   privKeyDescs.push(privKeyDesc); // for type info
 
-    // let dppKey = new WasmDpp.IdentityPublicKey(L2_VERSION_PLATFORM);
-    // dppKey.setId(keyDesc.id);
-    // dppKey.setData(key.publicKey);
-    // if (keyDesc.purpose) {
-    //   dppKey.setPurpose(keyDesc.purpose);
-    // }
-    // dppKey.setSecurityLevel(keyDesc.securityLevel);
-    // dppKeys.push(dppKey);
-  }
+  //   let dppKey = new WasmDpp.IdentityPublicKey(L2_VERSION_PLATFORM);
+  //   dppKey.setId(keyDesc.id);
+  //   dppKey.setData(key.publicKey);
+  //   if (keyDesc.purpose) {
+  //     dppKey.setPurpose(keyDesc.purpose);
+  //   }
+  //   dppKey.setSecurityLevel(keyDesc.securityLevel);
+  //   dppKeys.push(dppKey);
+  // }
 
-  return privKeyDescs;
+  // return privKeyDescs;
 }
 
 /**
