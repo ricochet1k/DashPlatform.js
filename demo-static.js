@@ -255,9 +255,11 @@ async function main() {
       //   },
       // ),
       // not sure what "previous outpoint" this refers to, as its not the one in the transaction
-      instant_lock:
+      instant_lock: DashTx.utils.hexToBytes(
         "01011dbbda5861b12d7523f20aa5e0d42f52de3dcd2d5c2fe919ba67b59f050d206e0000000058c444dd0957767db2c0adea69fd861792bfa75c7e364d83fe85bebebc2a08b436a56617591a6a89237bada6af1f9b46eba47b5d89a8c4e49ff2d0236182307c8967c46529a967b3822e1ba8a173066296d02593f0f59b3a78a30a7eef9c8a120847729e62e4a32954339286b79fe7590221331cd28d576887a263f45b595d499272f656c3f5176987c976239cac16f972d796ad82931d532102a4f95eec7d80",
-      transaction: txProofHex,
+      ),
+      transaction: DashTx.utils.hexToBytes(txProofHex),
+      // output_index: DashTx.utils.hexToBytes(vout),
       output_index: vout,
     };
     return assetLockInstantProof;
@@ -389,6 +391,7 @@ async function main() {
   let bcAb = Bincode.encode(Bincode.StateTransition, stateTransition, {
     signable: true,
   });
+  console.log(`bc (ready-to-sign) AB:`, bcAb);
   let bc = new Uint8Array(bcAb);
   console.log(`bc (ready-to-sign):`);
   console.log(DashTx.utils.bytesToHex(bc));
@@ -549,7 +552,7 @@ async function getKnownIdentityKeys(masterKey, otherKey) {
 function getIdentityTransitionKeys(identityKeys) {
   let stKeys = [];
   for (let key of identityKeys) {
-    let data = bytesToBase64(key.publicKey);
+    // let data = bytesToBase64(key.publicKey);
     let stKey = {
       $version: "0",
       id: key.id,
@@ -559,7 +562,8 @@ function getIdentityTransitionKeys(identityKeys) {
       contract_bounds: null,
       // readOnly: key.readOnly,
       read_only: key.readOnly || false,
-      data: data,
+      // data: data,
+      data: key.publicKey,
       // signature: "TODO",
     };
     // if ("readOnly" in key) {
