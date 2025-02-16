@@ -26,7 +26,7 @@
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
-    "dashtx": "^0.20.1"
+    "dashtx": "^0.20.3"
   },
   "devDependencies": {
     "vitest": "^2.0.5"
