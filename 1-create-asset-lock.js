@@ -173,6 +173,9 @@ async function main() {
   console.log(txSigned.transaction);
 
   console.log();
+  console.log(`IMPORTANT: before broadcast, listen to 'rawtxlocksig' on https://tzmq.digitalcash.dev`);
+
+  console.log();
   console.log(`Funding Outpoint Info`);
   let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
   console.log(outpoint);
