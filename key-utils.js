@@ -7,6 +7,7 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  * @typedef KeyUtilsPartial
  * @prop {KeySet} set
  * @prop {KeySignAsn1} signAsn1
+ * @prop {KeySignEth} signEth
  * @prop {KeySignP1363} signP1363
  * @prop {ASN1ToP1363Signature} asn1ToP1363Signature
  */
@@ -20,6 +21,13 @@ let Secp256k1 = require("@dashincubator/secp256k1");
 
 /**
  * @callback KeySignAsn1
+ * @param {Uint8Array} privateKey
+ * @param {Uint8Array} hashBytes
+ * @returns {Promise<Uint8Array>}
+ */
+
+/**
+ * @callback KeySignEth
  * @param {Uint8Array} privateKey
  * @param {Uint8Array} hashBytes
  * @returns {Promise<Uint8Array>}
@@ -76,13 +84,32 @@ KeyUtils.signAsn1 = async function (privKeyBytes, hashBytes) {
   return sigBytes;
 };
 
+KeyUtils.signEth = async function (privKeyBytes, hashBytes) {
+  let ETH_OFFSET = 27; // maybe the right number... maybe not
+  let testing = true;
+  let sigOpts = { canonical: true, der: false, recovered: true };
+  if (!testing) {
+    Object.assign({ extraEntropy: true });
+  }
+  let recoverySig = await Secp256k1.sign(hashBytes, privKeyBytes, sigOpts);
+  let ethSig = new Uint8Array(65);
+  let recovery = ETH_OFFSET + recoverySig[1];
+  ethSig[0] = recovery;
+  ethSig.set(recoverySig[0], 1);
+  // console.log(`DEBUG [SIGNATURE] rawBytes:`);
+  // console.log(recoverySig[0]);
+  // console.log(`DEBUG [RECOVERY] rawBytes:`);
+  // console.log(recoverySig[1]);
+  return ethSig;
+};
+
 KeyUtils.signP1363 = async function (privKeyBytes, hashBytes, sigBytes) {
   let asn1Bytes = await KeyUtils.signAsn1(privKeyBytes, hashBytes);
   let p1363Bytes = KeyUtils.asn1ToP1363Signature(asn1Bytes, sigBytes);
   // TODO DEBUG TESTING
-  for (let i = 0; i < p1363Bytes.length; i += 1) {
-    p1363Bytes[i] = 0xff;
-  }
+  // for (let i = 0; i < p1363Bytes.length; i += 1) {
+  //   p1363Bytes[i] = 0xff;
+  // }
   return p1363Bytes;
 };
 
