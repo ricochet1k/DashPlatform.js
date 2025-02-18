@@ -8,6 +8,7 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  * @prop {KeySet} set
  * @prop {KeySignAsn1} signAsn1
  * @prop {KeySignMagic} magicSign
+ * @prop {DoubleSHA256} doubleSha256
  * @prop {KeySignP1363} signP1363
  * @prop {ASN1ToP1363Signature} asn1ToP1363Signature
  */
@@ -23,6 +24,12 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  * @callback KeySignAsn1
  * @param {Uint8Array} privateKey
  * @param {Uint8Array} hashBytes
+ * @returns {Promise<Uint8Array>}
+ */
+
+/**
+ * @callback DoubleSHA256
+ * @param {Uint8Array} dataBytes
  * @returns {Promise<Uint8Array>}
  */
 
@@ -84,6 +91,21 @@ KeyUtils.signAsn1 = async function (privKeyBytes, hashBytes) {
   let sigBytes = await Secp256k1.sign(hashBytes, privKeyBytes, sigOpts);
   return sigBytes;
 };
+
+KeyUtils.doubleSha256 = async function (bytes) {
+  let firstHash = await sha256(bytes);
+  let secondHash = await sha256(firstHash);
+  return secondHash;
+};
+
+/**
+ * @param {Uint8Array} bytes
+ */
+async function sha256(bytes) {
+  let hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
+  let hashBytes = new Uint8Array(hashBuffer);
+  return hashBytes;
+}
 
 KeyUtils.magicSign = async function ({ privKeyBytes, doubleSha256Bytes }) {
   if (doubleSha256Bytes?.length !== 32) {
