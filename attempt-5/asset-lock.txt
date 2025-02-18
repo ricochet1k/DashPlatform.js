@@ -1,0 +1,83 @@
+
+funding utxos (100200000)
+[
+  {
+    address: 'yT2BsoURRGJuAei4vbtFd9gXyyoSQqv1fs',
+    txid: '1bb692302eb1451f9e63a48a61e40ed9c6ce2f312a106f8b648de309c0b4d741',
+    outputIndex: 0,
+    script: '76a91449854f8f4aff67d0a93f85b6c65ec5432b28160a88ac',
+    satoshis: 100200000,
+    height: 1198392,
+    squence: '00000000'
+  }
+]
+
+Transaction Draft:
+{
+  version: 3,
+  type: 8,
+  inputs: [
+    {
+      address: 'yT2BsoURRGJuAei4vbtFd9gXyyoSQqv1fs',
+      txid: '1bb692302eb1451f9e63a48a61e40ed9c6ce2f312a106f8b648de309c0b4d741',
+      outputIndex: 0,
+      script: '76a91449854f8f4aff67d0a93f85b6c65ec5432b28160a88ac',
+      satoshis: 100200000,
+      height: 1198392,
+      squence: '00000000'
+    }
+  ],
+  outputs: [
+    { memo: '', satoshis: 100000000 },
+    {
+      satoshis: 199500,
+      pubKeyHash: 'a9b38b549bdc5f97d04c75ed9d6767a33009ea35'
+    }
+  ],
+  extraPayload: '010100e1f505000000001976a914170456c6faa654020b71806a78fdbbcde166685788ac'
+}
+
+Transaction Proof:
+{
+  version: 3,
+  type: 8,
+  inputs: [
+    {
+      txid: '1bb692302eb1451f9e63a48a61e40ed9c6ce2f312a106f8b648de309c0b4d741',
+      txId: '1bb692302eb1451f9e63a48a61e40ed9c6ce2f312a106f8b648de309c0b4d741',
+      outputIndex: 0,
+      script: '76a91449854f8f4aff67d0a93f85b6c65ec5432b28160a88ac',
+      sequence: '00000000'
+    }
+  ],
+  outputs: [
+    { memo: '', satoshis: 100000000 },
+    {
+      satoshis: 199500,
+      pubKeyHash: 'a9b38b549bdc5f97d04c75ed9d6767a33009ea35'
+    }
+  ],
+  extraPayload: '010100e1f505000000001976a914170456c6faa654020b71806a78fdbbcde166685788ac'
+}
+
+Transaction Proof Hex:
+030008000141d7b4c009e38d648b6f102a312fcec6d90ee4618aa4639e1f45b12e3092b61b000000001976a91449854f8f4aff67d0a93f85b6c65ec5432b28160a88ac000000000200e1f50500000000026a004c0b0300000000001976a914a9b38b549bdc5f97d04c75ed9d6767a33009ea3588ac0000000024010100e1f505000000001976a914170456c6faa654020b71806a78fdbbcde166685788ac
+
+Ready-to-Broadcast (Signed) Transaction:
+('sendrawtransaction' via https://rpc.digitalcash.dev or https://trpc.digitalcash.dev)
+030008000141d7b4c009e38d648b6f102a312fcec6d90ee4618aa4639e1f45b12e3092b61b000000006a47304402204d15cdd582cf3f1904b83658f18353116266d4f9f34159cb2ba366f5f8a533a9022009dc7a2b5218e37afa41b224e030890987ddf73d28a0f51d5663c7353546a2ac8121038c01933fc48e566c8a440d40149d3d67a0e94a4a4a1bfd96eb2a1991b744a6a9ffffffff0200e1f50500000000026a004c0b0300000000001976a914a9b38b549bdc5f97d04c75ed9d6767a33009ea3588ac0000000024010100e1f505000000001976a914170456c6faa654020b71806a78fdbbcde166685788ac
+
+IMPORTANT: before broadcast, listen to 'rawtxlocksig' on https://tzmq.digitalcash.dev
+
+Funding Outpoint Info
+{
+  txid: 'f0df171a95299819b00a5871ba0d6a28ee09446f5021c777d1bfd94f02bcbc17',
+  voutHex: '00000000',
+  vout: 0
+}
+
+Funding Outpoint Hex
+f0df171a95299819b00a5871ba0d6a28ee09446f5021c777d1bfd94f02bcbc1700000000
+
+Identity Id Hex
+70e03d1f6f2ac161466ecbf29d7373c158d46ec55d7b700ff99437b35e89d030
