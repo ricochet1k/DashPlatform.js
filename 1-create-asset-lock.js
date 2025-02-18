@@ -97,11 +97,11 @@ async function main() {
   let assetWif = await readWif("./asset.wif");
   let assetInfo = await wifToInfo(assetWif, "testnet");
 
-  let masterWif = await readWif("./master.wif");
-  let masterInfo = await wifToInfo(masterWif, "testnet");
+  // let masterWif = await readWif("./master.wif");
+  // let masterInfo = await wifToInfo(masterWif, "testnet");
 
-  let otherWif = await readWif("./other.wif");
-  let otherInfo = await wifToInfo(otherWif, "testnet");
+  // let otherWif = await readWif("./other.wif");
+  // let otherInfo = await wifToInfo(otherWif, "testnet");
 
   let fundingUtxos = await DashTx.utils.rpc(rpcAuthUrl, "getaddressutxos", {
     addresses: [fundingInfo.address],
@@ -147,8 +147,9 @@ async function main() {
   console.log(`Transaction Draft:`);
   console.log(txDraft);
 
-  txDraft.inputs.sort(DashTx.sortInputs);
-  txDraft.outputs.sort(DashTx.sortOutputs);
+  // to guarantee order
+  // txDraft.inputs.sort(DashTx.sortInputs);
+  // txDraft.outputs.sort(DashTx.sortOutputs);
   let vout = txDraft.outputs.indexOf(burnOutput);
 
   console.log();
@@ -173,7 +174,9 @@ async function main() {
   console.log(txSigned.transaction);
 
   console.log();
-  console.log(`IMPORTANT: before broadcast, listen to 'rawtxlocksig' on https://tzmq.digitalcash.dev`);
+  console.log(
+    `IMPORTANT: before broadcast, listen to 'rawtxlocksig' on https://tzmq.digitalcash.dev`,
+  );
 
   console.log();
   console.log(`Funding Outpoint Info`);
