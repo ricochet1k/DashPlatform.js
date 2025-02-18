@@ -7,7 +7,7 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  * @typedef KeyUtilsPartial
  * @prop {KeySet} set
  * @prop {KeySignAsn1} signAsn1
- * @prop {KeySignEth} signEth
+ * @prop {KeySignMagic} magicSign
  * @prop {KeySignP1363} signP1363
  * @prop {ASN1ToP1363Signature} asn1ToP1363Signature
  */
@@ -27,9 +27,10 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  */
 
 /**
- * @callback KeySignEth
- * @param {Uint8Array} privateKey
- * @param {Uint8Array} hashBytes
+ * @callback KeySignMagic
+ * @param {Object} opts
+ * @param {Uint8Array} opts.privKeyBytes
+ * @param {Uint8Array} opts.doubleSha256Bytes
  * @returns {Promise<Uint8Array>}
  */
 
@@ -84,23 +85,27 @@ KeyUtils.signAsn1 = async function (privKeyBytes, hashBytes) {
   return sigBytes;
 };
 
-KeyUtils.signEth = async function (privKeyBytes, hashBytes) {
-  let ETH_OFFSET = 27; // maybe the right number... maybe not
+KeyUtils.magicSign = async function ({ privKeyBytes, doubleSha256Bytes }) {
+  if (doubleSha256Bytes?.length !== 32) {
+    throw new Error(`'doubleSha256Bytes' must be a 32-byte double sha256 hash`);
+  }
+
+  let MAGIC_OFFSET = 27 + 4; // 27 because bitcoin, 4 because "compressed" key
   let testing = true;
   let sigOpts = { canonical: true, der: false, recovered: true };
   if (!testing) {
     Object.assign({ extraEntropy: true });
   }
-  let recoverySig = await Secp256k1.sign(hashBytes, privKeyBytes, sigOpts);
-  let ethSig = new Uint8Array(65);
-  let recovery = ETH_OFFSET + recoverySig[1];
-  ethSig[0] = recovery;
-  ethSig.set(recoverySig[0], 1);
-  // console.log(`DEBUG [SIGNATURE] rawBytes:`);
-  // console.log(recoverySig[0]);
-  // console.log(`DEBUG [RECOVERY] rawBytes:`);
-  // console.log(recoverySig[1]);
-  return ethSig;
+  let recoverySig = await Secp256k1.sign(
+    doubleSha256Bytes,
+    privKeyBytes,
+    sigOpts,
+  );
+  let magicSig = new Uint8Array(65);
+  // the magic byte is prepended (the signature is NOT reversed)
+  magicSig[0] = MAGIC_OFFSET + recoverySig[1];
+  magicSig.set(recoverySig[0], 1);
+  return magicSig;
 };
 
 KeyUtils.signP1363 = async function (privKeyBytes, hashBytes, sigBytes) {
