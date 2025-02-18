@@ -1,4 +1,7 @@
 {
+  "globals": {
+    "crypto": false
+  },
   "browser": true,
   "node": true,
   "esversion": 11,
