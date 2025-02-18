@@ -64,39 +64,9 @@ async function main() {
   let otherInfo = await wifToInfo(otherWif, "testnet");
 
   let identityIdHex = await readHex("./identity-id.hex");
+  let txidHex = await readHex("./txid.hex");
 
   let txlocksigHex = await readHex("./rawtxlocksig.hex");
-  {
-    let len = txlocksigHex.length / 2;
-    console.log();
-    console.log(`Tx Lock Sig Hex (${len}):`);
-    console.log(txlocksigHex);
-  }
-
-  let vout = -1;
-  let instantLockTxHex = "";
-  let instantLockSigHex = "";
-  {
-    let txlocksig = DashTx.parseUnknown(txlocksigHex);
-    vout = txlocksig.outputs.findIndex(function (output) {
-      //@ts-expect-error
-      return output.script === "6a00"; // TODO match the burn
-    });
-    console.log(txlocksig.outputs);
-    //@ts-expect-error
-    instantLockSigHex = txlocksig.sigHashTypeHex;
-    let isLen = instantLockSigHex.length / 2;
-    let len = txlocksigHex.length / 2;
-    len -= isLen;
-    instantLockTxHex = txlocksigHex.slice(0, len * 2);
-    console.log();
-    console.log(`Tx Hex (${len})`);
-    console.log(instantLockTxHex);
-    console.log();
-    console.log(`Tx Lock Sig Instant Lock Hex (${isLen})`);
-    //@ts-expect-error
-    console.log(txlocksig.sigHashTypeHex);
-  }
 
   // let txid = await DashTx.utils.rpc(
   //   rpcAuthUrl,
@@ -110,39 +80,12 @@ async function main() {
   // let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
   // let nextBlock = blockchaininfo.blocks + 1;
 
-  // TODO - AJ is here
-
-  /** @param {any} magicZmqEmitter */
-  async function getAssetLockInstantProof(magicZmqEmitter) {
-    let assetLockInstantProof = {
-      // type: INSTANT_ALP,
-      instant_lock: DashTx.utils.hexToBytes(instantLockSigHex),
-      transaction: DashTx.utils.hexToBytes(instantLockTxHex), // TODO this may need the proof, not the signed tx
-      // output_index: DashTx.utils.hexToBytes(vout),
-      output_index: vout,
-    };
-    return assetLockInstantProof;
-  }
-
-  async function getAssetLockChainProof() {
-    let assetLockChainProof = {
-      // type: CHAIN_ALP,
-      core_chain_locked_height: nextBlock,
-      // out_point: fundingOutPointHex,
-      out_point: {
-        txid: outpoint.txid,
-        vout: vout,
-      },
-    };
-    return assetLockChainProof;
-  }
-
   let assetLockProof;
   let weEvenKnowHowToGetIsdlock = true;
   if (weEvenKnowHowToGetIsdlock) {
-    assetLockProof = await getAssetLockInstantProof(null);
+    assetLockProof = await getAssetLockInstantProof(txlocksigHex);
   } else {
-    assetLockProof = await getAssetLockChainProof();
+    assetLockProof = await getAssetLockChainProof(txidHex);
   }
 
   let identityKeys = await getKnownIdentityKeys(
@@ -175,56 +118,144 @@ async function main() {
   console.log(`stKeys:`);
   console.log(stKeys);
 
-  let bcAb = Bincode.encode(Bincode.StateTransition, stateTransition, {
-    signable: true,
-  });
-  console.log(`bc (ready-to-sign) AB:`, bcAb);
-  let bc = new Uint8Array(bcAb);
-  console.log(`bc (ready-to-sign):`);
-  console.log(DashTx.utils.bytesToHex(bc));
-  console.log(bytesToBase64(bc));
+  let nullSigTransitionAb = Bincode.encode(
+    Bincode.StateTransition,
+    stateTransition,
+    {
+      signable: true,
+    },
+  );
+  let nullSigTransition = new Uint8Array(nullSigTransitionAb);
+  console.log();
+  console.log(`nullSigTransition (ready-to-sign by identity keys):`);
+  console.log(DashTx.utils.bytesToHex(nullSigTransition));
+  console.log(bytesToBase64(nullSigTransition));
 
-  let ethBytes = await KeyUtils.signEth(assetInfo.privateKey, bc);
-  // let sigHex = DashTx.utils.bytesToHex(sigBytes);
-  Object.assign(stateTransition, {
-    identity_id: DashTx.utils.hexToBytes(identityIdHex),
-    // signature: sigHex,
-    signature: ethBytes,
-  });
+  let nullSigMagicHash = await KeyUtils.doubleSha256(nullSigTransition);
+
+  {
+    let magicSigBytes = await KeyUtils.magicSign({
+      privKeyBytes: assetInfo.privateKey,
+      doubleSha256Bytes: nullSigMagicHash,
+    });
+
+    Object.assign(stateTransition, {
+      identity_id: DashTx.utils.hexToBytes(identityIdHex),
+      signature: magicSigBytes,
+    });
+  }
+
   for (let i = 0; i < identityKeys.length; i += 1) {
     let key = identityKeys[i];
     let stPub = stateTransition.public_keys[i];
-    let ethBytes = await KeyUtils.signEth(key.privateKey, bc);
-    // let sigHex = DashTx.utils.bytesToHex(sigBytes);
+    let magicSigBytes = await KeyUtils.magicSign({
+      privKeyBytes: key.privateKey,
+      doubleSha256Bytes: nullSigMagicHash,
+    });
+
     Object.assign(stPub, {
-      // signature: sigHex,
-      signature: ethBytes,
+      signature: magicSigBytes,
     });
   }
 
+  console.log();
   console.log(JSON.stringify(stateTransition, null, 2));
 
+  let grpcTransition = "";
   {
-    let bcAb = Bincode.encode(Bincode.StateTransition, stateTransition, {
-      signable: false,
-    });
-    let bc = new Uint8Array(bcAb);
-    console.log(`bc (signed):`);
-    console.log(DashTx.utils.bytesToHex(bc));
-    console.log(bytesToBase64(bc));
+    let fullSigTransitionAb = Bincode.encode(
+      Bincode.StateTransition,
+      stateTransition,
+      {
+        signable: false,
+      },
+    );
+    let fullSigTransition = new Uint8Array(fullSigTransitionAb);
+    console.log();
+    console.log(`transition (fully signed):`);
+    console.log(DashTx.utils.bytesToHex(fullSigTransition));
+    grpcTransition = bytesToBase64(fullSigTransition);
   }
 
-  // let identityId = assetLockProof.createIdentifier();
-  // let identity = Dpp.identity.create(identityId, dppKeys);
-  // let signedTransition = signTransition(
-  //   identity,
-  //   assetLockProof,
-  //   assetLockPrivateKeyBuffer,
-  // );
-
   console.log("");
-  console.log("TODO");
-  console.log(`  - how to serialize and broadcast transition via grpc?`);
+  console.log(`grpcurl -plaintext -d '{
+  "stateTransition": "${grpcTransition}"
+}' seed-1.testnet.networks.dash.org:1443 org.dash.platform.dapi.v0.Platform.broadcastStateTransition`);
+}
+
+/** @param {HexString} txlocksigHex */
+async function getAssetLockInstantProof(txlocksigHex) {
+  {
+    let len = txlocksigHex.length / 2;
+    console.log();
+    console.log(`Tx Lock Sig Hex (${len}):`);
+    console.log(txlocksigHex);
+  }
+
+  let vout = -1;
+  let instantLockTxHex = "";
+  let instantLockSigHex = "";
+  {
+    let txlocksig = DashTx.parseUnknown(txlocksigHex);
+    vout = 0;
+    //vout = txlocksig.extraPayload.outputs.findIndex(function (output) {
+    //  //@ts-expect-error
+    //  return output.script === "6a00";
+    //});
+    // console.log(txlocksig.extraPayload.outputs);
+    //@ts-expect-error
+    instantLockSigHex = txlocksig.sigHashTypeHex;
+    let isLen = instantLockSigHex.length / 2;
+    let len = txlocksigHex.length / 2;
+    len -= isLen;
+    instantLockTxHex = txlocksigHex.slice(0, len * 2);
+    console.log();
+    console.log(`Tx Hex (${len})`);
+    console.log(instantLockTxHex);
+    console.log();
+    console.log(`Tx Lock Sig Instant Lock Hex (${isLen})`);
+    //@ts-expect-error
+    console.log(txlocksig.sigHashTypeHex);
+  }
+
+  let assetLockInstantProof = {
+    // type: INSTANT_ALP,
+    instant_lock: DashTx.utils.hexToBytes(instantLockSigHex),
+    transaction: DashTx.utils.hexToBytes(instantLockTxHex), // TODO this may need the proof, not the signed tx
+    // output_index: DashTx.utils.hexToBytes(vout),
+    output_index: vout,
+  };
+  return assetLockInstantProof;
+}
+
+/**
+ * @param {HexString} txidHex
+ */
+async function getAssetLockChainProof(txidHex) {
+  let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+  let getJson = true;
+
+  let txInfo = await DashTx.utils.rpc(
+    rpcAuthUrl,
+    "getrawtransaction",
+    txidHex,
+    getJson,
+  );
+  //@ts-expect-error
+  let vout = txInfo.vout.findIndex(function (voutInfo) {
+    return voutInfo.scriptPubKey?.hex === "6a00"; // TODO match the burn
+  });
+
+  let assetLockChainProof = {
+    // type: CHAIN_ALP,
+    core_chain_locked_height: txInfo.height,
+    // out_point: fundingOutPointHex,
+    out_point: {
+      txid: DashTx.utils.hexToBytes(txidHex),
+      vout: vout,
+    },
+  };
+  return assetLockChainProof;
 }
 
 /**
@@ -387,7 +418,7 @@ main();
 
 /** @typedef {String} Base58 */
 /** @typedef {String} Base64 */
-/** @typedef {String} Hex */
+/** @typedef {String} HexString */
 /** @typedef {Number} Uint53 */
 /** @typedef {Number} Uint32 */
 /** @typedef {Number} Uint8 */
