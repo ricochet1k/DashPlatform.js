@@ -102,12 +102,12 @@ const asset_lock = Tx.createForSig({
     // burn output
     {satoshis: 42, pubKeyHash: pkh},
   ],
-  extraPayload: toHex(Bincode.encode(db.AssetLockPayload, db.AssetLockPayload({
+  extraPayload: toHex(Bincode.encode(db.AssetLockPayload, {
     version: 0,
     credit_outputs: [
-      {satoshis: 42, pubKeyHash: pkh}
+      db.TxOut({value: 42, script_pubkey: pkh})
     ],
-  })))
+  }))
 })
 
 console.log('asset_lock', asset_lock)
