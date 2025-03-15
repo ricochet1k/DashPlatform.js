@@ -1,0 +1,47 @@
+// Original file: ../../platform/packages/dapi-grpc/protos/platform/v0/platform.proto
+
+import type { Proof as _org_dash_platform_dapi_v0_Proof, Proof__Output as _org_dash_platform_dapi_v0_Proof__Output } from '../../../../../org/dash/platform/dapi/v0/Proof';
+import type { ResponseMetadata as _org_dash_platform_dapi_v0_ResponseMetadata, ResponseMetadata__Output as _org_dash_platform_dapi_v0_ResponseMetadata__Output } from '../../../../../org/dash/platform/dapi/v0/ResponseMetadata';
+import type { Long } from '@grpc/proto-loader';
+
+export interface _org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistory {
+  'dataContractEntries'?: (_org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistoryEntry)[];
+}
+
+export interface _org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistory__Output {
+  'dataContractEntries': (_org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistoryEntry__Output)[];
+}
+
+export interface _org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistoryEntry {
+  'date'?: (number | string | Long);
+  'value'?: (Buffer | Uint8Array | string);
+}
+
+export interface _org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistoryEntry__Output {
+  'date': (string);
+  'value': (Buffer);
+}
+
+export interface _org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0 {
+  'dataContractHistory'?: (_org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistory | null);
+  'proof'?: (_org_dash_platform_dapi_v0_Proof | null);
+  'metadata'?: (_org_dash_platform_dapi_v0_ResponseMetadata | null);
+  'result'?: "dataContractHistory"|"proof";
+}
+
+export interface _org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0__Output {
+  'dataContractHistory'?: (_org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0_DataContractHistory__Output | null);
+  'proof'?: (_org_dash_platform_dapi_v0_Proof__Output | null);
+  'metadata': (_org_dash_platform_dapi_v0_ResponseMetadata__Output | null);
+  'result': "dataContractHistory"|"proof";
+}
+
+export interface GetDataContractHistoryResponse {
+  'v0'?: (_org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0 | null);
+  'version'?: "v0";
+}
+
+export interface GetDataContractHistoryResponse__Output {
+  'v0'?: (_org_dash_platform_dapi_v0_GetDataContractHistoryResponse_GetDataContractHistoryResponseV0__Output | null);
+  'version': "v0";
+}

@@ -1,6 +1,6 @@
 "use strict";
 
-let Secp256k1 = require("@dashincubator/secp256k1");
+import * as secp from "@dashincubator/secp256k1"
 
 /** @typedef {Required<import('dashtx').TxKeyUtils>} TxKeyUtils */
 /**
@@ -8,15 +8,6 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  * @prop {KeySet} set
  */
 /** @typedef {TxKeyUtils & KeyUtilsPartial} KeyUtils */
-
-/**
- * @callback KeySet
- * @param {String} id
- * @param {KeyInfo} keyInfo
- */
-
-/** @type {KeyUtils} */
-let KeyUtils = module.exports;
 
 /**
  * @typedef KeyInfo
@@ -29,19 +20,25 @@ let KeyUtils = module.exports;
 /** @type Object.<String, KeyInfo> */
 let keysMap = {};
 
-KeyUtils.set = function (id, keyInfo) {
+/**
+ * @param {String} id
+ * @param {KeyInfo} keyInfo
+ */
+function set(id, keyInfo) {
   if (!id) {
     throw new Error(`key identifier is not defined)`);
   }
   keysMap[id] = keyInfo;
 };
 
-KeyUtils.sign = async function (privKeyBytes, hashBytes) {
+export async function sign(privKeyBytes, hashBytes) {
   let sigOpts = { canonical: true, extraEntropy: true };
-  let sigBytes = await Secp256k1.sign(hashBytes, privKeyBytes, sigOpts);
+  let sigBytes = await secp.sign(hashBytes, privKeyBytes, sigOpts);
   return sigBytes;
 };
-KeyUtils.getPrivateKey = async function (input) {
+
+
+export async function getPrivateKey(input) {
   if (!input.address) {
     //throw new Error('should put the address on the input there buddy...');
     console.warn("missing address:", input.txid, input.outputIndex);
@@ -52,19 +49,19 @@ KeyUtils.getPrivateKey = async function (input) {
   return keyInfo.privateKey;
 };
 
-KeyUtils.getPublicKey = async function (txInput, i) {
-  let privKeyBytes = await KeyUtils.getPrivateKey(txInput, i);
+export async function getPublicKey(txInput, i) {
+  let privKeyBytes = await secp.getPrivateKey(txInput, i);
   if (!privKeyBytes) {
     return null;
   }
-  let pubKeyBytes = await KeyUtils.toPublicKey(privKeyBytes);
+  let pubKeyBytes = await toPublicKey(privKeyBytes);
 
   return pubKeyBytes;
 };
 
-KeyUtils.toPublicKey = async function (privKeyBytes) {
+export async function toPublicKey(privKeyBytes) {
   let isCompressed = true;
-  let pubKeyBytes = Secp256k1.getPublicKey(privKeyBytes, isCompressed);
+  let pubKeyBytes = secp.getPublicKey(privKeyBytes, isCompressed);
 
   return pubKeyBytes;
 };

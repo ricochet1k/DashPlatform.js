@@ -17,6 +17,7 @@
   "keywords": [],
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
   "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
   "dependencies": {
     "@dashevo/dapi-grpc": "^1.1.1",
     "@dashevo/wasm-dpp": "^1.1.1",

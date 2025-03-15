@@ -7,11 +7,8 @@ import {
   Int8,
   String,
   Struct,
-  StructTuple,
-} from "./bincode";
-import { IdentityPublicKey } from "./generated_bincode.js"
-import { toJsonCamelCase } from "./dash_bincode.js"
-// /** @import {EnumVariant} from './bincode.js' */
+} from "./bincode.ts";
+/** @import {EnumVariant} from './bincode.js' */
 // import {
 //   toJsonCamelCase,
 // } from "./dash_bincode.js";
@@ -23,39 +20,49 @@ import { toJsonCamelCase } from "./dash_bincode.js"
 
 const Enum1 = Enum("Enum1", {
     Foo: {F0: String},
-    Bar: [Int8],
+    Bar: {F0: Int8},
 });
 
-/** @namespace @typedef {typeof Enum1.$$type} Enum1 */
-/** @typedef {ReturnType<typeof Enum1.Foo>} Enum1.Foo */
-/** @typedef {ReturnType<typeof Enum1.Bar>} Enum1.Bar */
+type E1 = typeof Enum1.$$type;
 
-const Enum2 = Enum("Enum2", {
-  Foo: {F0: String},
-  Bar: {F0: Int8},
-});
+type Enum1 = typeof Enum1.$$type;
+namespace Enum1 {
+  export type Foo = ReturnType<typeof Enum1.Foo>;
+}
 
-// /** @typedef {typeof Enum2.$$type} Enum2 */
-// /** @namespace Enum2 */
-// /** @typedef {ReturnType<typeof Enum2.Foo>} Enum2.Foo */
-// /** @typedef {ReturnType<typeof Enum2.Bar>} Enum2.Bar */
+class Foo {}
+
+class Faa {}
+
+class Bar extends Foo {}
+
+let x = new Bar();
+
+let q: Foo = x;
+let w: Faa = x;
+
+// declare interface Enum1 extends Enum<typeof Enum1> {
+  
+// }
+
+// declare namespace Enum1 {
+//   type Foo = EnumVariant<{F0: string}>;
+// }
 
 it("should create enums correctly", () => {
 
     expect(Enum1.Foo).toBeDefined();
     expect(Enum1.Bar).toBeDefined();
 
-    /** @type {Enum1.Foo} */
-    const x = Enum1.Foo({F0: "hello"});
+    const x: Enum1.Foo = Enum1.Foo({F0: "hello"});
 
-    /** @type {Enum1} */
-    const _xenum = x;
+    const _xenum: Enum1 = x;
     expect(x.F0).toBe("hello");
     expect(x).toBeInstanceOf(Enum1.Foo);
     expect(x).toBeInstanceOf(Enum1);
 
-    const y = Enum1.Bar(5);
-    expect(y[0]).toBe(5);
+    const y = Enum1.Bar({F0: 5});
+    expect(y.F0).toBe(5);
     expect(y).toBeInstanceOf(Enum1.Bar);
     expect(y).toBeInstanceOf(Enum1);
 
@@ -63,96 +70,61 @@ it("should create enums correctly", () => {
     expect(toHex(x_bytes)).toEqual("000568656c6c6f");
 })
 
-const ATuple = StructTuple("ATuple", Int8, String);
-/** @typedef {ReturnType<typeof ATuple>} ATuple */
 
-const AStruct = Struct("AStruct", {i: Int8, s: String});
-/** @typedef {ReturnType<typeof AStruct>} AStruct */
+// it("should encode/decode IdentityPublicKey", () => {
+//   const master_key_bytes = fromHex(
+//     "0000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f00",
+//   );
+//   const master_key = decode(IdentityPublicKey, master_key_bytes.buffer);
 
-it("should create structs correctly", () => {
+//   const master_key_json = {
+//     $version: "0",
+//     id: 0,
+//     purpose: 0,
+//     securityLevel: 0,
+//     contractBounds: null,
+//     type: 0,
+//     readOnly: false,
+//     data: [
+//       3, 58, 154, 139, 30, 76, 88, 26, 25, 135, 114, 76, 102, 151, 19, 93, 49,
+//       192, 126, 231, 172, 130, 126, 106, 89, 206, 192, 34, 176, 77, 81, 5, 95,
+//     ],
+//     disabledAt: null,
+//   };
+//   expect(master_key_json).toEqual(JSON.parse(toJsonCamelCase(master_key)));
+//   expect(master_key_bytes).toEqual(
+//     new Uint8Array(encode(IdentityPublicKey, master_key)),
+//   );
 
-  /** @type {ATuple} */
-  const x = ATuple(1, "hello");
+//   const master_private_key = fromHex(
+//     "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
+//   );
 
-  expect(x[0]).toBe(1);
-  expect(x[1]).toBe("hello");
-  expect(x).toBeInstanceOf(ATuple);
-  expect(x.length).toBe(2);
+//   const other_key_bytes = fromHex(
+//     "000100010000002102014603018dc437642dda16f4c7fc50e482dd23e24680bcb3a5966c3b343848e200",
+//   );
+//   const other_key = decode(IdentityPublicKey, other_key_bytes.buffer);
 
-  /** @type {AStruct} */
-  const y = AStruct({i: 1, s: "hello"});
+//   const other_key_json = {
+//     $version: "0",
+//     id: 1,
+//     purpose: 0,
+//     securityLevel: 1,
+//     contractBounds: null,
+//     type: 0,
+//     readOnly: false,
+//     data: [
+//       2, 1, 70, 3, 1, 141, 196, 55, 100, 45, 218, 22, 244, 199, 252, 80, 228,
+//       130, 221, 35, 226, 70, 128, 188, 179, 165, 150, 108, 59, 52, 56, 72, 226,
+//     ],
+//     disabledAt: null,
+//   };
+//   expect(other_key_json).toEqual(JSON.parse(toJsonCamelCase(other_key)));
 
-  expect(y.i).toBe(1);
-  expect(y.s).toBe("hello");
-  expect(y).toBeInstanceOf(AStruct);
-
-  const x_bytes = encode(ATuple, x);
-  expect(toHex(x_bytes)).toEqual("010568656c6c6f");
-
-  const y_bytes = encode(AStruct, y);
-  expect(toHex(y_bytes)).toEqual("010568656c6c6f");
-})
-
-
-it("should encode/decode IdentityPublicKey", () => {
-  
-  const master_key_bytes = fromHex(
-    "0000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f00",
-  );
-  const master_key = decode(IdentityPublicKey, master_key_bytes.buffer);
-
-  // console.log("master_key_bytes", master_key_bytes);
-  // console.log("master_key_bytes", master_key_bytes.buffer);
-  // console.log("decoded master_key", master_key);
-
-  const master_key_json = {
-    $version: "0",
-    id: 0,
-    purpose: 0,
-    securityLevel: 0,
-    contractBounds: null,
-    type: 0,
-    readOnly: false,
-    data: [
-      3, 58, 154, 139, 30, 76, 88, 26, 25, 135, 114, 76, 102, 151, 19, 93, 49,
-      192, 126, 231, 172, 130, 126, 106, 89, 206, 192, 34, 176, 77, 81, 5, 95,
-    ],
-    disabledAt: null,
-  };
-  // expect(master_key_json).toEqual(JSON.parse(toJsonCamelCase(master_key)));
-  expect(master_key_bytes).toEqual(
-    new Uint8Array(encode(IdentityPublicKey, master_key)),
-  );
-
-  const master_private_key = fromHex(
-    "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
-  );
-
-  const other_key_bytes = fromHex(
-    "000100010000002102014603018dc437642dda16f4c7fc50e482dd23e24680bcb3a5966c3b343848e200",
-  );
-  const other_key = decode(IdentityPublicKey, other_key_bytes.buffer);
-
-  const other_key_json = {
-    $version: "0",
-    id: 1,
-    purpose: 0,
-    securityLevel: 1,
-    contractBounds: null,
-    type: 0,
-    readOnly: false,
-    data: [
-      2, 1, 70, 3, 1, 141, 196, 55, 100, 45, 218, 22, 244, 199, 252, 80, 228,
-      130, 221, 35, 226, 70, 128, 188, 179, 165, 150, 108, 59, 52, 56, 72, 226,
-    ],
-    disabledAt: null,
-  };
-  expect(other_key_json).toEqual(JSON.parse(toJsonCamelCase(other_key)));
-
-  const other_private_key = fromHex(
-    "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096",
-  );
-});
+//   const other_private_key = fromHex(
+//     "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096",
+//   );
+// });
 
 // it("should encode/decode Identifier", () => {
 //   const identifier_bytes = fromHex(

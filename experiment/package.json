@@ -1,0 +1,25 @@
+{
+  "name": "experiment",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "proto": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=proto/ ../../platform/packages/dapi-grpc/protos/core/v0/core.proto ../../platform/packages/dapi-grpc/protos/platform/v0/platform.proto",
+    "tsc": "tsc -m nodenext ./ts/*.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@grpc/grpc-js": "^1.12.6",
+    "@grpc/proto-loader": "^0.7.13",
+    "bip32": "^5.0.0-rc.0",
+    "bip39": "^3.1.0",
+    "bip44-constants": "^366.0.0",
+    "dashplatform": "file:..",
+    "dashtx": "file:../../DashTx.js",
+    "js-sha256": "^0.11.0"
+  }
+}
