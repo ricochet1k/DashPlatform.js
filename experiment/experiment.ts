@@ -54,8 +54,8 @@ function expectError(fn: () => any) {
 const bad : db.AssetLockProof = db.AssetLockProof({} as any);
 
 const bar = db.AssetLockProof.Instant({
-    instant_lock: '',
-    transaction: new Uint8Array,
+    instant_lock: db.BinaryData(new Uint8Array),
+    transaction: db.BinaryData(new Uint8Array),
     output_index: 1,
 });
 

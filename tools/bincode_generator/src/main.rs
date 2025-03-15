@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let options = WalkOptions::new().files().extension("rs");
         for entry in options.walk(pkg) {
             if let Ok(filepath) = entry {
-                eprintln!("// FILE {:?}", &filepath);
+                // eprintln!("// FILE {:?}", &filepath);
                 let content = fs::read_to_string(filepath)?;
                 let ast = syn::parse_file(&content)?;
 
@@ -44,25 +44,49 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     all_items.get_mut("StateTransition").unwrap().needed = true;
     all_items.get_mut("AssetLockPayload").unwrap().needed = true;
+
+    // Transaction is replaced by a custom implementation in bincode_support.ts
+    // provided by DashTx.js
     all_items.remove("Transaction");
 
-    {
-        let mut deps = BTreeSet::new();
-        deps.insert("ScriptBuf".to_string());
-
-        all_items.insert(
-            "DashcoreScript".to_string(),
-            Item {
-                name: "DashcoreScript".to_string(),
-                item: parse_quote!(
-                    type DashcoreScript = ScriptBuf;
-                ),
-                deps,
-                needed: true,
-                is_encode: true,
+    // Serialize implemented by converting to/from RawInstantLockProof first
+    // We just replace it here.
+    all_items.insert(
+        "InstantAssetLockProof".to_string(),
+        Item {
+            name: "InstantAssetLockProof".to_string(),
+            item: parse_quote!(
+                type InstantAssetLockProof = RawInstantLockProof;
+            ),
+            deps: {
+                let mut set = BTreeSet::new();
+                set.insert("RawInstantLockProof".to_string());
+                set
             },
-        );
-    }
+            needed: false,
+            is_encode: true,
+        },
+    );
+    all_items.get_mut("RawInstantLockProof").unwrap().needed = true;
+
+    // DashcoreScript is renamed in the use declaration
+    // TODO: handle the use declaration renaming
+    all_items.insert(
+        "DashcoreScript".to_string(),
+        Item {
+            name: "DashcoreScript".to_string(),
+            item: parse_quote!(
+                type DashcoreScript = ScriptBuf;
+            ),
+            deps: {
+                let mut deps = BTreeSet::new();
+                deps.insert("ScriptBuf".to_string());
+                deps
+            },
+            needed: true,
+            is_encode: true,
+        },
+    );
 
     let mut needed = BTreeSet::new();
     for item in all_items.values() {

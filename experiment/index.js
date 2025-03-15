@@ -11,7 +11,7 @@ import { UnaryCall } from './ts/grpc-promisify.js';
 /** @import { ProtoGrpcType as CoreProtoGrpcType } from './proto/core.ts' */
 /** @import { ProtoGrpcType as PlatformProtoGrpcType } from './proto/platform.ts' */
 
-import Tx from 'dashtx';
+import * as Tx from 'dashtx';
 import * as KeyUtils from '../key-utils.js';
 
 import * as Bincode from '../bincode.ts';

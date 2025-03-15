@@ -17,8 +17,8 @@ export const EncodeOnlyRawBytes = Object.assign(
   },
   {
     // name: 'EncodeOnlyRawBytes',
-    isValid(x: Uint8Array) {
-      return true
+    isValid(x: unknown) {
+      return x instanceof Uint8Array
     },
     encode(bc: Bincode.BinCode, x: Uint8Array) {
       new Uint8Array(bc.dataview.buffer).set(x, bc._idxThenAddExtend(x.byteLength))

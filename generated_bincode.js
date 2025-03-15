@@ -40,8 +40,6 @@ export const IdentifierBytes32 = StructTuple("IdentifierBytes32",
 
 export const IdentityNonce = VarUint
 
-export const InstantLock = String
-
 export const KeyID = VarUint
 
 // allow non_camel_case_types
@@ -95,6 +93,16 @@ export const Purpose = Enum("Purpose", /** @type {const} */ ({
    */
   OWNER: [],
 }))
+
+// !ENCODE
+/**
+ * "Raw" instant lock for serialization
+ */
+export const RawInstantLockProof = Struct("RawInstantLockProof", {
+  instant_lock: BinaryData,
+  transaction: BinaryData,
+  output_index: VarUint,
+});
 
 export const RecipientKeyIndex = VarUint
 
@@ -449,27 +457,7 @@ export const IdentityCreditTransferTransitionV0 = Struct("IdentityCreditTransfer
   signature: BinaryData,
 });
 
-// !ENCODE
-/**
- * Instant Asset Lock Proof is a part of Identity Create and Identity Topup
- * transitions. It is a proof that specific output of dash is locked in credits
- * pull and the transitions can mint credits and populate identity's balance.
- * To prove that the output is locked, an Instant Lock is provided.
- */
-export const InstantAssetLockProof = Struct("InstantAssetLockProof", {
-  /**
-   * The transaction's Instant Lock
-   */
-  instant_lock: InstantLock,
-  /**
-   * Asset Lock Special Transaction
-   */
-  transaction: Transaction,
-  /**
-   * Index of the output in the transaction payload
-   */
-  output_index: VarUint,
-});
+export const InstantAssetLockProof = RawInstantLockProof
 
 // !ENCODE
 /**
@@ -1493,7 +1481,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: AddOperation
 // NOT NEEDED: AddrV2
 // NOT NEEDED: AddrV2Message
-// NOT NEEDED: Address
+// NOT NEEDED: DUPLICATE_Address
 // NOT NEEDED: AddressEncoding
 // NOT NEEDED: AddressInner
 // NOT NEEDED: AddressType
@@ -1531,7 +1519,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: BlockFilter
 // NOT NEEDED: BlockFilterReader
 // NOT NEEDED: BlockFilterWriter
-// NOT NEEDED: BlockHash
+// NOT NEEDED: DUPLICATE_BlockHash
 // NOT NEEDED: BlockHeight
 // NOT NEEDED: BlockInfo
 // NOT NEEDED: BlockTransactions
@@ -1594,7 +1582,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ControlBlock
 // NOT NEEDED: ConversionError
 // NOT NEEDED: CopyOperation
-// NOT NEEDED: CoreBlockHeight
+// NOT NEEDED: DUPLICATE_CoreBlockHeight
 // NOT NEEDED: CreatedDataContract
 // NOT NEEDED: CreatedDataContractInSerializationFormat
 // NOT NEEDED: CreatedDataContractInSerializationFormatV0
@@ -1605,7 +1593,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: CycleHash
 // NOT NEEDED: DKGParams
 // NOT NEEDED: DPPError
-// NOT NEEDED: DashPlatformProtocol
+// NOT NEEDED: DUPLICATE_DashPlatformProtocol
 // NOT NEEDED: DashPlatformProtocolInitError
 // NOT NEEDED: DataBuilder
 // NOT NEEDED: DataContract
@@ -1622,7 +1610,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DataContractInvalidIndexDefinitionUpdateError
 // NOT NEEDED: DataContractIsReadonlyError
 // NOT NEEDED: DataContractMaxDepthExceedError
-// NOT NEEDED: DataContractNotPresentError
+// NOT NEEDED: DUPLICATE_DataContractNotPresentError
 // NOT NEEDED: DataContractTokenConfigurationUpdateError
 // NOT NEEDED: DataContractUniqueIndicesChangedError
 // NOT NEEDED: DataContractUpdateActionNotAllowedError
@@ -1634,7 +1622,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DataTriggerError
 // NOT NEEDED: DataTriggerExecutionError
 // NOT NEEDED: DataTriggerInvalidResultError
-// NOT NEEDED: DecodeError
+// NOT NEEDED: DUPLICATE_DecodeError
 // NOT NEEDED: DecodeInitError
 // NOT NEEDED: DecodeProtocolIdentity
 // NOT NEEDED: Decoder
@@ -1703,7 +1691,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DuplicatedIdentityPublicKeyIdBasicError
 // NOT NEEDED: DuplicatedIdentityPublicKeyIdStateError
 // NOT NEEDED: DuplicatedIdentityPublicKeyStateError
-// NOT NEEDED: EcdsaSighashType
+// NOT NEEDED: DUPLICATE_EcdsaSighashType
 // NOT NEEDED: EmptyWrite
 // NOT NEEDED: EncodeSigningDataResult
 // NOT NEEDED: Encoder
@@ -1712,7 +1700,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: Epoch
 // NOT NEEDED: EpochIndex
 // NOT NEEDED: EpochIndexFeeVersionsForStorage
-// NOT NEEDED: Error
+// NOT NEEDED: DUPLICATE_Error
 // NOT NEEDED: ErrorTrackingWriter
 // NOT NEEDED: ExpectedDocumentsData
 // NOT NEEDED: ExtendedBlockInfo
@@ -1779,7 +1767,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: HeaderAndShortIds
 // NOT NEEDED: HeaderDeserializationWrapper
 // NOT NEEDED: HeaderSerializationWrapper
-// NOT NEEDED: Height
+// NOT NEEDED: DUPLICATE_Height
 // NOT NEEDED: Hex
 // NOT NEEDED: HiddenNodes
 // NOT NEEDED: IHeader
@@ -1845,6 +1833,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: Input
 // NOT NEEDED: InputWeightPrediction
 // NOT NEEDED: InputsHash
+// NOT NEEDED: DUPLICATE_InstantLock
 // NOT NEEDED: Instruction
 // NOT NEEDED: InstructionIndices
 // NOT NEEDED: Instructions
@@ -1859,7 +1848,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: InvalidDocumentRevisionError
 // NOT NEEDED: InvalidDocumentTransitionActionError
 // NOT NEEDED: InvalidDocumentTransitionIdError
-// NOT NEEDED: InvalidDocumentTypeError
+// NOT NEEDED: DUPLICATE_InvalidDocumentTypeError
 // NOT NEEDED: InvalidDocumentTypeNameError
 // NOT NEEDED: InvalidDocumentTypeRequiredSecurityLevelError
 // NOT NEEDED: InvalidGroupPositionError
@@ -1876,7 +1865,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: InvalidIdentityPublicKeyDataError
 // NOT NEEDED: InvalidIdentityPublicKeyIdError
 // NOT NEEDED: InvalidIdentityPublicKeySecurityLevelError
-// NOT NEEDED: InvalidIdentityPublicKeyTypeError
+// NOT NEEDED: DUPLICATE_InvalidIdentityPublicKeyTypeError
 // NOT NEEDED: InvalidIdentityRevisionError
 // NOT NEEDED: InvalidIdentityUpdateTransitionDisableKeysError
 // NOT NEEDED: InvalidIdentityUpdateTransitionEmptyError
@@ -1904,9 +1893,9 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: JsonPathStep
 // NOT NEEDED: JsonSchema
 // NOT NEEDED: JsonSchemaCompilationError
-// NOT NEEDED: JsonSchemaError
+// NOT NEEDED: DUPLICATE_JsonSchemaError
 // NOT NEEDED: JsonSchemaErrorData
-// NOT NEEDED: JsonSchemaValidator
+// NOT NEEDED: DUPLICATE_JsonSchemaValidator
 // NOT NEEDED: JsonStateTransitionSerializationOptions
 // NOT NEEDED: Key
 // NOT NEEDED: KeyCount
@@ -1928,7 +1917,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: LeafNodes
 // NOT NEEDED: LeafVersion
 // NOT NEEDED: LegacySighash
-// NOT NEEDED: LockTime
+// NOT NEEDED: DUPLICATE_LockTime
 // NOT NEEDED: LockTimeUnit
 // NOT NEEDED: LockedVotePollCounter
 // NOT NEEDED: Lower
@@ -1983,7 +1972,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: NonConsensusError
 // NOT NEEDED: NonContiguousContractGroupPositionsError
 // NOT NEEDED: NonContiguousContractTokenPositionsError
-// NOT NEEDED: NonStandardSighashType
+// NOT NEEDED: DUPLICATE_NonStandardSighashType
 // NOT NEEDED: NonceOutOfBoundsError
 // NOT NEEDED: NotImplementedIdentityCreditWithdrawalTransitionPoolingError
 // NOT NEEDED: OperationError
@@ -2040,11 +2029,11 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: PublicKey
 // NOT NEEDED: PublicKeyIsDisabledError
 // NOT NEEDED: PublicKeyMismatchError
-// NOT NEEDED: PublicKeySecurityLevelNotMetError
+// NOT NEEDED: DUPLICATE_PublicKeySecurityLevelNotMetError
 // NOT NEEDED: PublicKeyValidationError
 // NOT NEEDED: PushBytes
 // NOT NEEDED: PushBytesBuf
-// NOT NEEDED: PushBytesError
+// NOT NEEDED: DUPLICATE_PushBytesError
 // NOT NEEDED: PushDataLenLen
 // NOT NEEDED: QRInfo
 // NOT NEEDED: QualifiedMasternodeListEntry
@@ -2064,7 +2053,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: QuorumValidationError
 // NOT NEEDED: RandomDocumentTypeParameters
 // NOT NEEDED: RawAssetLockProof
-// NOT NEEDED: RawInstantLockProof
 // NOT NEEDED: RawNetworkMessage
 // NOT NEEDED: ReadBytesFromFiniteReaderOpts
 // NOT NEEDED: RecipientIdentifier
@@ -2104,10 +2092,10 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: SigHashType
 // NOT NEEDED: SighashCache
 // NOT NEEDED: SighashComponents
-// NOT NEEDED: SighashTypeParseError
+// NOT NEEDED: DUPLICATE_SighashTypeParseError
 // NOT NEEDED: SignError
 // NOT NEEDED: SignableBytesHasher
-// NOT NEEDED: Signature
+// NOT NEEDED: DUPLICATE_Signature
 // NOT NEEDED: SignatureError
 // NOT NEEDED: SignatureShouldNotBePresentError
 // NOT NEEDED: SignedAmount
@@ -2152,9 +2140,9 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: TaprootSpendInfo
 // NOT NEEDED: Target
 // NOT NEEDED: TestConsensusError
-// NOT NEEDED: TestData
+// NOT NEEDED: DUPLICATE_TestData
 // NOT NEEDED: TestOperation
-// NOT NEEDED: Time
+// NOT NEEDED: DUPLICATE_Time
 // NOT NEEDED: TimestampIncluded
 // NOT NEEDED: TokenAlreadyPausedError
 // NOT NEEDED: TokenDistributionKey
@@ -2207,7 +2195,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: UntweakedPublicKey
 // NOT NEEDED: Upper
 // NOT NEEDED: UpperWriter
-// NOT NEEDED: UsedKeyMatrix
+// NOT NEEDED: DUPLICATE_UsedKeyMatrix
 // NOT NEEDED: ValidationResult
 // NOT NEEDED: Validator
 // NOT NEEDED: ValidatorSet
@@ -2235,7 +2223,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: WitnessProgram
 // NOT NEEDED: WitnessVersion
 // NOT NEEDED: Work
-// NOT NEEDED: WrongPublicKeyPurposeError
+// NOT NEEDED: DUPLICATE_WrongPublicKeyPurposeError
 // NOT NEEDED: Wtxid
 // NOT NEEDED: XpubIdentifier
 // NOT NEEDED: YesNoAbstainVoteChoice

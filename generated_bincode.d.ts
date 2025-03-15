@@ -1472,42 +1472,7 @@ interface IdentityUpdateTransitionV0 {
   signature: BinaryData;
 }
 
-/**
- * Instant Asset Lock Proof is a part of Identity Create and Identity Topup
- * transitions. It is a proof that specific output of dash is locked in credits
- * pull and the transitions can mint credits and populate identity's balance.
- * To prove that the output is locked, an Instant Lock is provided.
- */
-const InstantAssetLockProof : BinCodeable<InstantAssetLockProof> & ((data: {
-    /**
-     * The transaction's Instant Lock
-     */
-  instant_lock: InstantLock,
-    /**
-     * Asset Lock Special Transaction
-     */
-  transaction: Transaction,
-    /**
-     * Index of the output in the transaction payload
-     */
-  output_index: number,
-}) => InstantAssetLockProof);
-interface InstantAssetLockProof {
-  /**
-   * The transaction's Instant Lock
-   */
-  instant_lock: InstantLock;
-  /**
-   * Asset Lock Special Transaction
-   */
-  transaction: Transaction;
-  /**
-   * Index of the output in the transaction payload
-   */
-  output_index: number;
-}
-
-export type InstantLock = string;
+export type InstantAssetLockProof = RawInstantLockProof;
 
 export type KeyID = number;
 
@@ -1802,6 +1767,20 @@ namespace Value {
   interface Map extends Value {
     [0]: ValueMap;
   }
+}
+
+/**
+ * "Raw" instant lock for serialization
+ */
+const RawInstantLockProof : BinCodeable<RawInstantLockProof> & ((data: {
+  instant_lock: BinaryData,
+  transaction: BinaryData,
+  output_index: number,
+}) => RawInstantLockProof);
+interface RawInstantLockProof {
+  instant_lock: BinaryData;
+  transaction: BinaryData;
+  output_index: number;
 }
 
 export type RecipientKeyIndex = number;
