@@ -139,6 +139,8 @@ interface BinaryData {
   [0]: Uint8Array;
 }
 
+export type BlockHeight = number;
+
 export type BlockHeightInterval = number;
 
 /**
@@ -302,6 +304,10 @@ namespace DataContractConfig {
   interface V0 extends DataContractConfig {
     [0]: DataContractConfigV0;
   }
+  const V1: (f0: DataContractConfigV1) => DataContractConfig.V1;
+  interface V1 extends DataContractConfig {
+    [0]: DataContractConfigV1;
+  }
 }
 
 const DataContractConfigV0 : BinCodeable<DataContractConfigV0> & ((data: {
@@ -387,6 +393,99 @@ interface DataContractConfigV0 {
    * Decryption key storage requirements
    */
   requires_identity_decryption_bounded_key?: StorageKeyRequirements;
+}
+
+const DataContractConfigV1 : BinCodeable<DataContractConfigV1> & ((data: {
+    /**
+     * Can the contract ever be deleted. If the contract is deleted, so should be all
+     * documents associated with it. TODO: There should also be a way to "stop" the contract -
+     * contract and documents are kept in the system, but no new documents can be added to it
+     */
+  can_be_deleted: boolean,
+    /**
+     * Is the contract mutable. Means that the document definitions can be changed or new
+     * document definitions can be added to the contract
+     */
+  readonly: boolean,
+    /**
+     * Does the contract keep history when the contract itself changes
+     */
+  keeps_history: boolean,
+    /**
+     * Do documents in the contract keep history. This is a default for all documents in
+     * the contract, but can be overridden by the document itself
+     */
+  documents_keep_history_contract_default: boolean,
+    /**
+     * Are documents in the contract mutable? This specifies whether the documents can be
+     * changed. This is a default for all document types in the contract, but can be
+     * overridden by the document type config.
+     */
+  documents_mutable_contract_default: boolean,
+    /**
+     * Can documents in the contract be deleted? This specifies whether the documents can be
+     * deleted. This is a default for all document types in the contract, but can be
+     * overridden by the document types itself.
+     */
+  documents_can_be_deleted_contract_default: boolean,
+    /**
+     * Encryption key storage requirements
+     */
+  requires_identity_encryption_bounded_key?: StorageKeyRequirements,
+    /**
+     * Decryption key storage requirements
+     */
+  requires_identity_decryption_bounded_key?: StorageKeyRequirements,
+    /**
+     * Use sized integer Rust types for `integer` property type based on validation rules
+     */
+  sized_integer_types: boolean,
+}) => DataContractConfigV1);
+interface DataContractConfigV1 {
+  /**
+   * Can the contract ever be deleted. If the contract is deleted, so should be all
+   * documents associated with it. TODO: There should also be a way to "stop" the contract -
+   * contract and documents are kept in the system, but no new documents can be added to it
+   */
+  can_be_deleted: boolean;
+  /**
+   * Is the contract mutable. Means that the document definitions can be changed or new
+   * document definitions can be added to the contract
+   */
+  readonly: boolean;
+  /**
+   * Does the contract keep history when the contract itself changes
+   */
+  keeps_history: boolean;
+  /**
+   * Do documents in the contract keep history. This is a default for all documents in
+   * the contract, but can be overridden by the document itself
+   */
+  documents_keep_history_contract_default: boolean;
+  /**
+   * Are documents in the contract mutable? This specifies whether the documents can be
+   * changed. This is a default for all document types in the contract, but can be
+   * overridden by the document type config.
+   */
+  documents_mutable_contract_default: boolean;
+  /**
+   * Can documents in the contract be deleted? This specifies whether the documents can be
+   * deleted. This is a default for all document types in the contract, but can be
+   * overridden by the document types itself.
+   */
+  documents_can_be_deleted_contract_default: boolean;
+  /**
+   * Encryption key storage requirements
+   */
+  requires_identity_encryption_bounded_key?: StorageKeyRequirements;
+  /**
+   * Decryption key storage requirements
+   */
+  requires_identity_decryption_bounded_key?: StorageKeyRequirements;
+  /**
+   * Use sized integer Rust types for `integer` property type based on validation rules
+   */
+  sized_integer_types: boolean;
 }
 
 // platform_version_path_bounds "dpp.state_transition_serialization_versions.contract_create_state_transition"
@@ -523,6 +622,30 @@ const DataContractInSerializationFormatV1 : BinCodeable<DataContractInSerializat
      */
   document_schemas: Map<DocumentName, Value>,
     /**
+     * The time in milliseconds that the contract was created.
+     */
+  created_at?: TimestampMillis,
+    /**
+     * The time in milliseconds that the contract was last updated.
+     */
+  updated_at?: TimestampMillis,
+    /**
+     * The block that the document was created.
+     */
+  created_at_block_height?: BlockHeight,
+    /**
+     * The block that the contract was last updated
+     */
+  updated_at_block_height?: BlockHeight,
+    /**
+     * The epoch at which the contract was created.
+     */
+  created_at_epoch?: EpochIndex,
+    /**
+     * The epoch at which the contract was last updated.
+     */
+  updated_at_epoch?: EpochIndex,
+    /**
      * Groups that allow for specific multiparty actions on the contract
      */
   groups: Map<GroupContractPosition, Group>,
@@ -556,6 +679,30 @@ interface DataContractInSerializationFormatV1 {
    * Document JSON Schemas per type
    */
   document_schemas: Map<DocumentName, Value>;
+  /**
+   * The time in milliseconds that the contract was created.
+   */
+  created_at?: TimestampMillis;
+  /**
+   * The time in milliseconds that the contract was last updated.
+   */
+  updated_at?: TimestampMillis;
+  /**
+   * The block that the document was created.
+   */
+  created_at_block_height?: BlockHeight;
+  /**
+   * The block that the contract was last updated
+   */
+  updated_at_block_height?: BlockHeight;
+  /**
+   * The epoch at which the contract was created.
+   */
+  created_at_epoch?: EpochIndex;
+  /**
+   * The epoch at which the contract was last updated.
+   */
+  updated_at_epoch?: EpochIndex;
   /**
    * Groups that allow for specific multiparty actions on the contract
    */
@@ -613,222 +760,588 @@ export abstract class DistributionFunction {
 }
 namespace DistributionFunction {
   /**
-   * A fixed amount of tokens is emitted for each period in the reward distribution type.
+   * Emits a constant (fixed) number of tokens for every period.
    *
    * # Formula
-   * - `f(x) = n`
+   * For any period `x`, the emitted tokens are:
+   *
+   * ```text
+   * f(x) = n
+   * ```
    *
    * # Use Case
-   * - Simplicity
-   * - Stable reward emissions
+   * - When a predictable, unchanging reward is desired.
+   * - Simplicity and stable emissions.
    *
    * # Example
-   * - If we emit 5 tokens per block, and 3 blocks have passed, the `Release` call will release 15 tokens.
+   * - If `n = 5` tokens per block, then after 3 blocks the total emission is 15 tokens.
    */
   const FixedAmount: (data: {
-    n: TokenAmount,
+    amount: TokenAmount,
   }) => DistributionFunction.FixedAmount;
   interface FixedAmount extends DistributionFunction {
-    n: TokenAmount;
+    amount: TokenAmount;
   }
   /**
-   * The amount of tokens decreases in predefined steps at fixed intervals.
+   * Emits a random number of tokens within a specified range.
+   *
+   * # Description
+   * - This function selects a **random** token emission amount between `min` and `max`.
+   * - The value is drawn **uniformly** between the bounds.
+   * - The randomness uses a Pseudo Random Function (PRF) from x.
    *
    * # Formula
-   * - `f(x) = n * (1 - decrease_per_interval)^(x / step_count)`
+   * For any period `x`, the emitted tokens follow:
    *
-   * # Use Case
-   * - Mimics Bitcoin and Dash Core emission models
-   * - Encourages early participation by providing higher rewards initially
+   * ```text
+   * f(x) ∈ [min, max]
+   * ```
+   *
+   * # Parameters
+   * - `min`: The **minimum** possible number of tokens emitted.
+   * - `max`: The **maximum** possible number of tokens emitted.
+   *
+   * # Use Cases
+   * - **Stochastic Rewards**: Introduces randomness into rewards to incentivize unpredictability.
+   * - **Lottery-Based Systems**: Used for randomized emissions, such as block rewards with probabilistic payouts.
    *
    * # Example
-   * - Bitcoin: A 50% decrease every 210,000 blocks (~4 years)
-   * - Dash: A ~7% decrease every 210,000 blocks (~1 year)
+   * Suppose a system emits **between 10 and 100 tokens per period**.
+   *
+   * ```text
+   * Random { min: 10, max: 100 }
+   * ```
+   *
+   * | Period (x) | Emitted Tokens (Random) |
+   * |------------|------------------------|
+   * | 1          | 27                     |
+   * | 2          | 94                     |
+   * | 3          | 63                     |
+   * | 4          | 12                     |
+   *
+   * - Each period, the function emits a **random number of tokens** between `min = 10` and `max = 100`.
+   * - Over time, the **average reward trends toward the midpoint** `(min + max) / 2`.
+   *
+   * # Constraints
+   * - **`min` must be ≤ `max`**, otherwise the function is invalid.
+   * - If `min == max`, this behaves like a `FixedAmount` function with a constant emission.
+   */
+  const Random: (data: {
+    min: TokenAmount,
+    max: TokenAmount,
+  }) => DistributionFunction.Random;
+  interface Random extends DistributionFunction {
+    min: TokenAmount;
+    max: TokenAmount;
+  }
+  /**
+   * Emits tokens that decrease in discrete steps at fixed intervals.
+   *
+   * # Formula
+   * For a given period `x`, the emission is calculated as:
+   *
+   * ```text
+   * f(x) = n * (1 - (decrease_per_interval_numerator / decrease_per_interval_denominator))^((x - s) / step_count)
+   * ```
+   *
+   * # Parameters
+   * - `step_count`: The number of periods between each step.
+   * - `decrease_per_interval_numerator` and `decrease_per_interval_denominator`: Define the reduction factor per step.
+   * - `s`: Optional start period offset (e.g., start block or time). If not provided, the contract creation start is used.
+   * - `n`: The initial token emission.
+   * - `min_value`: Optional minimum emission value.
+   *
+   * # Use Case
+   * - Modeling reward systems similar to Bitcoin or Dash Core.
+   * - Encouraging early participation by providing higher rewards initially.
+   *
+   * # Example
+   * - Bitcoin-style: 50% reduction every 210,000 blocks.
+   * - Dash-style: Approximately a 7% reduction every 210,000 blocks.
    */
   const StepDecreasingAmount: (data: {
     step_count: number,
-    decrease_per_interval: number,
+    decrease_per_interval_numerator: number,
+    decrease_per_interval_denominator: number,
+    s?: number,
     n: TokenAmount,
+    min_value?: number,
   }) => DistributionFunction.StepDecreasingAmount;
   interface StepDecreasingAmount extends DistributionFunction {
     step_count: number;
-    decrease_per_interval: number;
+    decrease_per_interval_numerator: number;
+    decrease_per_interval_denominator: number;
+    s?: number;
     n: TokenAmount;
+    min_value?: number;
   }
   /**
-   * A linear function emits tokens in increasing or decreasing amounts over time (integer precision).
+   * Emits tokens in fixed amounts for predefined intervals (steps).
    *
-   * # Formula
-   * - `f(x) = a * x + b`
-   * - Where `a` is the slope (rate of change) and `b` is the initial value.
-   *
-   * # Description
-   * - `a > 0`: Tokens increase over time.
-   * - `a < 0`: Tokens decrease over time.
-   * - `b` is the starting emission value.
+   * # Details
+   * - Within each step, the emission remains constant.
+   * - The keys in the `BTreeMap` represent the starting period for each interval,
+   *   and the corresponding values are the fixed token amounts to emit during that interval.
    *
    * # Use Case
-   * - Incentivize early adopters with higher rewards (`a < 0`).
-   * - Gradually increase emissions to match ecosystem growth (`a > 0`).
+   * - Adjusting rewards at specific milestones or time intervals.
    *
    * # Example
-   * - Start with 50 tokens and increase by 10 tokens per epoch: `f(x) = 10x + 50`.
+   * - Emit 100 tokens per block for the first 1,000 blocks, then 50 tokens per block thereafter.
    */
-  const LinearInteger: (data: {
+  const Stepwise: (f0: Map<number, TokenAmount>) => DistributionFunction.Stepwise;
+  interface Stepwise extends DistributionFunction {
+    [0]: Map<number, TokenAmount>;
+  }
+  /**
+   * Emits tokens following a linear function that can increase or decrease over time
+   * with fractional precision.
+   *
+   * # Formula
+   * The emission at period `x` is given by:
+   *
+   * ```text
+   * f(x) = (a * (x - start_moment) / d) + starting_amount
+   * ```
+   *
+   * # Parameters
+   * - `a`: The slope numerator; determines the rate of change.
+   * - `d`: The slope divisor; together with `a` controls the fractional rate.
+   * - `s`: Optional start period offset. If not set, the contract creation start is assumed.
+   * - `b`: The initial token emission (offset).
+   * - `min_value` / `max_value`: Optional bounds to clamp the emission.
+   *
+   * # Details
+   * - If `a > 0`, emissions increase over time.
+   * - If `a < 0`, emissions decrease over time.
+   *
+   * # Behavior
+   * - **If `a > 0`**, emissions increase linearly over time.
+   * - **If `a < 0`**, emissions decrease linearly over time.
+   * - **If `a = 0`**, emissions remain constant at `b`.
+   *
+   * # Use Cases
+   * - **Predictable Inflation or Deflation:** A simple mechanism to adjust token supply dynamically.
+   * - **Long-Term Incentive Structures:** Ensures steady and measurable growth or reduction of rewards.
+   * - **Decaying Emissions:** Can be used to gradually taper off token rewards over time.
+   * - **Sustained Growth Models:** Encourages prolonged engagement by steadily increasing rewards.
+   *
+   * # Examples
+   *
+   * ## **1️⃣ Increasing Linear Emission (`a > 0`)**
+   * - Tokens increase by **1 token per block** starting from 10.
+   *
+   * ```text
+   * f(x) = (1 * (x - 0) / 1) + 10
+   * ```
+   *
+   * | Block (x) | f(x) (Tokens) |
+   * |-----------|---------------|
+   * | 0         | 10            |
+   * | 1         | 11            |
+   * | 2         | 12            |
+   * | 3         | 13            |
+   *
+   * **Use Case:** Encourages continued participation by providing increasing rewards over time.
+   *
+   * ---
+   *
+   * ## **2️⃣ Decreasing Linear Emission (`a < 0`)**
+   * - Tokens **start at 100 and decrease by 2 per period**.
+   *
+   * ```text
+   * f(x) = (-2 * (x - 0) / 1) + 100
+   * ```
+   *
+   * | Block (x) | f(x) (Tokens) |
+   * |-----------|---------------|
+   * | 0         | 100           |
+   * | 1         | 98            |
+   * | 2         | 96            |
+   * | 3         | 94            |
+   *
+   * **Use Case:** Suitable for deflationary models where rewards need to decrease over time.
+   *
+   * ---
+   *
+   * ## **3️⃣ Emission with a Delayed Start (`s > 0`)**
+   * - **No emissions before `x = s`** (e.g., rewards start at block `10`).
+   *
+   * ```text
+   * f(x) = (5 * (x - 10) / 1) + 50
+   * ```
+   *
+   * | Block (x) | f(x) (Tokens) |
+   * |-----------|---------------|
+   * | 9         | 50 (no change)|
+   * | 10        | 50            |
+   * | 11        | 55            |
+   * | 12        | 60            |
+   *
+   * **Use Case:** Useful when rewards should only begin at a specific milestone.
+   *
+   * ---
+   *
+   * ## **4️⃣ Clamping Emissions with `min_value` and `max_value`**
+   * - **Start at 50, increase by 2, but never exceed 60.**
+   *
+   * ```text
+   * f(x) = (2 * (x - 0) / 1) + 50
+   * ```
+   *
+   * | Block (x) | f(x) (Tokens) |
+   * |-----------|---------------|
+   * | 0         | 50            |
+   * | 1         | 52            |
+   * | 2         | 54            |
+   * | 5         | 60 (max cap)  |
+   *
+   * **Use Case:** Prevents runaway inflation by limiting the emission range.
+   *
+   * ---
+   *
+   * # Summary
+   * - **Increasing rewards (`a > 0`)**: Encourages longer participation.
+   * - **Decreasing rewards (`a < 0`)**: Supports controlled deflation.
+   * - **Delayed start (`s > 0`)**: Ensures rewards only begin at a specific point.
+   * - **Clamping (`min_value`, `max_value`)**: Maintains controlled emission boundaries.
+   */
+  const Linear: (data: {
     a: number,
-    b: SignedTokenAmount,
-  }) => DistributionFunction.LinearInteger;
-  interface LinearInteger extends DistributionFunction {
+    d: number,
+    start_step?: number,
+    starting_amount: TokenAmount,
+    min_value?: number,
+    max_value?: number,
+  }) => DistributionFunction.Linear;
+  interface Linear extends DistributionFunction {
     a: number;
-    b: SignedTokenAmount;
+    d: number;
+    start_step?: number;
+    starting_amount: TokenAmount;
+    min_value?: number;
+    max_value?: number;
   }
   /**
-   * A linear function emits tokens in increasing or decreasing amounts over time (floating-point precision).
+   * Emits tokens following a polynomial curve with integer arithmetic.
    *
    * # Formula
-   * - `f(x) = a * x + b`
-   * - Where `a` is the slope (rate of change) and `b` is the initial value.
+   * The emission at period `x` is given by:
    *
-   * # Description
-   * - `a > 0`: Tokens increase over time.
-   * - `a < 0`: Tokens decrease over time.
-   * - `b` is the starting emission value.
+   * ```text
+   * f(x) = (a * (x - s + o)^(m/n)) / d + b
+   * ```
    *
-   * # Use Case
-   * - Similar to `LinearInteger`, but supports fractional rates of change.
+   * # Parameters
+   * - `a`: Scaling factor for the polynomial term.
+   * - `m` and `n`: Together specify the exponent as a rational number (allowing non-integer exponents).
+   * - `d`: A divisor for scaling.
+   * - `s`: Optional start period offset. If not provided, the contract creation start is used.
+   * - `o`: An offset for the polynomial function, this is useful if s is in None,
+   * - `b`: An offset added to the computed value.
+   * - `min_value` / `max_value`: Optional bounds to constrain the emission.
    *
-   * # Example
-   * - Start with 50 tokens and increase by 0.5 tokens per epoch: `f(x) = 0.5x + 50`.
+   * # Behavior & Use Cases
+   * The polynomial function's behavior depends on the values of `a` (scaling factor) and `m` (exponent numerator).
+   *
+   * ## **1️⃣ `a > 0`, `m > 0` (Increasing Polynomial Growth)**
+   * - **Behavior**: Emissions **increase at an accelerating rate** over time.
+   * - **Use Case**: Suitable for models where incentives start small and grow over time (e.g., boosting late-stage participation).
+   * - **Example**:
+   *   ```text
+   *   f(x) = (2 * (x - s + o)^2) / d + 10
+   *   ```
+   *   - If `s = 0`, `o = 0`, and `d = 1`, then:
+   *     - `f(1) = 12`
+   *     - `f(2) = 18`
+   *     - `f(3) = 28` (Emissions **accelerate over time**)
+   *
+   * ## **2️⃣ `a > 0`, `m < 0` (Decreasing Polynomial Decay)**
+   * - **Behavior**: Emissions **start high and gradually decline**.
+   * - **Use Case**: Useful for front-loaded incentives where rewards are larger at the beginning and taper off over time.
+   * - **Example**:
+   *   ```text
+   *   f(x) = (5 * (x - s + o)^(-1)) / d + 10
+   *   ```
+   *   - If `s = 0`, `o = 0`, and `d = 1`, then:
+   *     - `f(1) = 15`
+   *     - `f(2) = 12.5`
+   *     - `f(3) = 11.67` (Emissions **shrink but never hit zero**)
+   *
+   * ## **3️⃣ `a < 0`, `m > 0` (Inverted Growth → Decreasing Over Time)**
+   * - **Behavior**: Emissions **start large but decrease faster over time**.
+   * - **Use Case**: Suitable for cases where high initial incentives quickly drop off (e.g., limited early rewards).
+   * - **Example**:
+   *   ```text
+   *   f(x) = (-3 * (x - s + o)^2) / d + 50
+   *   ```
+   *   - If `s = 0`, `o = 0`, and `d = 1`, then:
+   *     - `f(1) = 47`
+   *     - `f(2) = 38`
+   *     - `f(3) = 23` (Emissions **fall sharply**)
+   *
+   * ## **4️⃣ `a < 0`, `m < 0` (Inverted Decay → Slowing Increase)**
+   * - **Behavior**: Emissions **start low, rise gradually, and then flatten out**.
+   * - **Use Case**: Useful for controlled inflation where rewards increase over time but approach a stable maximum.
+   * - **Example**:
+   *   ```text
+   *   f(x) = (-10 * (x - s + o)^(-2)) / d + 50
+   *   ```
+   *   - If `s = 0`, `o = 0`, and `d = 1`, then:
+   *     - `f(1) = 40`
+   *     - `f(2) = 47.5`
+   *     - `f(3) = 48.89` (Growth **slows as it approaches 50**)
+   *
+   * # Summary
+   * - **Positive `a` means increasing emissions**, while **negative `a` means decreasing emissions**.
+   * - **Positive `m` leads to growth**, while **negative `m` leads to decay**.
+   * - The combination of `a` and `m` defines whether emissions accelerate, decay, or remain stable.
    */
-  const LinearFloat: (data: {
+  const Polynomial: (data: {
     a: number,
-    b: SignedTokenAmount,
-  }) => DistributionFunction.LinearFloat;
-  interface LinearFloat extends DistributionFunction {
-    a: number;
-    b: SignedTokenAmount;
-  }
-  /**
-   * A polynomial function emits tokens according to a quadratic or cubic curve (integer precision).
-   *
-   * # Formula
-   * - `f(x) = a * x^n + b`
-   * - Where `n` is the degree of the polynomial, `a` is the scaling factor, and `b` is the base amount.
-   *
-   * # Description
-   * - Higher-degree polynomials allow for flexible emission curves.
-   * - Use for growth or decay patterns that aren't linear.
-   *
-   * # Use Case
-   * - Reward systems with diminishing returns as time progresses.
-   *
-   * # Example
-   * - Emit rewards based on a quadratic curve: `f(x) = 2x^2 + 20`.
-   */
-  const PolynomialInteger: (data: {
-    a: number,
+    d: number,
+    m: number,
     n: number,
-    b: SignedTokenAmount,
-  }) => DistributionFunction.PolynomialInteger;
-  interface PolynomialInteger extends DistributionFunction {
+    o: number,
+    start_moment?: number,
+    b: TokenAmount,
+    min_value?: number,
+    max_value?: number,
+  }) => DistributionFunction.Polynomial;
+  interface Polynomial extends DistributionFunction {
     a: number;
+    d: number;
+    m: number;
     n: number;
-    b: SignedTokenAmount;
+    o: number;
+    start_moment?: number;
+    b: TokenAmount;
+    min_value?: number;
+    max_value?: number;
   }
   /**
-   * A polynomial function emits tokens according to a quadratic or cubic curve (floating-point precision).
+   * Emits tokens following an exponential function.
    *
    * # Formula
-   * - `f(x) = a * x^n + b`
-   * - Where `n` is the degree of the polynomial, `a` is the scaling factor, and `b` is the base amount.
+   * The emission at period `x` is given by:
    *
-   * # Description
-   * - Similar to `PolynomialInteger`, but supports fractional scaling and degrees.
+   * ```text
+   * f(x) = (a * e^(m * (x - s) / n)) / d + c
+   * ```
    *
-   * # Example
-   * - Emit rewards based on a cubic curve with fractional growth: `f(x) = 0.5x^3 + 20`.
-   */
-  const PolynomialFloat: (data: {
-    a: number,
-    n: number,
-    b: SignedTokenAmount,
-  }) => DistributionFunction.PolynomialFloat;
-  interface PolynomialFloat extends DistributionFunction {
-    a: number;
-    n: number;
-    b: SignedTokenAmount;
-  }
-  /**
-   * An exponential function emits tokens based on exponential growth or decay.
+   * # Parameters
+   * - `a`: The scaling factor.
+   * - `m` and `n`: Define the exponent rate (with `m > 0` for growth and `m < 0` for decay).
+   * - `d`: A divisor used to scale the exponential term.
+   * - `s`: Optional start period offset. If not set, the contract creation start is assumed.
+   * - `o`: An offset for the exp function, this is useful if s is in None.
+   * - `c`: An offset added to the result.
+   * - `min_value` / `max_value`: Optional constraints on the emitted tokens.
    *
-   * # Formula
-   * - `f(x) = a * e^(b * x) + c`
-   * - Where `a` is the scaling factor, `b` controls the growth/decay rate, and `c` is an offset.
+   * # Use Cases
+   * ## **Exponential Growth (`m > 0`):**
+   * - **Incentivized Spending**: Higher emissions over time increase the circulating supply, encouraging users to spend tokens.
+   * - **Progressive Emission Models**: Useful for models where early emissions are low but increase significantly over time.
+   * - **Early-Stage Adoption Strategies**: Helps drive later participation by offering increasing rewards as time progresses.
    *
-   * # Description
-   * - Exponential growth: `b > 0`, emissions increase rapidly.
-   * - Exponential decay: `b < 0`, emissions decrease rapidly.
-   * - Useful for early incentivization or ecosystem maturity.
+   * ## **Exponential Decay (`m < 0`):**
+   * - **Deflationary Reward Models**: Reduces emissions over time, ensuring token scarcity.
+   * - **Early Participation Incentives**: Encourages early users by distributing more tokens initially and gradually decreasing rewards.
+   * - **Sustainable Emission Models**: Helps manage token supply while preventing runaway inflation.
    *
-   * # Use Case
-   * - Reward mechanisms where early contributors get larger rewards.
+   * # Examples
+   * ## **Example 1: Exponential Growth (`m > 0`)**
+   * - **Use Case**: A staking model where rewards increase over time to encourage long-term participation.
+   * - **Parameters**: `a = 100`, `m = 2`, `n = 50`, `d = 10`, `c = 5`
+   * - **Formula**:
+   *   ```text
+   *   f(x) = (100 * e^(2 * (x - s) / 50)) / 10 + 5
+   *   ```
+   * - **Effect**: Emissions start small but **increase exponentially** over time, rewarding late stakers more than early ones.
    *
-   * # Example
-   * - Start with 100 tokens and halve emissions every interval, with a minimum of 5 tokens: `f(x) = 100 * e^(-0.693 * x) + 5`.
+   * ## **Example 2: Exponential Decay (`m < 0`)**
+   * - **Use Case**: A deflationary model where emissions start high and gradually decrease to ensure scarcity.
+   * - **Parameters**: `a = 500`, `m = -3`, `n = 100`, `d = 20`, `c = 10`
+   * - **Formula**:
+   *   ```text
+   *   f(x) = (500 * e^(-3 * (x - s) / 100)) / 20 + 10
+   *   ```
+   * - **Effect**: Emissions start **high and decay exponentially**, ensuring early participants get larger rewards.
    */
   const Exponential: (data: {
     a: number,
-    b: number,
-    c: SignedTokenAmount,
+    d: number,
+    m: number,
+    n: number,
+    o: number,
+    start_moment?: number,
+    c: TokenAmount,
+    min_value?: number,
+    max_value?: number,
   }) => DistributionFunction.Exponential;
   interface Exponential extends DistributionFunction {
     a: number;
-    b: number;
-    c: SignedTokenAmount;
+    d: number;
+    m: number;
+    n: number;
+    o: number;
+    start_moment?: number;
+    c: TokenAmount;
+    min_value?: number;
+    max_value?: number;
   }
   /**
-   * A logarithmic function emits tokens based on logarithmic growth.
+   * Emits tokens following a logarithmic function.
    *
    * # Formula
-   * - `f(x) = a * log_b(x) + c`
-   * - Where `a` is the scaling factor, `b` is the logarithm base, and `c` is an offset.
+   * The emission at period `x` is computed as:
    *
-   * # Description
-   * - Growth starts quickly but slows as `x` increases.
-   * - Suitable for sustainable emissions over long periods.
+   * ```text
+   * f(x) = (a * log(m * (x - s + o) / n)) / d + b
+   * ```
+   *
+   * # Parameters
+   * - `a`: Scaling factor for the logarithmic term.
+   * - `d`: A divisor for scaling.
+   * - `m` and `n`: Adjust the input to the logarithm function.
+   * - `s`: Optional start period offset. If not provided, the contract creation start is used.
+   * - `o`: An offset for the log function, this is useful if s is in None.
+   * - `b`: An offset added to the result.
+   * - `min_value` / `max_value`: Optional bounds to ensure the emission remains within limits.
    *
    * # Use Case
-   * - Gradual emissions tapering to balance supply and demand.
+   * - **Gradual Growth with a Slowing Rate**: Suitable for reward schedules where the emission
+   *   starts at a lower rate, increases quickly at first, but then slows down over time.
+   * - **Predictable Emission Scaling**: Ensures a growing but controlled emission curve that
+   *   does not escalate too quickly.
+   * - **Sustainability and Inflation Control**: Helps prevent runaway token supply growth
+   *   by ensuring rewards increase at a decreasing rate.
    *
    * # Example
-   * - Emit rewards using a log base-2 curve: `f(x) = 20 * log_2(x) + 5`.
+   * - Suppose we want token emissions to start at a low value and grow over time, but at a
+   *   **decreasing rate**, ensuring controlled long-term growth.
+   *
+   * - Given the formula:
+   *   ```text
+   *   f(x) = (a * log(m * (x - s + o) / n)) / d + b
+   *   ```
+   *
+   * - Let’s assume the following parameters:
+   *   - `a = 100`: Scaling factor.
+   *   - `d = 10`: Divisor to control overall scaling.
+   *   - `m = 2`, `n = 1`: Adjust the logarithmic input.
+   *   - `s = 0`, `o = 1`: Starting conditions.
+   *   - `b = 50`: Base amount added.
+   *
+   * - This results in:
+   *   ```text
+   *   f(x) = (100 * log(2 * (x + 1) / 1)) / 10 + 50
+   *   ```
+   *
+   * - **Expected Behavior:**
+   *   - At `x = 1`, emission = `f(1) = (100 * log(4)) / 10 + 50 ≈ 82`
+   *   - At `x = 10`, emission = `f(10) = (100 * log(22)) / 10 + 50 ≈ 106`
+   *   - At `x = 100`, emission = `f(100) = (100 * log(202)) / 10 + 50 ≈ 130`
+   *
+   * - **Observations:**
+   *   - The emission **increases** over time, but at a **slowing rate**.
+   *   - Early increases are more pronounced, but as `x` grows, the additional reward per
+   *     period gets smaller.
+   *   - This makes it ideal for long-term, controlled emission models.
    */
   const Logarithmic: (data: {
     a: number,
-    b: number,
-    c: SignedTokenAmount,
+    d: number,
+    m: number,
+    n: number,
+    o: number,
+    start_moment?: number,
+    b: TokenAmount,
+    min_value?: number,
+    max_value?: number,
   }) => DistributionFunction.Logarithmic;
   interface Logarithmic extends DistributionFunction {
     a: number;
-    b: number;
-    c: SignedTokenAmount;
+    d: number;
+    m: number;
+    n: number;
+    o: number;
+    start_moment?: number;
+    b: TokenAmount;
+    min_value?: number;
+    max_value?: number;
   }
   /**
-   * A stepwise function emits tokens in fixed amounts for predefined intervals.
+   * Emits tokens following an inverted logarithmic function.
    *
-   * # Description
-   * - Emissions remain constant within each step.
-   * - Steps define specific time intervals or milestones.
+   * # Formula
+   * The emission at period `x` is given by:
+   *
+   * ```text
+   * f(x) = (a * log( n / (m * (x - s + o)) )) / d + b
+   * ```
+   *
+   * # Parameters
+   * - `a`: Scaling factor.
+   * - `d`: Divisor for scaling.
+   * - `m` and `n`: Together control the logarithm argument inversion.
+   * - `o`: Offset applied inside the logarithm.
+   * - `s`: Optional start period offset.
+   * - `b`: Offset added to the computed value.
+   * - `min_value` / `max_value`: Optional boundaries for the emission.
    *
    * # Use Case
-   * - Adjust rewards at specific milestones.
+   * - **Gradual Decay of Rewards**: Suitable when early adopters should receive higher rewards,
+   *   but later participants should receive smaller but still meaningful amounts.
+   * - **Resource Draining / Controlled Burn**: Used when token emissions should drop significantly
+   *   at first but slow down over time to preserve capital.
+   * - **Airdrop or Grant System**: Ensures early claimants receive larger distributions, but later
+   *   claimants receive diminishing rewards.
    *
    * # Example
-   * - Emit 100 tokens per block for the first 1000 blocks, then 50 tokens thereafter.
+   * - Suppose a system starts with **500 tokens per period** and gradually reduces over time:
+   *
+   *   ```text
+   *   f(x) = (1000 * log(5000 / (5 * (x - 1000)))) / 10 + 10
+   *   ```
+   *
+   *   Example values:
+   *
+   *   | Period (x) | Emission (f(x)) |
+   *   |------------|----------------|
+   *   | 1000       | 500 tokens      |
+   *   | 1500       | 230 tokens      |
+   *   | 2000       | 150 tokens      |
+   *   | 5000       | 50 tokens       |
+   *   | 10,000     | 20 tokens       |
+   *   | 50,000     | 10 tokens       |
+   *
+   *   - The emission **starts high** and **gradually decreases**, ensuring early adopters receive
+   *     more tokens while later participants still get rewards.
+   *   - The function **slows down the rate of decrease** over time, preventing emissions from
+   *     hitting zero too quickly.
    */
-  const Stepwise: (f0: [number, TokenAmount][]) => DistributionFunction.Stepwise;
-  interface Stepwise extends DistributionFunction {
-    [0]: [number, TokenAmount][];
+  const InvertedLogarithmic: (data: {
+    a: number,
+    d: number,
+    m: number,
+    n: number,
+    o: number,
+    start_moment?: number,
+    b: TokenAmount,
+    min_value?: number,
+    max_value?: number,
+  }) => DistributionFunction.InvertedLogarithmic;
+  interface InvertedLogarithmic extends DistributionFunction {
+    a: number;
+    d: number;
+    m: number;
+    n: number;
+    o: number;
+    start_moment?: number;
+    b: TokenAmount;
+    min_value?: number;
+    max_value?: number;
   }
 }
 
@@ -1084,6 +1597,8 @@ interface DocumentUpdatePriceTransitionV0 {
   revision: Revision;
   price: Credits;
 }
+
+export type EpochIndex = number;
 
 export type EpochInterval = number;
 
@@ -1845,31 +2360,47 @@ export abstract class RewardDistributionType {
 }
 namespace RewardDistributionType {
   /**
-   * An amount of tokens is emitted every n blocks
+   * An amount of tokens is emitted every n blocks.
+   * The start and end are included if set.
+   * If start is not set then it will start at the height of the block when the data contract
+   * is registered.
    */
-  const BlockBasedDistribution: (f0: BlockHeightInterval, f1: TokenAmount, f2: DistributionFunction) => RewardDistributionType.BlockBasedDistribution;
+  const BlockBasedDistribution: (data: {
+    interval: BlockHeightInterval,
+    function: DistributionFunction,
+  }) => RewardDistributionType.BlockBasedDistribution;
   interface BlockBasedDistribution extends RewardDistributionType {
-    [0]: BlockHeightInterval;
-    [1]: TokenAmount;
-    [2]: DistributionFunction;
+    interval: BlockHeightInterval;
+    function: DistributionFunction;
   }
   /**
-   * An amount of tokens is emitted every amount of time given
+   * An amount of tokens is emitted every amount of time given.
+   * The start and end are included if set.
+   * If start is not set then it will start at the time of the block when the data contract
+   * is registered.
    */
-  const TimeBasedDistribution: (f0: TimestampMillisInterval, f1: TokenAmount, f2: DistributionFunction) => RewardDistributionType.TimeBasedDistribution;
+  const TimeBasedDistribution: (data: {
+    interval: TimestampMillisInterval,
+    function: DistributionFunction,
+  }) => RewardDistributionType.TimeBasedDistribution;
   interface TimeBasedDistribution extends RewardDistributionType {
-    [0]: TimestampMillisInterval;
-    [1]: TokenAmount;
-    [2]: DistributionFunction;
+    interval: TimestampMillisInterval;
+    function: DistributionFunction;
   }
   /**
-   * An amount of tokens is emitted every amount of epochs
+   * An amount of tokens is emitted every amount of epochs.
+   * The start and end are included if set.
+   * If start is not set then it will start at the epoch of the block when the data contract
+   * is registered. A distribution would happen at the start of the following epoch, even if it
+   * is just 1 block later.
    */
-  const EpochBasedDistribution: (f0: EpochInterval, f1: TokenAmount, f2: DistributionFunction) => RewardDistributionType.EpochBasedDistribution;
+  const EpochBasedDistribution: (data: {
+    interval: EpochInterval,
+    function: DistributionFunction,
+  }) => RewardDistributionType.EpochBasedDistribution;
   interface EpochBasedDistribution extends RewardDistributionType {
-    [0]: EpochInterval;
-    [1]: TokenAmount;
-    [2]: DistributionFunction;
+    interval: EpochInterval;
+    function: DistributionFunction;
   }
 }
 
@@ -1908,8 +2439,6 @@ namespace SecurityLevel {
 export type SenderKeyIndex = number;
 
 export type SharedEncryptedNote = [SenderKeyIndex, RecipientKeyIndex, Uint8Array];
-
-export type SignedTokenAmount = number;
 
 export abstract class StateTransition {
   #private;
@@ -2069,6 +2598,49 @@ interface TokenBurnTransitionV0 {
   burn_amount: number;
   /**
    * The public note
+   */
+  public_note?: string;
+}
+
+export abstract class TokenClaimTransition {
+  #private;
+  static name: string;
+  static isValid(v: unknown): boolean;
+  static encode(bc: BinCode, v: TokenClaimTransition): void;
+  static decode(bc: BinCode): TokenClaimTransition;
+}
+namespace TokenClaimTransition {
+  const V0: (f0: TokenClaimTransitionV0) => TokenClaimTransition.V0;
+  interface V0 extends TokenClaimTransition {
+    [0]: TokenClaimTransitionV0;
+  }
+}
+
+const TokenClaimTransitionV0 : BinCodeable<TokenClaimTransitionV0> & ((data: {
+    /**
+     * Document Base Transition
+     */
+  base: TokenBaseTransition,
+    /**
+     * The type of distribution we are targeting
+     */
+  distribution_type: TokenDistributionType,
+    /**
+     * A public note, this will only get saved to the state if we are using a historical contract
+     */
+  public_note?: string,
+}) => TokenClaimTransitionV0);
+interface TokenClaimTransitionV0 {
+  /**
+   * Document Base Transition
+   */
+  base: TokenBaseTransition;
+  /**
+   * The type of distribution we are targeting
+   */
+  distribution_type: TokenDistributionType;
+  /**
+   * A public note, this will only get saved to the state if we are using a historical contract
    */
   public_note?: string;
 }
@@ -2268,20 +2840,42 @@ namespace TokenConfigurationConvention {
 }
 
 const TokenConfigurationConventionV0 : BinCodeable<TokenConfigurationConventionV0> & ((data: {
-  localizations: Map<string, TokenConfigurationLocalizationsV0>,
+    /**
+     * Localizations for the token name.
+     * The key must be a ISO 639 2-chars language code
+     */
+  localizations: Map<string, TokenConfigurationLocalization>,
   decimals: number,
 }) => TokenConfigurationConventionV0);
 interface TokenConfigurationConventionV0 {
-  localizations: Map<string, TokenConfigurationLocalizationsV0>;
+  /**
+   * Localizations for the token name.
+   * The key must be a ISO 639 2-chars language code
+   */
+  localizations: Map<string, TokenConfigurationLocalization>;
   decimals: number;
 }
 
-const TokenConfigurationLocalizationsV0 : BinCodeable<TokenConfigurationLocalizationsV0> & ((data: {
+export abstract class TokenConfigurationLocalization {
+  #private;
+  static name: string;
+  static isValid(v: unknown): boolean;
+  static encode(bc: BinCode, v: TokenConfigurationLocalization): void;
+  static decode(bc: BinCode): TokenConfigurationLocalization;
+}
+namespace TokenConfigurationLocalization {
+  const V0: (f0: TokenConfigurationLocalizationV0) => TokenConfigurationLocalization.V0;
+  interface V0 extends TokenConfigurationLocalization {
+    [0]: TokenConfigurationLocalizationV0;
+  }
+}
+
+const TokenConfigurationLocalizationV0 : BinCodeable<TokenConfigurationLocalizationV0> & ((data: {
   should_capitalize: boolean,
   singular_form: string,
   plural_form: string,
-}) => TokenConfigurationLocalizationsV0);
-interface TokenConfigurationLocalizationsV0 {
+}) => TokenConfigurationLocalizationV0);
+interface TokenConfigurationLocalizationV0 {
   should_capitalize: boolean;
   singular_form: string;
   plural_form: string;
@@ -2302,9 +2896,9 @@ const TokenConfigurationV0 : BinCodeable<TokenConfigurationV0> & ((data: {
      */
   max_supply?: TokenAmount,
     /**
-     * Do we keep history, default is true.
+     * The rules for keeping history.
      */
-  keeps_history: boolean,
+  keeps_history: TokenKeepsHistoryRules,
     /**
      * Do we start off as paused, meaning that we can not transfer till we unpause.
      */
@@ -2342,9 +2936,9 @@ interface TokenConfigurationV0 {
    */
   max_supply?: TokenAmount;
   /**
-   * Do we keep history, default is true.
+   * The rules for keeping history.
    */
-  keeps_history: boolean;
+  keeps_history: TokenKeepsHistoryRules;
   /**
    * Do we start off as paused, meaning that we can not transfer till we unpause.
    */
@@ -2423,6 +3017,7 @@ export abstract class TokenDistributionRecipient {
 namespace TokenDistributionRecipient {
   /**
    * Distribute to the contract Owner
+  // default
    */
   /**
    * Distribute to a single identity
@@ -2468,6 +3063,29 @@ interface TokenDistributionRulesV0 {
   new_tokens_destination_identity_rules: ChangeControlRules;
   minting_allow_choosing_destination: boolean;
   minting_allow_choosing_destination_rules: ChangeControlRules;
+}
+
+/**
+ * Represents the type of token distribution.
+ *
+ * - `PreProgrammed`: A scheduled distribution with predefined rules.
+ * - `Perpetual`: A continuous or recurring distribution.
+ */
+export abstract class TokenDistributionType {
+  #private;
+  static name: string;
+  static isValid(v: unknown): boolean;
+  static encode(bc: BinCode, v: TokenDistributionType): void;
+  static decode(bc: BinCode): TokenDistributionType;
+}
+namespace TokenDistributionType {
+  /**
+   * A pre-programmed distribution scheduled for a specific time.
+  // default
+   */
+  /**
+   * A perpetual distribution that occurs at regular intervals.
+   */
 }
 
 export abstract class TokenEmergencyAction {
@@ -2565,6 +3183,62 @@ interface TokenFreezeTransitionV0 {
    * The public note
    */
   public_note?: string;
+}
+
+export abstract class TokenKeepsHistoryRules {
+  #private;
+  static name: string;
+  static isValid(v: unknown): boolean;
+  static encode(bc: BinCode, v: TokenKeepsHistoryRules): void;
+  static decode(bc: BinCode): TokenKeepsHistoryRules;
+}
+namespace TokenKeepsHistoryRules {
+  const V0: (f0: TokenKeepsHistoryRulesV0) => TokenKeepsHistoryRules.V0;
+  interface V0 extends TokenKeepsHistoryRules {
+    [0]: TokenKeepsHistoryRulesV0;
+  }
+}
+
+/**
+ * The rules for keeping a ledger as documents of token events.
+ * Config update, Destroying Frozen Funds, Emergency Action,
+ * Pre Programmed Token Release always require an entry to the ledger
+ */
+const TokenKeepsHistoryRulesV0 : BinCodeable<TokenKeepsHistoryRulesV0> & ((data: {
+    /**
+     * Whether transfer history is recorded.
+     */
+  keeps_transfer_history: boolean,
+    /**
+     * Whether freezing history is recorded.
+     */
+  keeps_freezing_history: boolean,
+    /**
+     * Whether minting history is recorded.
+     */
+  keeps_minting_history: boolean,
+    /**
+     * Whether burning history is recorded.
+     */
+  keeps_burning_history: boolean,
+}) => TokenKeepsHistoryRulesV0);
+interface TokenKeepsHistoryRulesV0 {
+  /**
+   * Whether transfer history is recorded.
+   */
+  keeps_transfer_history: boolean;
+  /**
+   * Whether freezing history is recorded.
+   */
+  keeps_freezing_history: boolean;
+  /**
+   * Whether minting history is recorded.
+   */
+  keeps_minting_history: boolean;
+  /**
+   * Whether burning history is recorded.
+   */
+  keeps_burning_history: boolean;
 }
 
 export abstract class TokenMintTransition {
@@ -2756,6 +3430,10 @@ namespace TokenTransition {
   const DestroyFrozenFunds: (f0: TokenDestroyFrozenFundsTransition) => TokenTransition.DestroyFrozenFunds;
   interface DestroyFrozenFunds extends TokenTransition {
     [0]: TokenDestroyFrozenFundsTransition;
+  }
+  const Claim: (f0: TokenClaimTransition) => TokenTransition.Claim;
+  interface Claim extends TokenTransition {
+    [0]: TokenClaimTransition;
   }
   const EmergencyAction: (f0: TokenEmergencyActionTransition) => TokenTransition.EmergencyAction;
   interface EmergencyAction extends TokenTransition {
