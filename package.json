@@ -26,7 +26,10 @@
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
-    "dashtx": "^0.20.3"
+    "dashtx": "^0.20.3",
+    "dotenv": "^16.4.7",
+    "launchdarkly-eventsource": "^2.0.3",
+    "qrcode-svg": "^1.1.0"
   },
   "devDependencies": {
     "vitest": "^2.0.5"

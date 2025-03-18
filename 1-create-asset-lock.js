@@ -1,15 +1,20 @@
-"use strict";
+import Fs from "node:fs/promises";
 
-let Fs = require("node:fs/promises");
+import Dotenv from "dotenv";
+import DashPhrase from "dashphrase";
+import DashHd from "./dashhd-utils.js";
+import DashKeys from "dashkeys";
+import DashTx from "dashtx/dashtx.js";
+import DashPlatform from "./dashplatform.js";
+import Bincode from "./bincode.js";
+import QRCode from "./_qr.js";
 
-// let DashPhrase = require("dashphrase");
-let DashHd = require("dashhd");
-let DashKeys = require("dashkeys");
-let DashTx = require("dashtx");
-let DashPlatform = require("./dashplatform.js");
-let Bincode = require("./bincode.js");
+import KeyUtils from "./key-utils.js";
+import EventSourcePackage from "launchdarkly-eventsource";
 
-let KeyUtils = require("./key-utils.js");
+Dotenv.config({ path: ".env" });
+
+let EventSourceShim = EventSourcePackage.EventSource;
 
 // let DapiGrpc = require("@dashevo/dapi-grpc");
 // let WasmDpp = require("@dashevo/wasm-dpp");
@@ -19,6 +24,7 @@ let KeyUtils = require("./key-utils.js");
 // let b58 = DashKeys.Base58.create();
 
 let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+let zmqAuthUrl = "https://api:null@tzmq.digitalcash.dev";
 
 const L1_VERSION_PLATFORM = 3;
 // const L1_VERSION_PLATFORM = 0;
@@ -77,11 +83,89 @@ let identityEcdsaPath = "";
 }
 
 async function main() {
+  let coinType = 5;
+  let testnet = true; // TODO
+  if (testnet) {
+    coinType = 1;
+  }
+
   // void (await WasmDpp.default());
+
+  let walletPhrase = process.env.DASH_WALLET_PHRASE;
+  let walletSalt = process.env.DASH_WALLET_SALT ?? "";
+  if (!walletPhrase) {
+    console.error("");
+    console.error("ERROR");
+    console.error("   'DASH_WALLET_PHRASE' is not set");
+    console.error("");
+    console.error("SOLUTION");
+    let newPhrase = await DashPhrase.generate();
+    console.error(`   echo 'DASH_WALLET_PHRASE="${newPhrase}"' >> .env`);
+    console.error(`   echo 'DASH_WALLET_SALT=""' >> .env`);
+    console.error("");
+    process.exit(1);
+    return;
+  }
+
+  let identityIndexStr = process.argv[2];
+  let identityIndex = parseInt(identityIndexStr, 10);
+  if (isNaN(identityIndex)) {
+    console.error("");
+    console.error("USAGE");
+    console.error("   ./demo.js <identity-index>");
+    console.error("");
+    console.error("EXAMPLE");
+    console.error("   ./demo.js 0");
+    console.error("");
+    process.exit(1);
+    return;
+  }
+
+  let seed = await DashPhrase.toSeed(walletPhrase, walletSalt);
+  let walletKey = await DashHd.fromSeed(seed);
+
+  await createPlatformAssetLock(walletKey, coinType, identityIndex);
+}
+
+/**
+ * @param {import('dashhd').HDWallet} walletKey
+ * @param {Uint32} coinType
+ * @param {Uint32} identityIndex
+ */
+async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
+  let hdOpts = { version: "testnet" }; // TODO
 
   let dashTx = DashTx.create(KeyUtils);
 
-  let fundingWif = await readWif("./funding.wif");
+  let regFundAddressPath = `m/9'/${coinType}'/5'/1'/${identityIndex}`;
+  //@ts-expect-error - monkey patch
+  let regFundAddress = await DashHd.deriveIdentRegFundKeyPath(
+    walletKey,
+    regFundAddressPath,
+  );
+  let assetAddress = await DashHd.deriveChild(
+    regFundAddress,
+    0,
+    DashHd.HARDENED,
+  );
+
+  //let authWalletPath = `m/9'/${coinType}'/5'/0'/0'/${identityIndex}'`;
+  ////@ts-expect-error - monkey patch
+  //let authWallet = await DashHd.deriveIdentAuthWalletPath(
+  //  walletKey,
+  //  authWalletPath,
+  //);
+  //let authMasterAddress = await authWallet.deriveAuthKey(0);
+  //let authOtherAddress = await authWallet.deriveAuthKey(1);
+
+  let topupAddressPath = `m/9'/${coinType}'/5'/2'/0`;
+  //@ts-expect-error - monkey patch
+  let topupAddress = await DashHd.deriveIdentTopupKeyPath(
+    walletKey,
+    topupAddressPath,
+  );
+
+  let fundingWif = await DashHd.toWif(regFundAddress.privateKey, hdOpts);
   let fundingInfo = await wifToInfo(fundingWif, "testnet");
 
   KeyUtils.set(fundingInfo.address, {
@@ -91,22 +175,19 @@ async function main() {
     pubKeyHash: fundingInfo.pubKeyHashHex,
   });
 
-  let changeWif = await readWif("./change.wif");
+  let changeWif = await DashHd.toWif(topupAddress.privateKey, hdOpts);
   let changeInfo = await wifToInfo(changeWif, "testnet");
 
-  let assetWif = await readWif("./asset.wif");
+  let assetWif = await DashHd.toWif(assetAddress.privateKey, hdOpts);
   let assetInfo = await wifToInfo(assetWif, "testnet");
 
-  // let masterWif = await readWif("./master.wif");
-  // let masterInfo = await wifToInfo(masterWif, "testnet");
+  console.log("Asset WIF", assetWif, "(would be ephemeral, non-hd)");
 
-  // let otherWif = await readWif("./other.wif");
-  // let otherInfo = await wifToInfo(otherWif, "testnet");
-
-  let fundingUtxos = await DashTx.utils.rpc(rpcAuthUrl, "getaddressutxos", {
-    addresses: [fundingInfo.address],
-  });
-  fundingUtxos[0].squence = "00000000"; // ??
+  //@ts-expect-error - monkey patch
+  let fundingUtxos = await DashTx.TODOgetUxtos([fundingInfo.address]);
+  for (let utxo of fundingUtxos) {
+    utxo.squence = "00000000"; // ??
+  }
 
   let fundingTotal = DashTx.sum(fundingUtxos);
   console.log();
@@ -160,7 +241,6 @@ async function main() {
   console.log(txProof);
 
   console.log();
-  //@ts-expect-error - null sigHashType
   let txProofHex = await DashTx.serialize(txProof, null);
   console.log(`Transaction Proof Hex:`);
   console.log(txProofHex);
@@ -183,6 +263,13 @@ async function main() {
   let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
   console.log(outpoint);
 
+  let assetInstantPromise = startEventSource(
+    zmqAuthUrl,
+    'rawtxlocksig',
+    verifyIsProof(txProof),
+  );
+  let assetChainPromise = pollAssetLockChainProof(outpoint.txid);
+
   console.log();
   console.log(`Funding Outpoint Hex`);
   let fundingOutPointHex = `${outpoint.txid}${outpoint.voutHex}`;
@@ -196,14 +283,222 @@ async function main() {
 }
 
 /**
- * @param {String} path
+ * @param {String} txidHex
  */
-async function readWif(path) {
-  let wif = await Fs.readFile(path, "utf8");
-  wif = wif.trim();
+async function pollAssetLockChainProof(txidHex) {
+  let isActive = true;
+  let promise = new Promise(async function (resolve) {
+    for (;;) {
+      if (!isActive) {
+        resolve(null);
+        return;
+      }
+      let assetLockChainProof = await getAssetLockChainProof(txidHex);
+      if (assetLockChainProof) {
+        resolve(assetLockChainProof);
+        return;
+      }
+    }
+    await sleep(15000);
+  });
 
-  return wif;
+  let source = {
+    close: function () {
+      isActive = false;
+    },
+  };
+
+  return {
+    promise,
+    source,
+  };
 }
+
+/**
+ * @param {HexString} txidHex
+ */
+async function getAssetLockChainProof(txidHex) {
+  let getJson = true;
+
+  let txInfo = await DashTx.utils.rpc(
+    rpcAuthUrl,
+    "getrawtransaction",
+    txidHex,
+    getJson,
+  );
+  if (!txInfo.vout) {
+    return null;
+  }
+
+  //@ts-expect-error
+  let vout = txInfo.vout.findIndex(function (voutInfo) {
+    return voutInfo.scriptPubKey?.hex === "6a00"; // TODO match the burn
+  });
+
+  let assetLockChainProof = {
+    // type: CHAIN_ALP,
+    core_chain_locked_height: txInfo.height,
+    // out_point: fundingOutPointHex,
+    out_point: {
+      txid: DashTx.utils.hexToBytes(txidHex),
+      vout: vout,
+    },
+  };
+
+  return assetLockChainProof;
+}
+
+/**
+ * @param {Uint32} ms
+ */
+async function sleep(ms) {
+  return await new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * @callback CheckData
+ * @param {String} message
+ * @returns {Promise<Boolean>}
+ */
+
+/**
+ * @param {String} url
+ * @param {String} eventName
+ * @param {CheckData} checkData
+ */
+function startEventSource(url, eventName, checkData) {
+  let source = new EventSourceShim(url);
+  let promise = new Promise(function (resolve) {
+    /** @param {MessageEvent} event */
+    source.onmessage = async function (event) {
+      let data = JSON.parse(event.data);
+
+      let isValidData = await checkData(data).catch(function (err) {
+        console.error(`error checking event source data`);
+        console.error(err);
+        return false;
+      });
+      if (!isValidData) {
+        return;
+      }
+
+      resolve({
+        source: "EventSource",
+        data: data,
+      });
+      source.close();
+    };
+
+    source.onerror = function () {
+      console.error("");
+      // TODO reconnect?
+    };
+
+    source.onclose = function () {};
+  });
+
+  return {
+    promise,
+    source,
+  };
+}
+
+/**
+ * @typedef Delta
+ * @prop {String} txid
+ * @prop {Uint32} index
+ * @prop {String} pubKeyHash
+ * @prop {String} address
+ * @prop {Uint32} satoshis
+ */
+
+/**
+ * @param {Array<String>} addresses
+ */
+//@ts-expect-error - monkey patch
+DashTx.TODOgetUtxos = async function (addresses) {
+  let oldDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+    addresses: addresses,
+  });
+
+  let newDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+    addresses: addresses,
+  });
+
+  let deltas = oldDeltas.concat(newDeltas);
+  //@ts-expect-error - monkey patch
+  let utxos = DashTx.TODOdeltasToUtxos(deltas);
+
+  return utxos;
+};
+
+/**
+ * @param {Array<Delta>} deltas
+ */
+//@ts-expect-error - monkey patch
+DashTx.TODOdeltasToUtxos = function (deltas) {
+  /** @type {Object.<String, Delta>} */
+  let deltasMap = {};
+  /** @type {Array<import('dashtx').CoreUtxo>} */
+  let utxos = [];
+
+  for (let delta of deltas) {
+    let outpoint = `${delta.txid}:${delta.index}`;
+
+    if (!deltasMap[outpoint]) {
+      deltasMap[outpoint] = delta;
+      continue;
+    }
+
+    let spent = deltasMap[outpoint];
+    if (spent.satoshis !== -delta.satoshis) {
+      throw new Error(
+        `sanity fail: ${outpoint} matched a third time: ${spent.satoshis} (running total) and ${delta.satoshis} (third instance)`,
+      );
+    }
+
+    deltasMap[outpoint].satoshis = 0;
+  }
+
+  let outpoints = Object.keys(deltasMap);
+  for (let outpoint of outpoints) {
+    let delta = deltasMap[outpoint];
+
+    if (delta.satoshis > 0) {
+      let utxo = {
+        address: delta.address,
+        pubKeyHash: delta.pubKeyHash,
+        txid: delta.txid,
+        outputIndex: delta.index,
+        satoshis: delta.satoshis,
+        script: `76a914${delta.pubKeyHash}88ac`,
+      };
+      utxos.push(utxo);
+    }
+
+    if (delta.satoshis === 0) {
+      continue;
+    }
+
+    throw new Error(
+      `sanity fail: invalid satoshi value for outpoint '${outpoint}': ${delta.satoshis}`,
+    );
+  }
+
+  return utxos;
+};
+
+// /**
+//  * @param {String} path
+//  */
+// async function readWif(path) {
+//   let wif = await Fs.readFile(path, "utf8");
+//   wif = wif.trim();
+
+//   return wif;
+// }
 
 /**
  * @param {String} wif
@@ -234,7 +529,7 @@ async function wifToInfo(wif, version) {
 }
 
 /**
- * @param {Hex} txSignedHex
+ * @param {HexString} txSignedHex
  * @param {Uint32} outputIndex
  */
 async function getFundingOutPoint(txSignedHex, outputIndex) {
@@ -247,7 +542,7 @@ async function getFundingOutPoint(txSignedHex, outputIndex) {
 }
 
 /**
- * @param {Hex} fundingOutPointHex
+ * @param {HexString} fundingOutPointHex
  */
 function createIdentityId(fundingOutPointHex) {
   let fundingOutPointBytes = DashTx.utils.hexToBytes(fundingOutPointHex);
@@ -257,220 +552,11 @@ function createIdentityId(fundingOutPointHex) {
   return identityHashBytes;
 }
 
-/**
- * @param {Required<Pick<DashHd.HDXKey, "privateKey"|"publicKey">>} masterKey
- * @param {Required<Pick<DashHd.HDXKey, "privateKey"|"publicKey">>} otherKey
- * @returns {Promise<Array<EvoKey>>}
- */
-async function getKnownIdentityKeys(masterKey, otherKey) {
-  if (!masterKey.privateKey) {
-    throw new Error("linter fail");
-  }
-  if (!otherKey.privateKey) {
-    throw new Error("linter fail");
-  }
-  let keyDescs = [
-    // {"$version":"0","id":0,"purpose":0,"securityLevel":0,"contractBounds":null,"type":0,"readOnly":false,"data":[3,58,154,139,30,76,88,26,25,135,114,76,102,151,19,93,49,192,126,231,172,130,126,106,89,206,192,34,176,77,81,5,95],"disabledAt":null}
-    {
-      id: 0,
-      type: KEY_TYPES.ECDSA_SECP256K1,
-      purpose: KEY_PURPOSES.AUTHENTICATION,
-      securityLevel: KEY_LEVELS.MASTER,
-      readOnly: false,
-      publicKey: masterKey.publicKey,
-      privateKey: masterKey.privateKey,
-      data: "",
-    },
-    // {"$version":"0","id":1,"purpose":0,"securityLevel":1,"contractBounds":null,"type":0,"readOnly":false,"data":[2,1,70,3,1,141,196,55,100,45,218,22,244,199,252,80,228,130,221,35,226,70,128,188,179,165,150,108,59,52,56,72,226],"disabledAt":null}
-    {
-      id: 1,
-      type: KEY_TYPES.ECDSA_SECP256K1,
-      purpose: KEY_PURPOSES.AUTHENTICATION,
-      securityLevel: KEY_LEVELS.CRITICAL,
-      readOnly: false,
-      privateKey: otherKey.privateKey,
-      publicKey: otherKey.publicKey,
-      data: "",
-    },
-  ];
-  return keyDescs;
-
-  // let privKeyDescs = [];
-  // for (let keyDesc of keyDescs) {
-  //   let key = await DashHd.deriveChild(
-  //     identityKey,
-  //     keyDesc.id,
-  //     DashHd.HARDENED,
-  //   );
-  //   let privKeyDesc = Object.assign(keyDesc, key);
-  //   privKeyDescs.push(privKeyDesc); // for type info
-
-  //   let dppKey = new WasmDpp.IdentityPublicKey(L2_VERSION_PLATFORM);
-  //   dppKey.setId(keyDesc.id);
-  //   dppKey.setData(key.publicKey);
-  //   if (keyDesc.purpose) {
-  //     dppKey.setPurpose(keyDesc.purpose);
-  //   }
-  //   dppKey.setSecurityLevel(keyDesc.securityLevel);
-  //   dppKeys.push(dppKey);
-  // }
-
-  // return privKeyDescs;
-}
-
-/**
- * @typedef EvoKey
- * @prop {Uint8} id
- * @prop {Uint8} type - TODO constrain to members of KEY_TYPES
- * @prop {Uint8} purpose - TODO constrain to members of KEY_PURPOSES
- * @prop {Uint8} securityLevel - TODO constrain to members of KEY_LEVELS
- * @prop {Boolean} readOnly
- * @prop {Uint8Array} publicKey
- * @prop {Uint8Array} privateKey
- */
-
-/**
- * @typedef STKey
- * @prop {Uint8} id
- * @prop {Uint8} type - TODO constrain to members of KEY_TYPES
- * @prop {Uint8} purpose - TODO constrain to members of KEY_PURPOSES
- * @prop {Base64} data - base64-encoded publicKey (compact)
- * @prop {Uint8} securityLevel - TODO constrain to members of KEY_LEVELS
- * @prop {Boolean} readOnly
- */
-
-/**
- * @param {Array<EvoKey>} identityKeys - TODO
- */
-function getIdentityTransitionKeys(identityKeys) {
-  let stKeys = [];
-  for (let key of identityKeys) {
-    // let data = bytesToBase64(key.publicKey);
-    let stKey = {
-      $version: "0",
-      id: key.id,
-      type: key.type,
-      purpose: key.purpose,
-      security_level: key.securityLevel,
-      contract_bounds: null,
-      // readOnly: key.readOnly,
-      read_only: key.readOnly || false,
-      // data: data,
-      data: key.publicKey,
-      // signature: "TODO",
-    };
-    // if ("readOnly" in key) {
-    //   Object.assign(stKey, { readOnly: key.readOnly });
-    // }
-    stKeys.push(stKey);
-  }
-  return stKeys;
-}
-
-/**
- * @param {Uint8Array} bytes
- */
-function bytesToBase64(bytes) {
-  let binstr = "";
-  for (let i = 0; i < bytes.length; i += 1) {
-    binstr += String.fromCharCode(bytes[i]);
-  }
-
-  return btoa(binstr);
-}
-
-function signTransition(identity, assetLockProof, assetLockPrivateKey) {
-  // TODO is assetLockProof the same as txoutproof?
-
-  // Create ST
-  const identityCreateTransition =
-    WasmDpp.identity.createIdentityCreateTransition(identity, assetLockProof);
-
-  // Create key proofs
-  const [stMasterKey, stHighAuthKey, stCriticalAuthKey, stTransferKey] =
-    identityCreateTransition.getPublicKeys();
-
-  // Sign master key
-
-  identityCreateTransition.signByPrivateKey(
-    identityMasterPrivateKey.toBuffer(),
-    Dpp.IdentityPublicKey.TYPES.ECDSA_SECP256K1,
-  );
-
-  stMasterKey.setSignature(identityCreateTransition.getSignature());
-
-  identityCreateTransition.setSignature(undefined);
-
-  // Sign high auth key
-
-  identityCreateTransition.signByPrivateKey(
-    identityHighAuthPrivateKey.toBuffer(),
-    Dpp.IdentityPublicKey.TYPES.ECDSA_SECP256K1,
-  );
-
-  stHighAuthKey.setSignature(identityCreateTransition.getSignature());
-
-  identityCreateTransition.setSignature(undefined);
-
-  // Sign critical auth key
-
-  identityCreateTransition.signByPrivateKey(
-    identityCriticalAuthPrivateKey.toBuffer(),
-    Dpp.IdentityPublicKey.TYPES.ECDSA_SECP256K1,
-  );
-
-  stCriticalAuthKey.setSignature(identityCreateTransition.getSignature());
-
-  identityCreateTransition.setSignature(undefined);
-
-  // Sign transfer key
-
-  identityCreateTransition.signByPrivateKey(
-    identityTransferPrivateKey.toBuffer(),
-    Dpp.IdentityPublicKey.TYPES.ECDSA_SECP256K1,
-  );
-
-  stTransferKey.setSignature(identityCreateTransition.getSignature());
-
-  identityCreateTransition.setSignature(undefined);
-
-  // Set public keys back after updating their signatures
-  identityCreateTransition.setPublicKeys([
-    stMasterKey,
-    stHighAuthKey,
-    stCriticalAuthKey,
-    stTransferKey,
-  ]);
-
-  // Sign and validate state transition
-
-  identityCreateTransition.signByPrivateKey(
-    assetLockPrivateKey,
-    Dpp.IdentityPublicKey.TYPES.ECDSA_SECP256K1,
-  );
-
-  // TODO(versioning): restore
-  // @ts-ignore
-  // const result = await Dpp.stateTransition.validateBasic(
-  //   identityCreateTransition,
-  //   // TODO(v0.24-backport): get rid of this once decided
-  //   //  whether we need execution context in wasm bindings
-  //   new StateTransitionExecutionContext(),
-  // );
-
-  // if (!result.isValid()) {
-  //   const messages = result.getErrors().map((error) => error.message);
-  //   throw new Error(`StateTransition is invalid - ${JSON.stringify(messages)}`);
-  // }
-
-  return identityCreateTransition;
-}
-
 main();
 
 /** @typedef {String} Base58 */
 /** @typedef {String} Base64 */
-/** @typedef {String} Hex */
+/** @typedef {String} HexString */
 /** @typedef {Number} Uint53 */
 /** @typedef {Number} Uint32 */
 /** @typedef {Number} Uint8 */

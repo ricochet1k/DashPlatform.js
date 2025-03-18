@@ -1,20 +1,17 @@
 "use strict";
 
-// let DashPhrase = require("dashphrase");
-let DashHd = require("dashhd");
-let DashKeys = require("dashkeys");
-let DashTx = require("dashtx");
-let DashPlatform = require("./dashplatform.js");
-let Bincode = require("./bincode.js");
+import Dotenv from "dotenv";
+import DashPhrase from "dashphrase";
+import DashHd from "./dashhd-utils.js";
+import DashKeys from "dashkeys";
+import DashTx from "dashtx/dashtx.js";
+import DashPlatform from "./dashplatform.js";
+import Bincode from "./bincode.js";
+import QRCode from "./_qr.js";
 
-let KeyUtils = require("./key-utils.js");
+import KeyUtils from "./key-utils.js";
 
-// let DapiGrpc = require("@dashevo/dapi-grpc");
-// let WasmDpp = require("@dashevo/wasm-dpp");
-// let Dpp = WasmDpp.DashPlatformProtocol;
-
-//@ts-ignore - sssssh, yes Base58 does exist
-// let b58 = DashKeys.Base58.create();
+Dotenv.config({ path: ".env" });
 
 let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
 
@@ -73,40 +70,194 @@ let identityEcdsaPath = "";
   identityEcdsaPath = `m/${purposeDip13}'/${coinType}'/${featureId}'/${subfeatureKey}'/${keyType}'`;
 }
 
+
+async function createPlatformIdentity(walletKey, coinType, identityIndex) {
+  let authWalletPath = `m/9'/${coinType}'/5'/0'/0'/${identityIndex}'`;
+  //@ts-expect-error - monkey patch
+  let authWallet = await DashHd.deriveIdentAuthWalletPath(
+    walletKey,
+    authWalletPath,
+  );
+  let authMasterAddress = await authWallet.deriveAuthKey(0);
+  let authOtherAddress = await authWallet.deriveAuthKey(1);
+
+  let regFundAddressPath = `m/9'/${coinType}'/5'/1'/${identityIndex}`;
+  //@ts-expect-error - monkey patch
+  let regFundAddress = await DashHd.deriveIdentRegFundKeyPath(
+    walletKey,
+    regFundAddressPath,
+  );
+  let assetAddress = await DashHd.deriveChild(
+    regFundAddress,
+    0,
+    DashHd.HARDENED,
+  );
+
+  let topupAddressPath = `m/9'/${coinType}'/5'/2'/0`;
+  //@ts-expect-error - monkey patch
+  let topupAddress = await DashHd.deriveIdentTopupKeyPath(
+    walletKey,
+    topupAddressPath,
+  );
+
+  let hdOpts = { version: "testnet" };
+  console.log();
+  console.log(`Identity Index: ${identityIndex}, Topup Index: 0`);
+  console.log(
+    "Funding WIF",
+    await DashHd.toWif(regFundAddress.privateKey, hdOpts),
+  );
+  console.log(
+    "Asset WIF",
+    await DashHd.toWif(assetAddress.privateKey, hdOpts),
+    "(would be ephemeral, non-hd)",
+  );
+  console.log(
+    "Auth master WIF",
+    await DashHd.toWif(authMasterAddress.privateKey, hdOpts),
+  );
+  console.log(
+    "Auth other WIF",
+    await DashHd.toWif(authOtherAddress.privateKey, hdOpts),
+  );
+  console.log(
+    "Topup WIF",
+    await DashHd.toWif(topupAddress.privateKey, hdOpts),
+    "(will be used for change)",
+  );
+  console.log();
+}
+
 async function main() {
+  let walletPhrase = process.env.DASH_WALLET_PHRASE;
+  let walletSalt = process.env.DASH_WALLET_SALT ?? "";
+  if (!walletPhrase) {
+    console.error("");
+    console.error("ERROR");
+    console.error("   'DASH_WALLET_PHRASE' is not set");
+    console.error("");
+    console.error("SOLUTION");
+    let newPhrase = await DashPhrase.generate();
+    console.error(`   echo 'DASH_WALLET_PHRASE="${newPhrase}"' >> .env`);
+    console.error(`   echo 'DASH_WALLET_SALT=""' >> .env`);
+    console.error("");
+    process.exit(1);
+    return;
+  }
+
+  let identityIndexStr = process.argv[2];
+  let identityIndex = parseInt(identityIndexStr, 10);
+  if (isNaN(identityIndex)) {
+    console.error("");
+    console.error("USAGE");
+    console.error("   ./demo.js <identity-index>");
+    console.error("");
+    console.error("EXAMPLE");
+    console.error("   ./demo.js 0");
+    console.error("");
+    process.exit(1);
+    return;
+  }
+
+  let coinType = 5;
+  let testnet = true;
+  if (testnet) {
+    coinType = 1;
+  }
+
+  let seed = await DashPhrase.toSeed(walletPhrase, walletSalt);
+  let walletKey = await DashHd.fromSeed(seed);
+
+  await createPlatformIdentity(walletKey, coinType, identityIndex);
+
+  let fundingAddress = await DashHd.toAddr(regFundAddress.publicKey, hdOpts);
+  let oldDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+    addresses: [fundingAddress],
+  });
+  let newDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+    addresses: [fundingAddress],
+  });
+  let deltas = oldDeltas.concat(newDeltas);
+  let total = DashTx.sum(deltas);
+  let minimum = 100000000 + 10000 + 200;
+  let needed = minimum - total;
+  if (needed > 0) {
+    let dashAmount = DashTx.toDash(needed);
+    let content = `dash:${fundingAddress}?amount=${dashAmount}`;
+    let ascii = QRCode.ascii(content, {
+      indent: 3,
+      padding: 4,
+      width: 256,
+      height: 256,
+      color: "#000000",
+      background: "#ffffff",
+      ecl: "M",
+    });
+    console.error();
+    console.error(`ERROR`);
+    console.error(
+      `   not enough DASH at funding address (including instant send)`,
+    );
+    console.error();
+    console.error(`SOLUTION`);
+    console.error(`   send ${dashAmount} to ${fundingAddress}`);
+    console.error(``);
+    console.error(ascii);
+    console.error();
+    process.exit(1);
+  }
+  deltas.reverse();
+  // console.log(deltas);
+
+  let fundingUtxos = [];
+  for (let delta of deltas) {
+    if (delta.satoshis < 0) {
+      // TODO pair the inputs and outputs
+      // (this check only works for exact-match, sequenced debits and credits)
+      break;
+    }
+    fundingUtxos.push(delta);
+  }
+  console.log(`fundingUtxos:`);
+  console.log(fundingUtxos);
+
   // void (await WasmDpp.default());
 
   let dashTx = DashTx.create(KeyUtils);
 
-  let fundingPkhHex = "88d9931ea73d60eaf7e5671efc0552b912911f2a";
-  let fundingPkh = DashKeys.utils.hexToBytes(fundingPkhHex);
-  // yYo3PeSBv2rMnJeyLUCCzx4Y8VhPppZKkC
-  let fundingAddr = await DashKeys.pkhToAddr(fundingPkh, {
-    version: "testnet",
-  });
-  console.log(`DEBUG funding address: ${fundingAddr} (${fundingPkhHex})`);
+  let fundingPkh = await DashKeys.pubkeyToPkh(regFundAddress.publicKey);
+  let fundingPkhHex = DashKeys.utils.bytesToHex(fundingPkh);
+  //@ts-expect-error - incorrect type on version
+  let fundingAddr = await DashKeys.pkhToAddr(fundingPkh, hdOpts);
+  console.log(
+    `# DEBUG funding (${fundingPkhHex}):\ntouch ./${fundingAddr}.wif`,
+  );
 
-  let fundingUtxos = [
-    {
-      address: fundingAddr,
-      satoshis: 100000000 + 5000 + 200, // TODO
-      txidHex:
-        "5884e5db9de218238671572340b207ee85b628074e7e467096c267266baf77a4",
-      txid: "a477af6b2667c29670467e4e0728b685ee07b240235771862318e29ddbe58458",
-      txId: "a477af6b2667c29670467e4e0728b685ee07b240235771862318e29ddbe58458",
-      outputIndexHex: "00000000",
-      outputIndex: 0,
+  for (let utxo of fundingUtxos) {
+    // satoshis: 100010200,
+    // txid: 'd17ef0f2b5093f7be6582b964f911946665a022e0c64fc084ce9955dfbe56171',
+    // index: 0,
+    // blockindex: 1,
+    // height: 1215439,
+    // address: 'yLqCzEXH2w3HH95sKrzy78d2mt9d1eP8BD'
+    Object.assign(utxo, {
+      txId: utxo.txid,
+      txidHex: DashTx.utils.reverseHex(utxo.txid),
+      outputIndexHex: utxo.index.toString(16).padStart(8, "0"),
+      outputIndex: utxo.index,
       scriptSizeHex: "19",
       scriptSize: 25,
-      script: "76a91488d9931ea73d60eaf7e5671efc0552b912911f2a88ac",
-      sequence: "00000000",
-      sigHashType: DashTx.SIGHASH_ALL,
-    },
-  ];
+      script: `76a914${fundingPkhHex}88ac`,
+      // sequence: "00000000",
+      // sigHashType: DashTx.SIGHASH_ALL,
+    });
+  }
+  process.exit(1);
 
   let assetLockPrivateKeyHex =
     "33a9f0603ba69b97dff83e08b4ee36cebbc987739e9749615e1727754f2bf2d2";
   let assetLockPrivateKey = DashKeys.utils.hexToBytes(assetLockPrivateKeyHex);
+  let assetLockWif = await DashKeys.privKeyToWif(assetLockPrivateKey);
   let assetLockPublicKey = await KeyUtils.toPublicKey(assetLockPrivateKey);
   let assetLockPkh = await DashKeys.pubkeyToPkh(assetLockPublicKey);
   // 271c99481ce1460e4fd62d5a11eecc123d78ee32
@@ -116,7 +267,7 @@ async function main() {
     version: "testnet",
   });
   console.log(
-    `DEBUG asset lock address: ${assetLockAddr} (${assetLockPkhHex})`,
+    `# DEBUG asset lock (${assetLockPkhHex}):\necho '${assetLockWif}' > ./${assetLockAddr}.wif`,
   );
 
   // KeyUtils.set(fundingAddr, {
@@ -145,6 +296,7 @@ async function main() {
   let masterPrivateKeyHex =
     "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc";
   let masterPrivateKey = DashKeys.utils.hexToBytes(masterPrivateKeyHex);
+  let masterWif = await DashKeys.privKeyToWif(masterPrivateKey);
   let masterPublicKey = await KeyUtils.toPublicKey(masterPrivateKey);
   let masterPkh = await DashKeys.pubkeyToPkh(masterPublicKey);
   // 98f913d35dd0508e3a6b8bb0c4250221c831f3f8
@@ -154,11 +306,14 @@ async function main() {
   let masterAddr = await DashKeys.pkhToAddr(masterPkh, {
     version: "testnet",
   });
-  console.log(`DEBUG master address: ${masterAddr} (${masterPkhHex})`);
+  console.log(
+    `# DEBUG master key (${masterPkhHex}):\necho '${masterWif}' > ./${masterAddr}.wif`,
+  );
 
   let otherPrivateKeyHex =
     "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096";
   let otherPrivateKey = DashKeys.utils.hexToBytes(otherPrivateKeyHex);
+  let otherWif = await DashKeys.privKeyToWif(otherPrivateKey);
   let otherPublicKey = await KeyUtils.toPublicKey(otherPrivateKey);
   let otherPkh = await DashKeys.pubkeyToPkh(otherPublicKey);
   // d8d7386f71d85c85d46ebc06680571d4e0fb4263
@@ -167,7 +322,9 @@ async function main() {
   let otherAddr = await DashKeys.pkhToAddr(otherPkh, {
     version: "testnet",
   });
-  console.log(`DEBUG other address: ${otherAddr} (${otherPkhHex})`);
+  console.log(
+    `# DEBUG other key (${otherPkhHex}):\necho '${otherWif}' > ./${otherAddr}.wif`,
+  );
 
   // let totalSats = 100005200; // 200 for fee
   let transferSats = 100000000;

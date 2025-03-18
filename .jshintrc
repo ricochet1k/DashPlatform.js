@@ -1,6 +1,8 @@
 {
   "globals": {
-    "crypto": false
+    "AbortController": true,
+    "crypto": false,
+    "EventSource": false
   },
   "browser": true,
   "node": true,
