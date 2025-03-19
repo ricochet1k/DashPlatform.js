@@ -24,7 +24,8 @@ let EventSourceShim = EventSourcePackage.EventSource;
 // let b58 = DashKeys.Base58.create();
 
 let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
-let zmqAuthUrl = "https://api:null@tzmq.digitalcash.dev";
+let zmqUuid = crypto.randomUUID();
+let zmqAuthUrl = `https://tzmq.digitalcash.dev/api/zmq/eventsource/${zmqUuid}`;
 
 const L1_VERSION_PLATFORM = 3;
 // const L1_VERSION_PLATFORM = 0;
@@ -184,7 +185,7 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   console.log("Asset WIF", assetWif, "(would be ephemeral, non-hd)");
 
   //@ts-expect-error - monkey patch
-  let fundingUtxos = await DashTx.TODOgetUxtos([fundingInfo.address]);
+  let fundingUtxos = await DashTx.TODOgetUtxos([fundingInfo.address]);
   for (let utxo of fundingUtxos) {
     utxo.squence = "00000000"; // ??
   }
@@ -197,17 +198,23 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   let transferSats = 100000000;
   let feeSats = 500; // enough for 1 input and 2 outputs + extrapayload
   let changeSats = fundingTotal + -transferSats + -feeSats;
-  if (changeSats < 10000) {
+
+  let burnOutput = { memo: "", satoshis: transferSats };
+
+  /** @type {Array<import('dashtx').TxOutput>} */
+  let outputs = [burnOutput];
+  if (changeSats >= 10000) {
+    outputs.push({
+      satoshis: changeSats,
+      pubKeyHash: changeInfo.pubKeyHashHex,
+    });
+  } else if (changeSats < 250) {
+    console.log("need more sats:", 250 - changeSats);
     throw new Error(
       `too few sats for test: ${fundingTotal} (needs at least 100000000 + 250 + 10000)`,
     );
   }
 
-  let burnOutput = { memo: "", satoshis: transferSats };
-  let changeOutput = {
-    satoshis: changeSats,
-    pubKeyHash: changeInfo.pubKeyHashHex,
-  };
   let assetExtraOutput = {
     satoshis: transferSats,
     pubKeyHash: assetInfo.pubKeyHashHex,
@@ -221,7 +228,7 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
     version: L1_VERSION_PLATFORM,
     type: TYPE_ASSET_LOCK,
     inputs: fundingUtxos,
-    outputs: [burnOutput, changeOutput],
+    outputs: outputs, // burnOutput, changeOutput
     extraPayload: assetLockScript,
   };
   console.log();
@@ -263,12 +270,28 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
   console.log(outpoint);
 
-  let assetInstantPromise = startEventSource(
+  // let sendTx = await DashTx.utils.rpc(
+  //   rpcAuthUrl,
+  //   "sendrawtransaction",
+  //   txSigned.transaction,
+  // );
+  // console.log("DEBUG sendTx", sendTx);
+
+  let assetInstantEvent = startEventSource(
     zmqAuthUrl,
-    'rawtxlocksig',
-    verifyIsProof(txProof),
+    "rawtxlocksig",
+    createCheckDataIsProof(txProof),
   );
-  let assetChainPromise = pollAssetLockChainProof(outpoint.txid);
+  let assetChainPoll = pollAssetLockChainProof(outpoint.txid);
+  let assetProof = await Promise.race([
+    assetInstantEvent.promise,
+    assetChainPoll.promise,
+  ]);
+  assetInstantEvent.source.close();
+  assetChainPoll.source.close();
+
+  console.log(`Got Asset Proof:`, assetProof);
+  console.log(assetProof);
 
   console.log();
   console.log(`Funding Outpoint Hex`);
@@ -283,9 +306,30 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
 }
 
 /**
+ * @param {import('dashtx').Tx} txProof
+ * @returns {CheckData}
+ */
+function createCheckDataIsProof(txProof) {
+  /**
+   * @param {Object.<String, any>} txlocksig
+   */
+  async function checkDataIsProof(txlocksig) {
+    if (!txlocksig?.raw) {
+      console.warn(`unknown data:`, txlocksig);
+      return false;
+    }
+
+    console.log(`maybe the right txlocksig`, txlocksig);
+    return true;
+  }
+
+  return checkDataIsProof;
+}
+
+/**
  * @param {String} txidHex
  */
-async function pollAssetLockChainProof(txidHex) {
+function pollAssetLockChainProof(txidHex) {
   let isActive = true;
   let promise = new Promise(async function (resolve) {
     for (;;) {
@@ -295,11 +339,15 @@ async function pollAssetLockChainProof(txidHex) {
       }
       let assetLockChainProof = await getAssetLockChainProof(txidHex);
       if (assetLockChainProof) {
-        resolve(assetLockChainProof);
+        resolve({
+          source: "rawtransaction",
+          data: assetLockChainProof,
+        });
         return;
       }
+      console.log("sleeping to try again...");
+      await sleep(15000);
     }
-    await sleep(15000);
   });
 
   let source = {
@@ -318,15 +366,22 @@ async function pollAssetLockChainProof(txidHex) {
  * @param {HexString} txidHex
  */
 async function getAssetLockChainProof(txidHex) {
+  const E_NO_TX = -5;
   let getJson = true;
 
-  let txInfo = await DashTx.utils.rpc(
-    rpcAuthUrl,
-    "getrawtransaction",
-    txidHex,
-    getJson,
-  );
-  if (!txInfo.vout) {
+  let txInfo = await DashTx.utils
+    .rpc(rpcAuthUrl, "getrawtransaction", txidHex, getJson)
+    .catch(
+      /** @param {Error} err */
+      function (err) {
+        //@ts-expect-error - it may have .code
+        if (err.code === E_NO_TX) {
+          return null;
+        }
+        throw err;
+      },
+    );
+  if (!txInfo?.vout) {
     return null;
   }
 
@@ -370,9 +425,27 @@ async function sleep(ms) {
  */
 function startEventSource(url, eventName, checkData) {
   let source = new EventSourceShim(url);
-  let promise = new Promise(function (resolve) {
+  let promise = new Promise(async function (resolve, reject) {
+    let basicAuth = btoa(`api:null`);
+    let resp = await fetch(zmqAuthUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ topics: ["debug:ticker", eventName] }),
+    }).catch(reject);
+    if (!resp) {
+      // rejected;
+      return null;
+    }
+
+    let result = await resp.text();
+    console.log(`[DEBUG] status: ${result}`);
+
     /** @param {MessageEvent} event */
-    source.onmessage = async function (event) {
+    async function onMessage(event) {
+      console.log(`DEBUG MessageEvent`, event);
       let data = JSON.parse(event.data);
 
       let isValidData = await checkData(data).catch(function (err) {
@@ -385,18 +458,32 @@ function startEventSource(url, eventName, checkData) {
       }
 
       resolve({
-        source: "EventSource",
+        source: "txlocksig",
         data: data,
       });
       source.close();
-    };
+    }
 
-    source.onerror = function () {
-      console.error("");
+    console.log(`EventSource: listening for debug:ticker`);
+    source.addEventListener("debug:ticker", function (event) {
+      console.log("EventSource: ticker", event);
+    });
+    if (eventName) {
+      console.log(`EventSource: listening for ${eventName}`);
+      source.addEventListener(eventName, onMessage);
+    } else {
+      console.log(`EventSource: listening for all messages`);
+      source.addEventListener("message", onMessage);
+    }
+
+    source.addEventListener("error", function (err) {
+      console.error("error: disconnected from EventSource", err);
       // TODO reconnect?
-    };
+    });
 
-    source.onclose = function () {};
+    source.addEventListener("close", function () {
+      console.log("DEBUG: closed EventSource");
+    });
   });
 
   return {
@@ -476,6 +563,7 @@ DashTx.TODOdeltasToUtxos = function (deltas) {
         script: `76a914${delta.pubKeyHash}88ac`,
       };
       utxos.push(utxo);
+      continue;
     }
 
     if (delta.satoshis === 0) {

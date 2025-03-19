@@ -107,6 +107,9 @@ async function sha256(bytes) {
   return hashBytes;
 }
 
+/**
+ * This is called "Simple Sign" by the Rust SDK.
+ */
 KeyUtils.magicSign = async function ({ privKeyBytes, doubleSha256Bytes }) {
   if (doubleSha256Bytes?.length !== 32) {
     throw new Error(`'doubleSha256Bytes' must be a 32-byte double sha256 hash`);
