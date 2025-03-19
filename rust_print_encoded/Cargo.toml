@@ -1,0 +1,11 @@
+[package]
+name = "rust_print_encoded"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dpp = { version = "2.0.0-dev.1", path = "../../platform/packages/rs-dpp", features = ["state-transition-value-conversion", "state-transition-json-conversion"] }
+simple-signer = { version = "2.0.0-dev.1", path = "../../platform/packages/simple-signer" }
+
+[patch.'https://github.com/dashpay/rust-dashcore']
+dashcore = { path = "../../rust-dashcore/dash" }

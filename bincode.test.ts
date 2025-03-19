@@ -1,48 +1,47 @@
-import { it, expect } from "vitest";
-import { fromHex, toHex } from "./hex.js";
+import { it, expect } from "vitest"
+import { fromHex, toHex } from "./hex.js"
 import {
+  BinCode,
   decode,
   encode,
   Enum,
   Int8,
   String,
   Struct,
-} from "./bincode.ts";
-/** @import {EnumVariant} from './bincode.js' */
-// import {
-//   toJsonCamelCase,
-// } from "./dash_bincode.js";
-// import {
-//   Identifier,
-//   IdentityPublicKey,
-//   StateTransition,
-// } from "./generated_bincode.js";
+} from "./bincode.ts"
+import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, Identifier, IdentifierBytes32, IdentityPublicKey } from "./generated_bincode"
+import { toJsonCamelCase } from "./dash_bincode"
+
+import * as secp from "@noble/secp256k1"
+import * as KeyUtils from "./key-utils"
+import { doubleSha256 } from "../DashTx.js/dashtx.js"
+import { StateTransition } from "./generated_bincode.js"
 
 const Enum1 = Enum("Enum1", {
-    Foo: {F0: String},
-    Bar: {F0: Int8},
-});
+  Foo: { F0: String },
+  Bar: { F0: Int8 },
+})
 
-type E1 = typeof Enum1.$$type;
+type E1 = typeof Enum1.$$type
 
-type Enum1 = typeof Enum1.$$type;
+type Enum1 = typeof Enum1.$$type
 namespace Enum1 {
-  export type Foo = ReturnType<typeof Enum1.Foo>;
+  export type Foo = ReturnType<typeof Enum1.Foo>
 }
 
-class Foo {}
+class Foo { }
 
-class Faa {}
+class Faa { }
 
-class Bar extends Foo {}
+class Bar extends Foo { }
 
-let x = new Bar();
+let x = new Bar()
 
-let q: Foo = x;
-let w: Faa = x;
+let q: Foo = x
+let w: Faa = x
 
 // declare interface Enum1 extends Enum<typeof Enum1> {
-  
+
 // }
 
 // declare namespace Enum1 {
@@ -51,80 +50,331 @@ let w: Faa = x;
 
 it("should create enums correctly", () => {
 
-    expect(Enum1.Foo).toBeDefined();
-    expect(Enum1.Bar).toBeDefined();
+  expect(Enum1.Foo).toBeDefined()
+  expect(Enum1.Bar).toBeDefined()
 
-    const x: Enum1.Foo = Enum1.Foo({F0: "hello"});
+  const x: Enum1.Foo = Enum1.Foo({ F0: "hello" })
 
-    const _xenum: Enum1 = x;
-    expect(x.F0).toBe("hello");
-    expect(x).toBeInstanceOf(Enum1.Foo);
-    expect(x).toBeInstanceOf(Enum1);
+  const _xenum: Enum1 = x
+  expect(x.F0).toBe("hello")
+  expect(x).toBeInstanceOf(Enum1.Foo)
+  expect(x).toBeInstanceOf(Enum1)
 
-    const y = Enum1.Bar({F0: 5});
-    expect(y.F0).toBe(5);
-    expect(y).toBeInstanceOf(Enum1.Bar);
-    expect(y).toBeInstanceOf(Enum1);
+  const y = Enum1.Bar({ F0: 5 })
+  expect(y.F0).toBe(5)
+  expect(y).toBeInstanceOf(Enum1.Bar)
+  expect(y).toBeInstanceOf(Enum1)
 
-    const x_bytes = encode(Enum1, x);
-    expect(toHex(x_bytes)).toEqual("000568656c6c6f");
+  const x_bytes = encode(Enum1, x)
+  expect(toHex(x_bytes)).toStrictEqual("000568656c6c6f")
 })
 
+it("should encode/decode DataContractCreateTransitions", async () => {
+  /*
+  const data_contract_create_json = {
+    "dataContract": {
+      "$format_version": "1",
+      "id": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "config": {
+        "$format_version": "0",
+        "canBeDeleted": true,
+        "readonly": false,
+        "keepsHistory": true,
+        "documentsKeepHistoryContractDefault": false,
+        "documentsMutableContractDefault": false,
+        "documentsCanBeDeletedContractDefault": false,
+        "requiresIdentityEncryptionBoundedKey": null,
+        "requiresIdentityDecryptionBoundedKey": null
+      }, "version": 2,
+      "ownerId": [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+      "schemaDefs": {},
+      "documentSchemas": {
+        "asdf": { "foo": 34 }
+      },
+      "createdAt": 100000,
+      "updatedAt": 100001,
+      "createdAtBlockHeight": 100002,
+      "updatedAtBlockHeight": 100003,
+      "createdAtEpoch": 10004,
+      "updatedAtEpoch": 10005,
+      "groups": {
+        "12": {
+          "V0": {
+            "members": {
+              "21nS9Wz9sUTQ6MkcYUtnN8aSfPA26xJJP7zqshfzCzqc": 1
+            },
+            "required_power": 1
+          }
+        }
+      },
+      "tokens": {
+        "0": {
+          "$format_version": "0",
+          "conventions": {
+            "$format_version": "0",
+            "localizations": {
+              "US": {
+                "$format_version": "0",
+                "shouldCapitalize": true,
+                "singularForm": "x",
+                "pluralForm": "xs"
+              }
+            }, "decimals": 2
+          },
+          "conventionsChangeRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false, 
+              "changing_admin_action_takers_to_no_one_allowed": false, 
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "baseSupply": 12345678901234567890n,
+          "maxSupply": 18446744073709551615n,
+          "keepsHistory": {
+            "$format_version": "0",
+            "keepsTransferHistory": false,
+            "keepsFreezingHistory": false,
+            "keepsMintingHistory": true,
+            "keepsBurningHistory": true
+          },
+          "startAsPaused": false,
+          "maxSupplyChangeRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "distributionRules": {
+            "$format_version": "0",
+            "perpetualDistribution": {
+              "$format_version": "0",
+              "distributionType": {
+                "EpochBasedDistribution": {
+                  "interval": 16,
+                  "function": {
+                    "InvertedLogarithmic": { "a": 1, "d": 2, "m": 3, "n": 4, "o": 5, "start_moment": 1235678, "b": 0, "min_value": null, "max_value": 112233445566 }
+                  }
+                }
+              },
+              "distributionRecipient": "EvonodesByParticipation"
+            },
+            "perpetualDistributionRules": {
+              "V0": {
+                "authorized_to_make_change": "MainGroup",
+                "admin_action_takers": "ContractOwner",
+                "changing_authorized_action_takers_to_no_one_allowed": false,
+                "changing_admin_action_takers_to_no_one_allowed": false, "self_changing_admin_action_takers_allowed": true
+              }
+            },
+            "preProgrammedDistribution": { "$format_version": "0", "distributions": {} },
+            "newTokensDestinationIdentity": [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+            "newTokensDestinationIdentityRules": {
+              "V0": {
+                "authorized_to_make_change": "MainGroup",
+                "admin_action_takers": "ContractOwner",
+                "changing_authorized_action_takers_to_no_one_allowed": false,
+                "changing_admin_action_takers_to_no_one_allowed": false,
+                "self_changing_admin_action_takers_allowed": true
+              }
+            },
+            "mintingAllowChoosingDestination": true,
+            "mintingAllowChoosingDestinationRules": {
+              "V0": {
+                "authorized_to_make_change": "MainGroup",
+                "admin_action_takers": "ContractOwner",
+                "changing_authorized_action_takers_to_no_one_allowed": false,
+                "changing_admin_action_takers_to_no_one_allowed": false,
+                "self_changing_admin_action_takers_allowed": true
+              }
+            }
+          },
+          "manualMintingRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "manualBurningRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "freezeRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "unfreezeRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          }, "destroyFrozenFundsRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "emergencyActionRules": {
+            "V0": {
+              "authorized_to_make_change": "MainGroup",
+              "admin_action_takers": "ContractOwner",
+              "changing_authorized_action_takers_to_no_one_allowed": false,
+              "changing_admin_action_takers_to_no_one_allowed": false,
+              "self_changing_admin_action_takers_allowed": true
+            }
+          },
+          "mainControlGroup": 2,
+          "mainControlGroupCanBeModified": "NoOne"
+        }
+      }
+    },
+    "identityNonce": 83838,
+    "userFeeIncrease": 15,
+    "signaturePublicKeyId": 1,
+    "signature": [42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42], 
+    "$version": 0
+  }
+  */
+ 
+  const data_contract_create_bytes = fromHex("000101010101010101010101010101010101010101010101010101010101010101010001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e0001202a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a")
+  const data_contract_create_signable_bytes = fromHex("000101010101010101010101010101010101010101010101010101010101010101010001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00")
+  
+  // test that decode then encode returns the same bytes
+  const data_contract_create = decode(DataContractCreateTransition, data_contract_create_bytes.buffer)
+  const data_contract_create_bytes2 = encode(DataContractCreateTransition, data_contract_create)
+  expect(toHex(data_contract_create_bytes2)).toStrictEqual(toHex(data_contract_create_bytes));
 
-// it("should encode/decode IdentityPublicKey", () => {
-//   const master_key_bytes = fromHex(
-//     "0000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f00",
-//   );
-//   const master_key = decode(IdentityPublicKey, master_key_bytes.buffer);
+  const data_contract_create_signable_bytes2 = encode(DataContractCreateTransition, data_contract_create, {signable: true})
+  expect(toHex(data_contract_create_signable_bytes2)).toStrictEqual(toHex(data_contract_create_signable_bytes));
 
-//   const master_key_json = {
-//     $version: "0",
-//     id: 0,
-//     purpose: 0,
-//     securityLevel: 0,
-//     contractBounds: null,
-//     type: 0,
-//     readOnly: false,
-//     data: [
-//       3, 58, 154, 139, 30, 76, 88, 26, 25, 135, 114, 76, 102, 151, 19, 93, 49,
-//       192, 126, 231, 172, 130, 126, 106, 89, 206, 192, 34, 176, 77, 81, 5, 95,
-//     ],
-//     disabledAt: null,
-//   };
-//   expect(master_key_json).toEqual(JSON.parse(toJsonCamelCase(master_key)));
-//   expect(master_key_bytes).toEqual(
-//     new Uint8Array(encode(IdentityPublicKey, master_key)),
-//   );
 
-//   const master_private_key = fromHex(
-//     "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
-//   );
+  // Now sign it
 
-//   const other_key_bytes = fromHex(
-//     "000100010000002102014603018dc437642dda16f4c7fc50e482dd23e24680bcb3a5966c3b343848e200",
-//   );
-//   const other_key = decode(IdentityPublicKey, other_key_bytes.buffer);
+  const data_contract_create_v0 = (data_contract_create as DataContractCreateTransition.V0)[0];
+  const data_contract_v1 = (data_contract_create_v0.data_contract as DataContractInSerializationFormat.V1)[0];
+  
+  console.log('owner_id', data_contract_v1.owner_id[0][0])
+  console.log('nonce', BigInt(data_contract_create_v0.identity_nonce))
+  const contract_id_bytes = new Uint8Array(32 + 8);
+  contract_id_bytes.set(data_contract_v1.owner_id[0][0], 0);
+  new DataView(contract_id_bytes.buffer).setBigUint64(32, BigInt(data_contract_create_v0.identity_nonce), false);
+  const contract_id = await doubleSha256(contract_id_bytes)
 
-//   const other_key_json = {
-//     $version: "0",
-//     id: 1,
-//     purpose: 0,
-//     securityLevel: 1,
-//     contractBounds: null,
-//     type: 0,
-//     readOnly: false,
-//     data: [
-//       2, 1, 70, 3, 1, 141, 196, 55, 100, 45, 218, 22, 244, 199, 252, 80, 228,
-//       130, 221, 35, 226, 70, 128, 188, 179, 165, 150, 108, 59, 52, 56, 72, 226,
-//     ],
-//     disabledAt: null,
-//   };
-//   expect(other_key_json).toEqual(JSON.parse(toJsonCamelCase(other_key)));
+  data_contract_v1.id = Identifier(IdentifierBytes32(contract_id))
 
-//   const other_private_key = fromHex(
-//     "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096",
-//   );
-// });
+  const new_signable_bytes = encode(StateTransition, StateTransition.DataContractCreate(data_contract_create), {signable: true})
+  const new_signable_bytes_expected = "000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00"
+  expect(toHex(new_signable_bytes)).toStrictEqual(new_signable_bytes_expected);
+  const hash = await doubleSha256(new Uint8Array(new_signable_bytes))
+  console.log('hash', toHex(hash));
+
+  const private_key = fromHex(
+    "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
+  );
+  const publicKey = await KeyUtils.toPublicKey(private_key);
+  console.log('publicKey', toHex(publicKey));
+
+  const signature = (await secp.signAsync(hash, private_key, {extraEntropy: false}));
+  const signature_bytes = new Uint8Array(1 + 64);
+  signature_bytes[0] = signature.recovery + 27 + 4; // These magic numbers come from rust-dashcore/dash/src/signer.rs RecoverableSignature::to_compact_signature
+  signature_bytes.set(signature.toCompactRawBytes(), 1);
+  console.log('signature compact recovery', signature.recovery);
+  console.log('signature compact raw bytes', toHex(signature_bytes));
+
+  console.log('data_contract_create_v0.signature_public_key_id', data_contract_create_v0.signature_public_key_id);
+  data_contract_create_v0.signature_public_key_id = 0
+  data_contract_create_v0.signature = BinaryData(signature_bytes)
+
+  const state_transition_signed_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e0000411f3b6ee69cca6e9c7dda79e5a571b7bc9de307c5e27754c652ec62b22f7e6ff91966bd5e5db151484f1c81d766053154ed1a2f58a07303edf9f9a8cffe41891506")
+  const state_transition_signable_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00")
+
+  const state_transition_signed = StateTransition.DataContractCreate(data_contract_create)
+  const state_transition_signable_bytes2 = encode(StateTransition, state_transition_signed, {signable: true})
+  expect(toHex(state_transition_signable_bytes2)).toStrictEqual(toHex(state_transition_signable_bytes));
+  
+  const state_transition_signed_bytes2 = encode(StateTransition, state_transition_signed)
+  expect(toHex(state_transition_signed_bytes2)).toStrictEqual(toHex(state_transition_signed_bytes));
+
+ })
+
+it("should encode/decode IdentityPublicKey", () => {
+  const master_key_bytes = fromHex(
+    "0000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f00",
+  );
+  const master_key = decode(IdentityPublicKey, master_key_bytes.buffer);
+
+  // const master_key_json = {
+  //   $version: "0",
+  //   id: 0,
+  //   purpose: 0,
+  //   securityLevel: 0,
+  //   contractBounds: null,
+  //   type: 0,
+  //   readOnly: false,
+  //   data: [
+  //     3, 58, 154, 139, 30, 76, 88, 26, 25, 135, 114, 76, 102, 151, 19, 93, 49,
+  //     192, 126, 231, 172, 130, 126, 106, 89, 206, 192, 34, 176, 77, 81, 5, 95,
+  //   ],
+  //   disabledAt: null,
+  // };
+  // expect(master_key_json).toEqual(JSON.parse(toJsonCamelCase(master_key)));
+  console.log('master_key data (public_key)', ((master_key as IdentityPublicKey.V0)[0].data[0].buffer))
+  expect(master_key_bytes).toStrictEqual(
+    new Uint8Array(encode(IdentityPublicKey, master_key)),
+  );
+
+  const master_private_key = fromHex(
+    "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
+  );
+
+  const other_key_bytes = fromHex(
+    "000100010000002102014603018dc437642dda16f4c7fc50e482dd23e24680bcb3a5966c3b343848e200",
+  );
+  const other_key = decode(IdentityPublicKey, other_key_bytes.buffer);
+
+  // const other_key_json = {
+  //   $version: "0",
+  //   id: 1,
+  //   purpose: 0,
+  //   securityLevel: 1,
+  //   contractBounds: null,
+  //   type: 0,
+  //   readOnly: false,
+  //   data: [
+  //     2, 1, 70, 3, 1, 141, 196, 55, 100, 45, 218, 22, 244, 199, 252, 80, 228,
+  //     130, 221, 35, 226, 70, 128, 188, 179, 165, 150, 108, 59, 52, 56, 72, 226,
+  //   ],
+  //   disabledAt: null,
+  // };
+  // expect(other_key_json).toEqual(JSON.parse(toJsonCamelCase(other_key)));
+
+  const other_private_key = fromHex(
+    "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096",
+  );
+});
 
 // it("should encode/decode Identifier", () => {
 //   const identifier_bytes = fromHex(

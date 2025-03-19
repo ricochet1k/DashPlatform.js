@@ -12,7 +12,8 @@
     "bump": "npm version -m \"chore(release): bump to v%s\"",
     "tsc": "npx -p typescript@5.x -- tsc -p ./jsconfig.json",
     "reexport-types": "npx -p jswt@1.x -- reexport",
-    "prepublish": "npm run reexport-types"
+    "prepublish": "npm run reexport-types",
+    "doc": "typedoc bincode.ts bincode_types.ts generated_bincode.d.ts --tsconfig doc/tsconfig.json --exclude *.js --exclude node_modules"
   },
   "keywords": [],
   "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
@@ -22,11 +23,15 @@
     "@dashevo/dapi-grpc": "^1.1.1",
     "@dashevo/wasm-dpp": "^1.1.1",
     "@dashincubator/secp256k1": "^1.7.1-5",
+    "@noble/secp256k1": "^2.2.3",
     "cbor-web": "^9.0.2",
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
     "dashtx": "^0.20.1",
     "vitest": "^2.0.5"
+  },
+  "devDependencies": {
+    "typedoc": "^0.28.0"
   }
 }

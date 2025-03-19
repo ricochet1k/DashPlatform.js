@@ -1,6 +1,9 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Write,
+};
 
-use crate::{Item, cycle::CycleDetector};
+use crate::{Item, cycle::CycleDetector, fmtdoc::FmtDoc};
 
 pub struct Fmt<T>(pub T);
 
@@ -105,40 +108,6 @@ pub fn write_js<W: std::io::Write>(
     Ok(())
 }
 
-impl std::fmt::Display for Fmt<(&'_ str, &'_ Vec<syn::Attribute>)> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut doc_started = false;
-        for attr in self.0.1 {
-            if attr.path().is_ident("error") {
-            } else if attr.path().is_ident("derive") {
-            } else if attr.path().is_ident("cfg_attr") {
-            } else if attr.path().is_ident("cfg") {
-            } else if attr.path().is_ident("serde") {
-            } else if attr.path().is_ident("display") {
-            } else if attr.path().is_ident("bincode") {
-            } else if attr.path().is_ident("platform_serialize") {
-            } else if attr.path().is_ident("doc") {
-                if !doc_started {
-                    writeln!(f, "{}/**", self.0.0)?;
-                    doc_started = true;
-                }
-                writeln!(
-                    f,
-                    "{} *{}",
-                    self.0.0,
-                    Fmt(&attr.meta.require_name_value().unwrap().value)
-                )?;
-            } else {
-                writeln!(f, "{}// {}", self.0.0, Fmt(attr))?;
-            }
-        }
-        if doc_started {
-            writeln!(f, "{} */", self.0.0)?;
-        }
-        Ok(())
-    }
-}
-
 impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::Item)> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (name, item) = self.0;
@@ -155,7 +124,10 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemStruct)> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (name, item) = self.0;
 
-        write!(f, "{}", Fmt(("", &item.attrs)))?;
+        let attrs = parse_attributes(&item.attrs);
+        if !attrs.doc.is_empty() {
+            write!(f, "{}", FmtDoc(("", attrs.doc.trim())))?;
+        }
         // if item.fields.len() == 0 {
         //     return write!(f, "{{}}");
         // }
@@ -163,21 +135,40 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemStruct)> {
             syn::Fields::Named(fields_named) => {
                 writeln!(f, "export const {} = Struct(\"{}\", {{", name, item.ident,)?;
                 for field in &fields_named.named {
-                    write!(f, "{}", Fmt(("  ", &field.attrs)))?;
-                    writeln!(
-                        f,
-                        "  {}: {},",
-                        field.ident.as_ref().unwrap(),
-                        Fmt(&field.ty)
-                    )?;
+                    let attrs = parse_attributes(&field.attrs);
+                    if !attrs.doc.is_empty() {
+                        write!(f, "{}", FmtDoc(("  ", attrs.doc.trim())))?;
+                    }
+                    if attrs.not_signable {
+                        writeln!(
+                            f,
+                            "  {}: NotSignable({}),",
+                            field.ident.as_ref().unwrap(),
+                            Fmt(&field.ty)
+                        )?;
+                    } else {
+                        writeln!(
+                            f,
+                            "  {}: {},",
+                            field.ident.as_ref().unwrap(),
+                            Fmt(&field.ty)
+                        )?;
+                    }
                 }
                 writeln!(f, "}});")
             }
             syn::Fields::Unnamed(fields_unnamed) => {
                 writeln!(f, "export const {} = StructTuple(\"{}\",", name, item.ident,)?;
                 for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
-                    write!(f, "{}", Fmt(("  ", &field.attrs)))?;
-                    writeln!(f, "  {},", Fmt(&field.ty))?;
+                    let attrs = parse_attributes(&field.attrs);
+                    if !attrs.doc.is_empty() {
+                        write!(f, "{}", FmtDoc(("  ", attrs.doc.trim())))?;
+                    }
+                    if attrs.not_signable {
+                        writeln!(f, "  NotSignable({}),", Fmt(&field.ty))?;
+                    } else {
+                        writeln!(f, "  {},", Fmt(&field.ty))?;
+                    }
                 }
                 writeln!(f, ");")
             }
@@ -194,14 +185,20 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemEnum)> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (name, item) = self.0;
 
-        write!(f, "{}", Fmt(("", &item.attrs)))?;
+        let attrs = parse_attributes(&item.attrs);
+        if !attrs.doc.is_empty() {
+            write!(f, "{}", FmtDoc(("", attrs.doc.trim())))?;
+        }
         writeln!(
             f,
             "export const {} = Enum(\"{}\", /** @type {{const}} */ ({{",
             name, item.ident
         )?;
         for (i, variant) in item.variants.iter().enumerate() {
-            write!(f, "{}", Fmt(("  ", &variant.attrs)))?;
+            let attrs = parse_attributes(&variant.attrs);
+            if !attrs.doc.is_empty() {
+                write!(f, "{}", FmtDoc(("  ", attrs.doc.trim())))?;
+            }
             write!(f, "  {}: ", variant.ident)?;
             let custom_discriminant = if let Some(disc) = &variant.discriminant {
                 let num = match &disc.1 {
@@ -225,13 +222,25 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemEnum)> {
                 syn::Fields::Named(fields_named) => {
                     writeln!(f, "{{")?;
                     for field in &fields_named.named {
-                        write!(f, "{}", Fmt(("    ", &field.attrs)))?;
-                        writeln!(
-                            f,
-                            "    {}: {},",
-                            field.ident.as_ref().unwrap(),
-                            Fmt(&field.ty)
-                        )?;
+                        let attrs = parse_attributes(&field.attrs);
+                        if !attrs.doc.is_empty() {
+                            write!(f, "{}", FmtDoc(("    ", attrs.doc.trim())))?;
+                        }
+                        if attrs.not_signable {
+                            writeln!(
+                                f,
+                                "    {}: NotSignable({}),",
+                                field.ident.as_ref().unwrap(),
+                                Fmt(&field.ty)
+                            )?;
+                        } else {
+                            writeln!(
+                                f,
+                                "    {}: {},",
+                                field.ident.as_ref().unwrap(),
+                                Fmt(&field.ty)
+                            )?;
+                        }
                     }
                     write!(f, "  }}")?;
                 }
@@ -244,8 +253,15 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemEnum)> {
                         } else {
                             write!(f, ", ")?;
                         }
-                        write!(f, "{}", Fmt(("    ", &field.attrs)))?;
-                        write!(f, "{}", Fmt(&field.ty))?;
+                        let attrs = parse_attributes(&field.attrs);
+                        if !attrs.doc.is_empty() {
+                            write!(f, "{}", FmtDoc(("    ", attrs.doc.trim())))?;
+                        }
+                        if attrs.not_signable {
+                            writeln!(f, "NotSignable({})", Fmt(&field.ty))?;
+                        } else {
+                            write!(f, "{}", Fmt(&field.ty))?;
+                        }
                     }
                     write!(f, "]")?;
                 }
@@ -551,6 +567,56 @@ impl<'a> std::fmt::Display for Fmt<&'a syn::Lit> {
             _ => todo!(),
         }
     }
+}
+
+struct Attributes {
+    doc: String,
+    not_signable: bool,
+}
+
+fn parse_attributes(attrs: &[syn::Attribute]) -> Attributes {
+    let mut doc = String::new();
+    let mut not_signable = false;
+
+    for attr in attrs {
+        if attr.path().is_ident("error") {
+        } else if attr.path().is_ident("derive") {
+        } else if attr.path().is_ident("cfg_attr") {
+        } else if attr.path().is_ident("cfg") {
+        } else if attr.path().is_ident("serde") {
+        } else if attr.path().is_ident("display") {
+        } else if attr.path().is_ident("bincode") {
+            // } else if attr.path().is_ident("platform_serialize") {
+        } else if attr.path().is_ident("platform_signable") {
+            match &attr.meta {
+                syn::Meta::Path(path) => todo!(),
+                syn::Meta::List(meta_list) => {
+                    if let Ok(metas) = meta_list.parse_args_with(
+                        syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
+                    ) {
+                        for meta in metas {
+                            // eprintln!("inner meta: '{}'", Fmt(meta.path()));
+                            if meta.path().is_ident("exclude_from_sig_hash") {
+                                not_signable = true;
+                            }
+                        }
+                    }
+                }
+                syn::Meta::NameValue(meta_name_value) => todo!(),
+            }
+        } else if attr.path().is_ident("doc") {
+            writeln!(
+                &mut doc,
+                "{}",
+                Fmt(&attr.meta.require_name_value().unwrap().value)
+            )
+            .unwrap();
+        } else {
+            writeln!(&mut doc, "{}", Fmt(attr)).unwrap();
+        }
+    }
+
+    Attributes { doc, not_signable }
 }
 
 impl<'a> std::fmt::Display for Fmt<&'a syn::Attribute> {

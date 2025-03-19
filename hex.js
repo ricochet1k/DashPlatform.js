@@ -10,7 +10,7 @@ for (let n = 0; n <= 0xff; ++n)
 }
 
 /**
- * @param {ArrayBuffer} arrayBuffer
+ * @param {ArrayBuffer | Uint8Array} arrayBuffer
  */
 export function toHex(arrayBuffer)
 {

@@ -1,18 +1,44 @@
+/**
+ * This is the core of an implementation of Rust's [Bincode](https://github.com/bincode-org/bincode) in Typescript.
+ * If you are looking for how to use this module, your entry point is the {@link encode} and {@link decode} functions.
+ * @module
+ * 
+ * @example
+ * ```js
+ * import * as Bincode from 'dashplatform/bincode'
+ * 
+ * let input = -42
+ * let encoded_bytes = Bincode.encode(Bincode.VarInt, input)
+ * let decoded_value = Bincode.decode(Bincode.VarInt, encoded_bytes)
+ * console.assert(input === decoded_value)
+ * ```
+ */
 import { toHex } from "./hex.js";
 
 const DEBUG = false;
+const LITTLE_ENDIAN = false;
 
+/**
+ * The interface an object must conform to in order to be used by Bincode or 
+ * in another BinCode-able type.
+ */
 export interface BinCodeable<T> {
+  /** The name of this type, used in error messages. */
   name: string
+  /** Return true if the given value is valid and can be encoded/decoded by this type. */
   isValid: (value: unknown) => boolean
+  /** Encode the given value into the BinCode stream. */
   encode: (bc: BinCode, value: T) => void
+  /** Decode the expected value from the BinCode stream. */
   decode: (bc: BinCode) => T
 }
 
+/** Extra options can be passed to modify encoding/decoding behavior. */
 export interface BinCodeOptions {
   signable?: Boolean
 }
 
+/** Encode a BinCodeable value returning an ArrayBuffer of bytes */
 export function encode<T>(_type: BinCodeable<T>, value: T, options: BinCodeOptions = {}) {
   let ab = new ArrayBuffer(16);
   let dv = new DataView(ab);
@@ -21,17 +47,24 @@ export function encode<T>(_type: BinCodeable<T>, value: T, options: BinCodeOptio
   return bc.slice();
 }
 
+/** Decode the given type from the given buffer. */
 export function decode<T>(_type: BinCodeable<T>, value: ArrayBuffer, options = {}) {
   const bc = new BinCode(new DataView(value), 0, options);
   return _type.decode(bc);
 }
 
+/** 
+ * BinCode is a wrapper around a DataView to make it easier to use as a stream.
+ * It is only used inside the encode/decode implementations for a particular type.
+ * If you are looking to just encode/decode some array of bytes then look at {@link encode} or {@link decode}.
+ * It also holds the BinCodeOptions passed to encode/decode.
+ */
 export class BinCode {
   dataview: DataView<ArrayBufferLike>
   idx: number
-  options: any
+  options: BinCodeOptions
 
-  constructor(dataview: DataView, idx: number = 0, options: any = {}) {
+  constructor(dataview: DataView, idx: number = 0, options: BinCodeOptions = {}) {
     this.dataview = dataview;
     this.idx = idx;
     this.options = options;
@@ -144,7 +177,7 @@ const BincodeMap = function BincodeMap<K, V>(keyType: BinCodeable<K>, valueType:
     },
     decode(bc) {
       let len = VarUint.decode(bc);
-      const val = new global.Map<K, V>();
+      const val = new globalThis.Map<K, V>();
       for (let i = 0; i < len; i++) {
         const key = keyType.decode(bc);
         const value = valueType.decode(bc);
@@ -687,10 +720,10 @@ export const Uint16: BinCodeable<number> = {
     return typeof value === "number" && value >= 0 && value <= 0xFFFF && (value | 0) === value;
   },
   encode(bc, num) {
-    bc.dataview.setUint16(bc._idxThenAddExtend(2), num, true);
+    bc.dataview.setUint16(bc._idxThenAddExtend(2), num, LITTLE_ENDIAN);
   },
   decode(bc) {
-    return bc.dataview.getUint16(bc._idxThenAdd(2));
+    return bc.dataview.getUint16(bc._idxThenAdd(2), LITTLE_ENDIAN);
   },
 };
 
@@ -700,10 +733,10 @@ export const Uint32: BinCodeable<number> = {
     return typeof value === "number" && value >= 0 && value <= 0xFFFFFFFF && (value | 0) === value;
   },
   encode(bc, num) {
-    bc.dataview.setUint32(bc._idxThenAddExtend(4), num, true);
+    bc.dataview.setUint32(bc._idxThenAddExtend(4), num, LITTLE_ENDIAN);
   },
   decode(bc) {
-    return bc.dataview.getUint32(bc._idxThenAdd(4));
+    return bc.dataview.getUint32(bc._idxThenAdd(4), LITTLE_ENDIAN);
   },
 };
 
@@ -714,10 +747,11 @@ export const Uint64: BinCodeable<bigint> = {
     return typeof value === "number" && value >= 0 && (value | 0) === value;
   },
   encode(bc, num) {
-    bc.dataview.setBigUint64(bc._idxThenAddExtend(8), num, true);
+    const idx = bc._idxThenAddExtend(8);
+    bc.dataview.setBigUint64(idx, num, LITTLE_ENDIAN);
   },
   decode(bc) {
-    return bc.dataview.getBigUint64(bc._idxThenAdd(8));
+    return bc.dataview.getBigUint64(bc._idxThenAdd(8), LITTLE_ENDIAN);
   },
 };
 
@@ -730,12 +764,16 @@ export const Uint128: BinCodeable<bigint> = {
   encode(bc, num) {
     let a = BigInt.asUintN(64, num);
     let b = BigInt.asUintN(64, num >> 64n);
-    bc.dataview.setBigUint64(bc._idxThenAddExtend(8), a, true);
-    bc.dataview.setBigUint64(bc._idxThenAddExtend(8), b, true);
+    // TODO: This probably isn't right when switching endian
+    let idx = bc._idxThenAddExtend(8)
+    bc.dataview.setBigUint64(idx, a, LITTLE_ENDIAN);
+    idx = bc._idxThenAddExtend(8)
+    bc.dataview.setBigUint64(idx, b, LITTLE_ENDIAN);
   },
   decode(bc) {
-    let a = Uint64.decode(bc);
-    let b = Uint64.decode(bc);
+    // TODO: This probably isn't right when switching endian
+    let a = bc.dataview.getBigUint64(bc._idxThenAdd(8), LITTLE_ENDIAN);
+    let b = bc.dataview.getBigUint64(bc._idxThenAdd(8), LITTLE_ENDIAN);
     return BigInt(a.toString() + b.toString());
   },
 };
@@ -760,10 +798,10 @@ export const Int16: BinCodeable<number> = {
     return typeof value === "number" && value >= -0x8FFF && value <= 0x8FFF && (value | 0) === value;
   },
   encode(bc, num) {
-    bc.dataview.setInt16(bc._idxThenAddExtend(2), num, true);
+    bc.dataview.setInt16(bc._idxThenAddExtend(2), num, LITTLE_ENDIAN);
   },
   decode(bc) {
-    return bc.dataview.getInt16(bc._idxThenAdd(2));
+    return bc.dataview.getInt16(bc._idxThenAdd(2), LITTLE_ENDIAN);
   },
 };
 
@@ -773,10 +811,10 @@ export const Int32: BinCodeable<number> = {
     return typeof value === "number" && value >= -0x8FFFFFFF && value <= 0x8FFFFFFF && (value | 0) === value;
   },
   encode(bc, num) {
-    bc.dataview.setInt32(bc._idxThenAddExtend(4), num, true);
+    bc.dataview.setInt32(bc._idxThenAddExtend(4), num, LITTLE_ENDIAN);
   },
   decode(bc) {
-    return bc.dataview.getInt32(bc._idxThenAdd(4));
+    return bc.dataview.getInt32(bc._idxThenAdd(4), LITTLE_ENDIAN);
   },
 };
 
@@ -787,10 +825,10 @@ export const Int64: BinCodeable<bigint> = {
     return typeof value === "number" && value >= 0 && (value | 0) === value;
   },
   encode(bc, num) {
-    bc.dataview.setBigInt64(bc._idxThenAddExtend(8), num, true);
+    bc.dataview.setBigInt64(bc._idxThenAddExtend(8), num, LITTLE_ENDIAN);
   },
   decode(bc) {
-    return bc.dataview.getBigInt64(bc._idxThenAdd(8));
+    return bc.dataview.getBigInt64(bc._idxThenAdd(8), LITTLE_ENDIAN);
   },
 };
 
@@ -803,12 +841,14 @@ export const Int128: BinCodeable<bigint> = {
   encode(bc, num) {
     let a = BigInt.asIntN(64, num);
     let b = BigInt.asIntN(64, num >> 64n);
-    bc.dataview.setBigInt64(bc._idxThenAddExtend(8), a, true);
-    bc.dataview.setBigInt64(bc._idxThenAddExtend(8), b, true);
+    // TODO: this probably isn't right when switching endian?
+    bc.dataview.setBigInt64(bc._idxThenAddExtend(8), a, LITTLE_ENDIAN);
+    bc.dataview.setBigInt64(bc._idxThenAddExtend(8), b, LITTLE_ENDIAN);
   },
   decode(bc) {
-    let a = Int64.decode(bc);
-    let b = Int64.decode(bc);
+    // TODO: this probably isn't right when switching endian?
+    let a = bc.dataview.getBigInt64(bc._idxThenAdd(8), LITTLE_ENDIAN);
+    let b = bc.dataview.getBigInt64(bc._idxThenAdd(8), LITTLE_ENDIAN);
     return BigInt(a.toString() + b.toString());
   },
 };
@@ -863,7 +903,7 @@ export const VarUint: BinCodeable<number | bigint> = {
     return typeof value === "number" && value >= 0 && (value | 0) === value;
   },
   encode(bc, num) {
-    if (typeof num === "number" && (num | 0) !== num)
+    if (typeof num === "number" && !Number.isInteger(num))
       throw new Error("VarUint.encode: not an integer:" + num);
     if (num < 0) throw new Error("VarUint.encode: negative:" + num);
 
@@ -1011,7 +1051,7 @@ export function FixedBytes(length: number): BinCodeable<Uint8Array> {
       }
       let idx = bc._idxThenAddExtend(length);
       let bytes = new Uint8Array(bc.dataview.buffer);
-      console.log(`DEBUG val, idx`, val, idx);
+      // console.log(`DEBUG val, idx`, val, idx);
       bytes.set(val, idx);
     },
     decode(bc) {
@@ -1036,12 +1076,14 @@ export function NotSignable<T>(inner: BinCodeable<T>): BinCodeable<T | undefined
             return inner.isValid(value)
         },
         encode(bc, value) {
-            console.log(`DEBUG NotSignable<${inner.name}>`, bc, value)
+            // console.log(`DEBUG NotSignable<${inner.name}>`, bc, value)
             if (!bc.options.signable) {
                 if (value === undefined) {
                     throw new Error("NotSignable.encode: undefined value")
                 }
+                bc._debug(`DEBUG NotSignable<${inner.name}>`)
                 inner.encode(bc, value)
+                bc._debug(`DEBUG AFTER NotSignable<${inner.name}>`)
             }
         },
         decode(bc) {

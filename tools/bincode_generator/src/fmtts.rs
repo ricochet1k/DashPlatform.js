@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Item, fmtjs::Fmt};
+use crate::{Item, fmtdoc::FmtDoc, fmtjs::Fmt};
 
 pub struct FmtTs<T>(pub T);
 
@@ -30,10 +30,10 @@ pub fn write_dts<W: std::io::Write>(
     Ok(())
 }
 
-impl std::fmt::Display for FmtTs<(&'_ str, &'_ Vec<syn::Attribute>)> {
+impl std::fmt::Display for FmtTs<&'_ Vec<syn::Attribute>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut doc_started = false;
-        for attr in self.0.1 {
+        // let mut doc_started = false;
+        for attr in self.0 {
             if attr.path().is_ident("error") {
             } else if attr.path().is_ident("derive") {
             } else if attr.path().is_ident("cfg_attr") {
@@ -43,23 +43,25 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ Vec<syn::Attribute>)> {
             } else if attr.path().is_ident("bincode") {
             } else if attr.path().is_ident("platform_serialize") {
             } else if attr.path().is_ident("doc") {
-                if !doc_started {
-                    writeln!(f, "{}/**", self.0.0)?;
-                    doc_started = true;
-                }
-                writeln!(
-                    f,
-                    "{} *{}",
-                    self.0.0,
-                    Fmt(&attr.meta.require_name_value().unwrap().value)
-                )?;
+                // if !doc_started {
+                //     writeln!(f, "{}/**", self.0.0)?;
+                //     doc_started = true;
+                // }
+                // writeln!(
+                //     f,
+                //     "{} *{}",
+                //     self.0.0,
+                //     Fmt(&attr.meta.require_name_value().unwrap().value)
+                // )?;
+                writeln!(f, "{}", Fmt(&attr.meta.require_name_value().unwrap().value))?;
             } else {
-                writeln!(f, "{}// {}", self.0.0, Fmt(attr))?;
+                // writeln!(f, "{}// {}", self.0.0, Fmt(attr))?;
+                writeln!(f, "{}", Fmt(attr))?;
             }
         }
-        if doc_started {
-            writeln!(f, "{} */", self.0.0)?;
-        }
+        // if doc_started {
+        //     writeln!(f, "{} */", self.0.0)?;
+        // }
         Ok(())
     }
 }
@@ -80,12 +82,25 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemStruct)> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (name, item) = self.0;
 
-        write!(f, "{}", FmtTs(("", &item.attrs)))?;
+        let doc = format!("{}", FmtTs(&item.attrs));
+        if !doc.trim().is_empty() {
+            write!(f, "{}", FmtDoc(("", doc.trim())))?;
+        }
         // if item.fields.len() == 0 {
         //     return write!(f, "{{}}");
         // }
         match &item.fields {
             syn::Fields::Named(fields_named) => {
+                writeln!(f, "interface {} {{", item.ident)?;
+                for field in &fields_named.named {
+                    let doc = format!("{}", FmtTs(&field.attrs));
+                    if !doc.is_empty() {
+                        write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
+                    }
+                    writeln!(f, "  {};", FmtTs((field.ident.as_ref().unwrap(), field)))?;
+                }
+                writeln!(f, "}}")?;
+                writeln!(f, "/** @ignore */")?;
                 writeln!(
                     f,
                     "const {} : BinCodeable<{}> & ((data: {{",
@@ -93,39 +108,41 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemStruct)> {
                 )?;
                 {
                     for field in &fields_named.named {
-                        write!(f, "{}", FmtTs(("    ", &field.attrs)))?;
+                        let doc = format!("{}", FmtTs(&field.attrs));
+                        if !doc.is_empty() {
+                            write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
+                        }
                         writeln!(f, "  {},", FmtTs((field.ident.as_ref().unwrap(), field)))?;
                     }
                 }
                 writeln!(f, "}}) => {});", item.ident)?;
-
-                writeln!(f, "interface {} {{", item.ident)?;
-                for field in &fields_named.named {
-                    write!(f, "{}", FmtTs(("  ", &field.attrs)))?;
-                    writeln!(f, "  {};", FmtTs((field.ident.as_ref().unwrap(), field)))?;
-                }
-                writeln!(f, "}}")?;
             }
             syn::Fields::Unnamed(fields_unnamed) => {
+                writeln!(f, "interface {} {{", item.ident,)?;
+                for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
+                    let doc = format!("{}", FmtTs(&field.attrs));
+                    if !doc.is_empty() {
+                        write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
+                    }
+                    writeln!(f, "  [{}]: {};", i, FmtTs(&field.ty))?;
+                }
+                writeln!(f, "}}")?;
+                writeln!(f, "/** @ignore */")?;
                 writeln!(f, "const {} : BinCodeable<{}> & ((", item.ident, item.ident,)?;
                 {
                     for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
-                        write!(f, "{}", FmtTs(("    ", &field.attrs)))?;
+                        let doc = format!("{}", FmtTs(&field.attrs));
+                        if !doc.is_empty() {
+                            write!(f, "{}", FmtDoc(("", doc.trim())))?;
+                        }
                         writeln!(f, "    f{}: {},", i, FmtTs(&field.ty))?;
                     }
                 }
                 writeln!(f, ") => {});", item.ident)?;
-
-                writeln!(f, "interface {} {{", item.ident,)?;
-                for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
-                    write!(f, "{}", FmtTs(("  ", &field.attrs)))?;
-                    writeln!(f, "  [{}]: {};", i, FmtTs(&field.ty))?;
-                }
-                writeln!(f, "}}")?;
             }
             syn::Fields::Unit => {
-                writeln!(f, "export class {} {{", item.ident)?;
-                writeln!(f, "}}")?;
+                // writeln!(f, "class {} {{", item.ident)?;
+                // writeln!(f, "}}")?;
             }
         }
         Ok(())
@@ -136,35 +153,64 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemEnum)> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (name, item) = self.0;
 
-        write!(f, "{}", FmtTs(("", &item.attrs)))?;
+        let doc = format!("{}", FmtTs(&item.attrs));
+        if !doc.is_empty() {
+            write!(f, "{}", FmtDoc(("", doc.trim())))?;
+        }
+        writeln!(f, "/** @ignore */")?;
         writeln!(f, "export abstract class {} {{", item.ident)?;
+        writeln!(f, "  /** @ignore @internal */")?;
+        writeln!(f, "  constructor();")?;
         writeln!(f, "  #private;")?;
+        writeln!(f, "  /** @ignore */")?;
         writeln!(f, "  static name: string;")?;
+        writeln!(f, "  /** @ignore */")?;
         writeln!(f, "  static isValid(v: unknown): boolean;")?;
+        writeln!(f, "  /** @ignore */")?;
         writeln!(f, "  static encode(bc: BinCode, v: {}): void;", item.ident)?;
+        writeln!(f, "  /** @ignore */")?;
         writeln!(f, "  static decode(bc: BinCode): {};", item.ident)?;
         writeln!(f, "}}")?;
         writeln!(f, "namespace {} {{", item.ident)?;
         for (i, variant) in item.variants.iter().enumerate() {
-            write!(f, "{}", FmtTs(("  ", &variant.attrs)))?;
+            let doc = format!("{}\n@function", FmtTs(&variant.attrs));
+            if !doc.trim().is_empty() {
+                write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
+            }
             if variant.fields.len() > 0 {
                 match &variant.fields {
                     syn::Fields::Named(fields_named) => {
-                        writeln!(f, "  const {}: (data: {{", variant.ident,)?;
-                        for field in &fields_named.named {
-                            write!(f, "{}", FmtTs(("    ", &field.attrs)))?;
-                            writeln!(f, "    {},", FmtTs((&field.ident.as_ref().unwrap(), field)))?;
-                        }
-                        writeln!(f, "  }}) => {}.{};", item.ident, variant.ident)?;
-
                         writeln!(f, "  interface {} extends {} {{", variant.ident, item.ident)?;
                         for field in &fields_named.named {
-                            write!(f, "{}", FmtTs(("    ", &field.attrs)))?;
+                            let doc = format!("{}", FmtTs(&field.attrs));
+                            if !doc.is_empty() {
+                                write!(f, "{}", FmtDoc(("    ", doc.trim())))?;
+                            }
                             writeln!(f, "    {};", FmtTs((field.ident.as_ref().unwrap(), field)))?;
                         }
                         writeln!(f, "  }}")?;
+
+                        writeln!(f, "  const {}: (data: {{", variant.ident,)?;
+                        for field in &fields_named.named {
+                            let doc = format!("{}", FmtTs(&field.attrs));
+                            if !doc.is_empty() {
+                                write!(f, "{}", FmtDoc(("    ", doc.trim())))?;
+                            }
+                            writeln!(f, "    {},", FmtTs((&field.ident.as_ref().unwrap(), field)))?;
+                        }
+                        writeln!(f, "  }}) => {}.{};", item.ident, variant.ident)?;
                     }
                     syn::Fields::Unnamed(fields_unnamed) => {
+                        writeln!(f, "  interface {} extends {} {{", variant.ident, item.ident)?;
+                        for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
+                            let doc = format!("{}", FmtTs(&field.attrs));
+                            if !doc.is_empty() {
+                                write!(f, "{}", FmtDoc(("    ", doc.trim())))?;
+                            }
+                            writeln!(f, "    [{}]: {};", i, FmtTs(&field.ty))?;
+                        }
+                        writeln!(f, "  }}")?;
+                        writeln!(f, "  /** @ignore */")?;
                         write!(f, "  const {}: (", variant.ident,)?;
                         let mut first = true;
                         for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
@@ -173,19 +219,24 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemEnum)> {
                             } else {
                                 write!(f, ", ")?;
                             }
-                            write!(f, "{}", FmtTs(("  ", &field.attrs)))?;
+                            let doc = format!("{}", FmtTs(&field.attrs));
+                            if !doc.is_empty() {
+                                write!(f, "{}", FmtDoc(("    ", doc.trim())))?;
+                            }
                             write!(f, "f{}: {}", i, FmtTs(&field.ty))?;
                         }
                         writeln!(f, ") => {}.{};", item.ident, variant.ident)?;
-
-                        writeln!(f, "  interface {} extends {} {{", variant.ident, item.ident)?;
-                        for (i, field) in fields_unnamed.unnamed.iter().enumerate() {
-                            write!(f, "{}", FmtTs(("    ", &field.attrs)))?;
-                            writeln!(f, "    [{}]: {};", i, FmtTs(&field.ty))?;
-                        }
-                        writeln!(f, "  }}")?;
                     }
-                    syn::Fields::Unit => write!(f, "")?,
+                    syn::Fields::Unit => {
+                        writeln!(f, "  interface {} extends {} {{", variant.ident, item.ident)?;
+                        writeln!(f, "  }}")?;
+                        writeln!(f, "  /** @ignore */")?;
+                        writeln!(
+                            f,
+                            "  const {}: () => {}.{};",
+                            variant.ident, item.ident, variant.ident
+                        )?;
+                    }
                 }
             }
         }
@@ -351,13 +402,13 @@ impl<'a> std::fmt::Display for FmtTs<&'a syn::PathSegment> {
             "i8" => write!(f, "number"),
             "i16" => write!(f, "number"),
             "i32" => write!(f, "number"),
-            "i64" => write!(f, "number"),
-            "i128" => write!(f, "number"),
+            "i64" => write!(f, "bigint"),
+            "i128" => write!(f, "bigint"),
             "u8" => write!(f, "number"),
             "u16" => write!(f, "number"),
             "u32" => write!(f, "number"),
-            "u64" => write!(f, "number"),
-            "u128" => write!(f, "number"),
+            "u64" => write!(f, "bigint"),
+            "u128" => write!(f, "bigint"),
             "usize" => write!(f, "number"),
             "f32" => write!(f, "number"),
             "f64" => write!(f, "number"),

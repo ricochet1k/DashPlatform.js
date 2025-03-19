@@ -12,6 +12,7 @@ use syn::parse_quote;
 mod collect;
 mod cycle;
 mod deps;
+mod fmtdoc;
 mod fmtjs;
 mod fmtts;
 
@@ -44,6 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     all_items.get_mut("StateTransition").unwrap().needed = true;
     all_items.get_mut("AssetLockPayload").unwrap().needed = true;
+    all_items.get_mut("IdentityPublicKey").unwrap().needed = true;
 
     // Transaction is replaced by a custom implementation in bincode_support.ts
     // provided by DashTx.js
