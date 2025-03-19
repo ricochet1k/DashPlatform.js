@@ -1081,9 +1081,7 @@ export function NotSignable<T>(inner: BinCodeable<T>): BinCodeable<T | undefined
                 if (value === undefined) {
                     throw new Error("NotSignable.encode: undefined value")
                 }
-                bc._debug(`DEBUG NotSignable<${inner.name}>`)
                 inner.encode(bc, value)
-                bc._debug(`DEBUG AFTER NotSignable<${inner.name}>`)
             }
         },
         decode(bc) {
