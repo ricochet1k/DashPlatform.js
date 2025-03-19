@@ -34,6 +34,8 @@ const VERSION_ASSET_LOCK = 1;
 // const L2_VERSION_PLATFORM = 1; // actually constant "0" ??
 // const ST_CREATE_IDENTITY = 2;
 
+let VERSIONS_TESTNET = ["8c", "ef"];
+
 let KEY_LEVELS = {
   0: "MASTER",
   1: "CRITICAL",
@@ -240,9 +242,11 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   // txDraft.outputs.sort(DashTx.sortOutputs);
   let vout = txDraft.outputs.indexOf(burnOutput);
 
+  console.log(`DEBUG fundingInfo`, fundingInfo);
+
   console.log();
   let txProof = DashTx.createRaw(txDraft);
-  txProof.inputs[0].script = `76a914${fundingInfo.pubKeyHashHex}88ac`;
+  // txProof.inputs[0].script = `76a914${fundingInfo.pubKeyHashHex}88ac`;
   txProof.inputs[0].sequence = "00000000"; // Non-final DashTx.NON_FINAL = "00000000"
   console.log(`Transaction Proof:`);
   console.log(txProof);
@@ -260,6 +264,7 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   let txSigned = await dashTx.hashAndSignAll(txDraft);
   console.log(txSigned.transaction);
 
+  // process.exit(1);
   console.log();
   console.log(
     `IMPORTANT: before broadcast, listen to 'rawtxlocksig' on https://tzmq.digitalcash.dev`,
@@ -270,28 +275,30 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
   console.log(outpoint);
 
-  // let sendTx = await DashTx.utils.rpc(
-  //   rpcAuthUrl,
-  //   "sendrawtransaction",
-  //   txSigned.transaction,
-  // );
-  // console.log("DEBUG sendTx", sendTx);
-
-  let assetInstantEvent = startEventSource(
-    zmqAuthUrl,
-    "rawtxlocksig",
-    createCheckDataIsProof(txProof),
+  let sendTx = await DashTx.utils.rpc(
+    rpcAuthUrl,
+    "sendrawtransaction",
+    txSigned.transaction,
   );
-  let assetChainPoll = pollAssetLockChainProof(outpoint.txid);
-  let assetProof = await Promise.race([
-    assetInstantEvent.promise,
-    assetChainPoll.promise,
-  ]);
-  assetInstantEvent.source.close();
-  assetChainPoll.source.close();
+  console.log("DEBUG sendTx", sendTx);
 
-  console.log(`Got Asset Proof:`, assetProof);
-  console.log(assetProof);
+  {
+    let assetInstantEvent = startEventSource(
+      zmqAuthUrl,
+      "rawtxlocksig",
+      createCheckDataIsProof(txSigned),
+    );
+    let assetChainPoll = pollAssetLockChainProof(outpoint.txid);
+    let assetProof = await Promise.race([
+      assetInstantEvent.promise,
+      assetChainPoll.promise,
+    ]);
+    assetInstantEvent.source.close();
+    assetChainPoll.source.close();
+
+    console.log(`Got Asset Proof:`, assetProof);
+    console.log(assetProof);
+  }
 
   console.log();
   console.log(`Funding Outpoint Hex`);
@@ -306,10 +313,10 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
 }
 
 /**
- * @param {import('dashtx').Tx} txProof
+ * @param {import('dashtx').TxInfoSigned} txProofSigned
  * @returns {CheckData}
  */
-function createCheckDataIsProof(txProof) {
+function createCheckDataIsProof(txProofSigned) {
   /**
    * @param {Object.<String, any>} txlocksig
    */
@@ -319,8 +326,7 @@ function createCheckDataIsProof(txProof) {
       return false;
     }
 
-    console.log(`maybe the right txlocksig`, txlocksig);
-    return true;
+    return txlocksig.raw.startsWith(txProofSigned.transaction);
   }
 
   return checkDataIsProof;
@@ -331,6 +337,16 @@ function createCheckDataIsProof(txProof) {
  */
 function pollAssetLockChainProof(txidHex) {
   let isActive = true;
+  /** @type {any} */
+  let timeoutToken;
+
+  /**
+   * @param {any} token
+   */
+  function setTimeoutToken(token) {
+    timeoutToken = token;
+  }
+
   let promise = new Promise(async function (resolve) {
     for (;;) {
       if (!isActive) {
@@ -345,14 +361,15 @@ function pollAssetLockChainProof(txidHex) {
         });
         return;
       }
-      console.log("sleeping to try again...");
-      await sleep(15000);
+      console.log("Fetch (rawtransaction): sleeping to try again...");
+      await sleep(15000, setTimeoutToken);
     }
   });
 
   let source = {
     close: function () {
       isActive = false;
+      clearTimeout(timeoutToken);
     },
   };
 
@@ -405,10 +422,17 @@ async function getAssetLockChainProof(txidHex) {
 
 /**
  * @param {Uint32} ms
+ * @param {Function} setTimeoutToken
  */
-async function sleep(ms) {
+async function sleep(ms, setTimeoutToken) {
   return await new Promise(function (resolve) {
-    setTimeout(resolve, ms);
+    let token = setTimeout(resolve, ms);
+    if (token.unref) {
+      token.unref();
+    }
+    if (setTimeoutToken) {
+      setTimeoutToken(token);
+    }
   });
 }
 
@@ -424,7 +448,12 @@ async function sleep(ms) {
  * @param {CheckData} checkData
  */
 function startEventSource(url, eventName, checkData) {
-  let source = new EventSourceShim(url);
+  let tickerHeartbeatMs = 5 * 1000;
+  // in case of a network hiccup lasting several seconds
+  let tickerHeartbeatTimeout = 3 * tickerHeartbeatMs;
+  let source = new EventSourceShim(url, {
+    readTimeoutMillis: tickerHeartbeatTimeout,
+  });
   let promise = new Promise(async function (resolve, reject) {
     let basicAuth = btoa(`api:null`);
     let resp = await fetch(zmqAuthUrl, {
@@ -553,14 +582,21 @@ DashTx.TODOdeltasToUtxos = function (deltas) {
   for (let outpoint of outpoints) {
     let delta = deltasMap[outpoint];
 
+    console.log("DEBUG delta", delta);
     if (delta.satoshis > 0) {
+      // TODO expose decodeUnchecked(), rename 'pubKeyHash' (data) to 'hex'
+      let pubKeyHashCheck = DashKeys._dash58check.decode(delta.address, {
+        //@ts-expect-error
+        versions: VERSIONS_TESTNET,
+      });
+      console.log(`DEBUG pkh`, pubKeyHashCheck.pubKeyHash);
       let utxo = {
         address: delta.address,
-        pubKeyHash: delta.pubKeyHash,
+        pubKeyHash: pubKeyHashCheck.pubKeyHash,
         txid: delta.txid,
         outputIndex: delta.index,
         satoshis: delta.satoshis,
-        script: `76a914${delta.pubKeyHash}88ac`,
+        script: `76a914${pubKeyHashCheck.pubKeyHash}88ac`,
       };
       utxos.push(utxo);
       continue;
@@ -604,7 +640,7 @@ async function wifToInfo(wif, version) {
   let publicKeyHex = DashKeys.utils.bytesToHex(publicKey);
   let pubKeyHashHex = DashKeys.utils.bytesToHex(pubKeyHash);
 
-  return {
+  let info = {
     wif,
     privateKey,
     privateKeyHex,
@@ -614,6 +650,9 @@ async function wifToInfo(wif, version) {
     pubKeyHashHex,
     address,
   };
+  // console.log(info);
+  // process.exit(1);
+  return info;
 }
 
 /**
