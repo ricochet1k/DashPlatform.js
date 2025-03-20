@@ -78,26 +78,11 @@ fn main() {
             DocumentType::try_from_schema(
                 Identifier::new([1; 32]),
                 "valid_name-a-b-123",
-                // let schema = platform_value!({
-                //     "type": "object",
-                //     "properties": {
-                //         "test": {
-                //             "type": "string",
-                //             "position": 0,
-                //         }
-                //     },
-                //     "creationRestrictionMode": 1,
-                //     "additionalProperties": false,
-                // });
                 Value::Map(vec![
                     (
                         Value::Text("type".to_string()),
                         Value::Text("object".to_string()),
                     ),
-                    // (
-                    //     Value::Text("$schema".to_string()),
-                    //     Value::Text("https://github.com/dashpay/platform/blob/master/packages/rs-dpp/schema/meta_schemas/document/v0/document-meta.json".to_string()),
-                    // ),
                     (
                         Value::Text("properties".to_string()),
                         Value::Map(vec![(

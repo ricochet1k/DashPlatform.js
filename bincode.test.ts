@@ -9,44 +9,22 @@ import {
   String,
   Struct,
 } from "./bincode.ts"
-import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, Identifier, IdentifierBytes32, IdentityPublicKey } from "./generated_bincode"
+import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, StateTransition, Identifier, IdentifierBytes32, IdentityPublicKey } from "./2.0.0/generated_bincode"
 import { toJsonCamelCase } from "./dash_bincode"
 
 import * as secp from "@noble/secp256k1"
 import * as KeyUtils from "./key-utils"
 import { doubleSha256 } from "../DashTx.js/dashtx.js"
-import { StateTransition } from "./generated_bincode.js"
 
 const Enum1 = Enum("Enum1", {
   Foo: { F0: String },
   Bar: { F0: Int8 },
 })
 
-type E1 = typeof Enum1.$$type
-
 type Enum1 = typeof Enum1.$$type
 namespace Enum1 {
   export type Foo = ReturnType<typeof Enum1.Foo>
 }
-
-class Foo { }
-
-class Faa { }
-
-class Bar extends Foo { }
-
-let x = new Bar()
-
-let q: Foo = x
-let w: Faa = x
-
-// declare interface Enum1 extends Enum<typeof Enum1> {
-
-// }
-
-// declare namespace Enum1 {
-//   type Foo = EnumVariant<{F0: string}>;
-// }
 
 it("should create enums correctly", () => {
 
@@ -258,53 +236,54 @@ it("should encode/decode DataContractCreateTransitions", async () => {
     "$version": 0
   }
   */
- 
+
+  // From Rust
   const data_contract_create_bytes = fromHex("000101010101010101010101010101010101010101010101010101010101010101010001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e0001202a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a")
   const data_contract_create_signable_bytes = fromHex("000101010101010101010101010101010101010101010101010101010101010101010001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00")
-  
+
   // test that decode then encode returns the same bytes
   const data_contract_create = decode(DataContractCreateTransition, data_contract_create_bytes.buffer)
   const data_contract_create_bytes2 = encode(DataContractCreateTransition, data_contract_create)
-  expect(toHex(data_contract_create_bytes2)).toStrictEqual(toHex(data_contract_create_bytes));
+  expect(toHex(data_contract_create_bytes2)).toStrictEqual(toHex(data_contract_create_bytes))
 
-  const data_contract_create_signable_bytes2 = encode(DataContractCreateTransition, data_contract_create, {signable: true})
-  expect(toHex(data_contract_create_signable_bytes2)).toStrictEqual(toHex(data_contract_create_signable_bytes));
+  const data_contract_create_signable_bytes2 = encode(DataContractCreateTransition, data_contract_create, { signable: true })
+  expect(toHex(data_contract_create_signable_bytes2)).toStrictEqual(toHex(data_contract_create_signable_bytes))
 
 
   // Now sign it
 
-  const data_contract_create_v0 = (data_contract_create as DataContractCreateTransition.V0)[0];
-  const data_contract_v1 = (data_contract_create_v0.data_contract as DataContractInSerializationFormat.V1)[0];
-  
+  const data_contract_create_v0 = (data_contract_create as DataContractCreateTransition.V0)[0]
+  const data_contract_v1 = (data_contract_create_v0.data_contract as DataContractInSerializationFormat.V1)[0]
+
   console.log('owner_id', data_contract_v1.owner_id[0][0])
   console.log('nonce', BigInt(data_contract_create_v0.identity_nonce))
-  const contract_id_bytes = new Uint8Array(32 + 8);
-  contract_id_bytes.set(data_contract_v1.owner_id[0][0], 0);
-  new DataView(contract_id_bytes.buffer).setBigUint64(32, BigInt(data_contract_create_v0.identity_nonce), false);
+  const contract_id_bytes = new Uint8Array(32 + 8)
+  contract_id_bytes.set(data_contract_v1.owner_id[0][0], 0)
+  new DataView(contract_id_bytes.buffer).setBigUint64(32, BigInt(data_contract_create_v0.identity_nonce), false)
   const contract_id = await doubleSha256(contract_id_bytes)
 
   data_contract_v1.id = Identifier(IdentifierBytes32(contract_id))
 
-  const new_signable_bytes = encode(StateTransition, StateTransition.DataContractCreate(data_contract_create), {signable: true})
+  const new_signable_bytes = encode(StateTransition, StateTransition.DataContractCreate(data_contract_create), { signable: true })
   const new_signable_bytes_expected = "000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00"
-  expect(toHex(new_signable_bytes)).toStrictEqual(new_signable_bytes_expected);
+  expect(toHex(new_signable_bytes)).toStrictEqual(new_signable_bytes_expected)
   const hash = await doubleSha256(new Uint8Array(new_signable_bytes))
-  console.log('hash', toHex(hash));
+  console.log('hash', toHex(hash))
 
   const private_key = fromHex(
     "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
-  );
-  const publicKey = await KeyUtils.toPublicKey(private_key);
-  console.log('publicKey', toHex(publicKey));
+  )
+  const publicKey = await KeyUtils.toPublicKey(private_key)
+  console.log('publicKey', toHex(publicKey))
 
-  const signature = (await secp.signAsync(hash, private_key, {extraEntropy: false}));
-  const signature_bytes = new Uint8Array(1 + 64);
-  signature_bytes[0] = signature.recovery + 27 + 4; // These magic numbers come from rust-dashcore/dash/src/signer.rs RecoverableSignature::to_compact_signature
-  signature_bytes.set(signature.toCompactRawBytes(), 1);
-  console.log('signature compact recovery', signature.recovery);
-  console.log('signature compact raw bytes', toHex(signature_bytes));
+  const signature = (await secp.signAsync(hash, private_key, { extraEntropy: false }))
+  const signature_bytes = new Uint8Array(1 + 64)
+  signature_bytes[0] = signature.recovery + 27 + 4 // These magic numbers come from rust-dashcore/dash/src/signer.rs RecoverableSignature::to_compact_signature
+  signature_bytes.set(signature.toCompactRawBytes(), 1)
+  console.log('signature compact recovery', signature.recovery)
+  console.log('signature compact raw bytes', toHex(signature_bytes))
 
-  console.log('data_contract_create_v0.signature_public_key_id', data_contract_create_v0.signature_public_key_id);
+  console.log('data_contract_create_v0.signature_public_key_id', data_contract_create_v0.signature_public_key_id)
   data_contract_create_v0.signature_public_key_id = 0
   data_contract_create_v0.signature = BinaryData(signature_bytes)
 
@@ -312,19 +291,19 @@ it("should encode/decode DataContractCreateTransitions", async () => {
   const state_transition_signable_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00")
 
   const state_transition_signed = StateTransition.DataContractCreate(data_contract_create)
-  const state_transition_signable_bytes2 = encode(StateTransition, state_transition_signed, {signable: true})
-  expect(toHex(state_transition_signable_bytes2)).toStrictEqual(toHex(state_transition_signable_bytes));
-  
-  const state_transition_signed_bytes2 = encode(StateTransition, state_transition_signed)
-  expect(toHex(state_transition_signed_bytes2)).toStrictEqual(toHex(state_transition_signed_bytes));
+  const state_transition_signable_bytes2 = encode(StateTransition, state_transition_signed, { signable: true })
+  expect(toHex(state_transition_signable_bytes2)).toStrictEqual(toHex(state_transition_signable_bytes))
 
- })
+  const state_transition_signed_bytes2 = encode(StateTransition, state_transition_signed)
+  expect(toHex(state_transition_signed_bytes2)).toStrictEqual(toHex(state_transition_signed_bytes))
+
+})
 
 it("should encode/decode IdentityPublicKey", () => {
   const master_key_bytes = fromHex(
     "0000000000000021033a9a8b1e4c581a1987724c6697135d31c07ee7ac827e6a59cec022b04d51055f00",
-  );
-  const master_key = decode(IdentityPublicKey, master_key_bytes.buffer);
+  )
+  const master_key = decode(IdentityPublicKey, master_key_bytes.buffer)
 
   // const master_key_json = {
   //   $version: "0",
@@ -344,16 +323,16 @@ it("should encode/decode IdentityPublicKey", () => {
   console.log('master_key data (public_key)', ((master_key as IdentityPublicKey.V0)[0].data[0].buffer))
   expect(master_key_bytes).toStrictEqual(
     new Uint8Array(encode(IdentityPublicKey, master_key)),
-  );
+  )
 
   const master_private_key = fromHex(
     "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
-  );
+  )
 
   const other_key_bytes = fromHex(
     "000100010000002102014603018dc437642dda16f4c7fc50e482dd23e24680bcb3a5966c3b343848e200",
-  );
-  const other_key = decode(IdentityPublicKey, other_key_bytes.buffer);
+  )
+  const other_key = decode(IdentityPublicKey, other_key_bytes.buffer)
 
   // const other_key_json = {
   //   $version: "0",
@@ -373,8 +352,8 @@ it("should encode/decode IdentityPublicKey", () => {
 
   const other_private_key = fromHex(
     "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096",
-  );
-});
+  )
+})
 
 // it("should encode/decode Identifier", () => {
 //   const identifier_bytes = fromHex(

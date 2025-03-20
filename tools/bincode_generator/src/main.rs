@@ -7,6 +7,7 @@ use collect::ItemCollector;
 use fmtjs::write_js;
 use fmtts::write_dts;
 use fs_walk::WalkOptions;
+use serde::Deserialize;
 use syn::parse_quote;
 
 mod collect;
@@ -16,10 +17,27 @@ mod fmtdoc;
 mod fmtjs;
 mod fmtts;
 
+#[derive(Deserialize)]
+pub struct JsonPackageVersion {
+    version: String,
+}
+
+const PLATFORM_PACKAGE_JSON: &'static str = "../../../platform/package.json";
+
 fn main() -> Result<(), Box<dyn Error>> {
     let mut collector = ItemCollector {
         all_items: BTreeMap::new(),
     };
+
+    let JsonPackageVersion { mut version } = serde_json::from_reader(
+        File::open(PLATFORM_PACKAGE_JSON).expect(&format!("Cannot find {}", PLATFORM_PACKAGE_JSON)),
+    )
+    .expect(&format!("Could not read {}", PLATFORM_PACKAGE_JSON));
+
+    // if the version is something like 2.0.0-dev.1, cut off everything before the -
+    if let Some(index) = version.find("-") {
+        version.truncate(index);
+    }
 
     for pkg in &[
         // "../../../platform/packages/rs-sdk/src",
@@ -114,15 +132,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // println!("GCP: {:?}", all_items.get("GroupContractPosition"));
 
+    let version_dir = format!("../../{}", version);
+    std::fs::create_dir_all(&version_dir).unwrap();
+
+    let js_filepath = format!("../../{}/generated_bincode.js", version);
     {
-        let mut js_file = File::create("../../generated_bincode.js").unwrap();
+        let mut js_file = File::create(&js_filepath).unwrap();
         write_js(&mut js_file, &mut all_items).unwrap();
     }
+    println!("Wrote file {}", js_filepath);
 
+    let dts_filepath = format!("../../{}/generated_bincode.d.ts", version);
     {
-        let mut dts_file = File::create("../../generated_bincode.d.ts").unwrap();
+        let mut dts_file = File::create(&dts_filepath).unwrap();
         write_dts(&mut dts_file, &mut all_items).unwrap();
     }
+    println!("Wrote file {}", dts_filepath);
 
     Ok(())
 }

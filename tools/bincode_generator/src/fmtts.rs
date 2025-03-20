@@ -173,11 +173,11 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemEnum)> {
         writeln!(f, "}}")?;
         writeln!(f, "namespace {} {{", item.ident)?;
         for (i, variant) in item.variants.iter().enumerate() {
-            let doc = format!("{}\n@function", FmtTs(&variant.attrs));
-            if !doc.trim().is_empty() {
-                write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
-            }
             if variant.fields.len() > 0 {
+                let doc = format!("{}\n@function", FmtTs(&variant.attrs));
+                if !doc.trim().is_empty() {
+                    write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
+                }
                 match &variant.fields {
                     syn::Fields::Named(fields_named) => {
                         writeln!(f, "  interface {} extends {} {{", variant.ident, item.ident)?;
@@ -238,6 +238,12 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemEnum)> {
                         )?;
                     }
                 }
+            } else {
+                let doc = format!("{}", FmtTs(&variant.attrs));
+                if !doc.trim().is_empty() {
+                    write!(f, "{}", FmtDoc(("  ", doc.trim())))?;
+                }
+                writeln!(f, "  const {}: () => {};", variant.ident, item.ident)?;
             }
         }
         writeln!(f, "}}")?;

@@ -64,19 +64,16 @@ export abstract class AuthorizedActionTakers {
   static decode(bc: BinCode): AuthorizedActionTakers;
 }
 namespace AuthorizedActionTakers {
-  /**
-   * default
-   * 
-   * @function
-   */
-  /** @function */
+  /** default */
+  const NoOne: () => AuthorizedActionTakers;
+  const ContractOwner: () => AuthorizedActionTakers;
   /** @function */
   interface Identity extends AuthorizedActionTakers {
     [0]: Identifier;
   }
   /** @ignore */
   const Identity: (f0: Identifier) => AuthorizedActionTakers.Identity;
-  /** @function */
+  const MainGroup: () => AuthorizedActionTakers;
   /** @function */
   interface Group extends AuthorizedActionTakers {
     [0]: GroupContractPosition;
@@ -2183,15 +2180,12 @@ export abstract class KeyType {
   static decode(bc: BinCode): KeyType;
 }
 namespace KeyType {
-  /**
-   * default
-   * 
-   * @function
-   */
-  /** @function */
-  /** @function */
-  /** @function */
-  /** @function */
+  /** default */
+  const ECDSA_SECP256K1: () => KeyType;
+  const BLS12_381: () => KeyType;
+  const ECDSA_HASH160: () => KeyType;
+  const BIP13_SCRIPT_HASH: () => KeyType;
+  const EDDSA_25519_HASH160: () => KeyType;
 }
 
 /** platform_version_path_bounds "dpp.state_transition_serialization_versions.masternode_vote_state_transition" */
@@ -2271,13 +2265,10 @@ export abstract class Pooling {
   static decode(bc: BinCode): Pooling;
 }
 namespace Pooling {
-  /**
-   * default
-   * 
-   * @function
-   */
-  /** @function */
-  /** @function */
+  /** default */
+  const Never: () => Pooling;
+  const IfAvailable: () => Pooling;
+  const Standard: () => Pooling;
 }
 
 export type PrivateEncryptedNote = [RootEncryptionKeyIndex, DerivationEncryptionKeyIndex, Uint8Array];
@@ -2301,39 +2292,20 @@ namespace Purpose {
   /**
    * at least one authentication key must be registered for all security levels
    * default
-   * 
-   * @function
    */
-  /**
-   * this key cannot be used for signing documents
-   * 
-   * @function
-   */
-  /**
-   * this key cannot be used for signing documents
-   * 
-   * @function
-   */
-  /**
-   * this key is used to sign credit transfer and withdrawal state transitions
-   * 
-   * @function
-   */
-  /**
-   * this key cannot be used for signing documents
-   * 
-   * @function
-   */
-  /**
-   * this key cannot be used for signing documents
-   * 
-   * @function
-   */
-  /**
-   * this key is used to prove ownership of a masternode or evonode
-   * 
-   * @function
-   */
+  const AUTHENTICATION: () => Purpose;
+  /** this key cannot be used for signing documents */
+  const ENCRYPTION: () => Purpose;
+  /** this key cannot be used for signing documents */
+  const DECRYPTION: () => Purpose;
+  /** this key is used to sign credit transfer and withdrawal state transitions */
+  const TRANSFER: () => Purpose;
+  /** this key cannot be used for signing documents */
+  const SYSTEM: () => Purpose;
+  /** this key cannot be used for signing documents */
+  const VOTING: () => Purpose;
+  /** this key is used to prove ownership of a masternode or evonode */
+  const OWNER: () => Purpose;
 }
 
 /**
@@ -2557,11 +2529,8 @@ namespace Value {
   }
   /** @ignore */
   const Bool: (f0: boolean) => Value.Bool;
-  /**
-   * Null
-   * 
-   * @function
-   */
+  /** Null */
+  const Null: () => Value;
   /**
    * An array
    * 
@@ -2653,12 +2622,9 @@ namespace ResourceVoteChoice {
   }
   /** @ignore */
   const TowardsIdentity: (f0: Identifier) => ResourceVoteChoice.TowardsIdentity;
-  /**
-   * default
-   * 
-   * @function
-   */
-  /** @function */
+  /** default */
+  const Abstain: () => ResourceVoteChoice;
+  const Lock: () => ResourceVoteChoice;
 }
 
 interface ResourceVoteV0 {
@@ -2776,14 +2742,11 @@ export abstract class SecurityLevel {
   static decode(bc: BinCode): SecurityLevel;
 }
 namespace SecurityLevel {
-  /** @function */
-  /** @function */
-  /**
-   * default
-   * 
-   * @function
-   */
-  /** @function */
+  const MASTER: () => SecurityLevel;
+  const CRITICAL: () => SecurityLevel;
+  /** default */
+  const HIGH: () => SecurityLevel;
+  const MEDIUM: () => SecurityLevel;
 }
 
 export type SenderKeyIndex = number;
@@ -2880,9 +2843,9 @@ export abstract class StorageKeyRequirements {
   static decode(bc: BinCode): StorageKeyRequirements;
 }
 namespace StorageKeyRequirements {
-  /** @function */
-  /** @function */
-  /** @function */
+  const Unique: () => StorageKeyRequirements;
+  const Multiple: () => StorageKeyRequirements;
+  const MultipleReferenceToLatest: () => StorageKeyRequirements;
 }
 
 export type TimestampMillis = bigint;
@@ -3099,11 +3062,8 @@ export abstract class TokenConfigurationChangeItem {
   static decode(bc: BinCode): TokenConfigurationChangeItem;
 }
 namespace TokenConfigurationChangeItem {
-  /**
-   * default
-   * 
-   * @function
-   */
+  /** default */
+  const TokenConfigurationNoChange: () => TokenConfigurationChangeItem;
   /** @function */
   interface Conventions extends TokenConfigurationChangeItem {
     [0]: TokenConfigurationConvention;
@@ -3469,9 +3429,8 @@ namespace TokenDistributionRecipient {
   /**
    * Distribute to the contract Owner
    * default
-   * 
-   * @function
    */
+  const ContractOwner: () => TokenDistributionRecipient;
   /**
    * Distribute to a single identity
    * 
@@ -3485,9 +3444,8 @@ namespace TokenDistributionRecipient {
   /**
    * Distribute tokens by participation
    *  This distribution can only happen when choosing epoch based distribution
-   * 
-   * @function
    */
+  const EvonodesByParticipation: () => TokenDistributionRecipient;
 }
 
 /** @ignore */
@@ -3557,14 +3515,10 @@ namespace TokenDistributionType {
   /**
    * A pre-programmed distribution scheduled for a specific time.
    * default
-   * 
-   * @function
    */
-  /**
-   * A perpetual distribution that occurs at regular intervals.
-   * 
-   * @function
-   */
+  const PreProgrammed: () => TokenDistributionType;
+  /** A perpetual distribution that occurs at regular intervals. */
+  const Perpetual: () => TokenDistributionType;
 }
 
 /** @ignore */
@@ -3582,12 +3536,9 @@ export abstract class TokenEmergencyAction {
   static decode(bc: BinCode): TokenEmergencyAction;
 }
 namespace TokenEmergencyAction {
-  /**
-   * default
-   * 
-   * @function
-   */
-  /** @function */
+  /** default */
+  const Pause: () => TokenEmergencyAction;
+  const Resume: () => TokenEmergencyAction;
 }
 
 /** @ignore */

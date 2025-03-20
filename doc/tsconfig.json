@@ -104,7 +104,7 @@
   },
   "include": [
     "../bincode.ts",
-    "../generated_bincode.d.ts"
+    "../1.8.1/generated_bincode.d.ts"
   ],
   "exclude": [
     "node_modules"
