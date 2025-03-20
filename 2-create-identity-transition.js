@@ -1,10 +1,10 @@
-let Fs = require("node:fs/promises");
+import Fs from "node:fs/promises";
 
-let DashKeys = require("dashkeys");
-let DashTx = require("dashtx");
-let Bincode = require("./bincode.js");
+// import DashKeys from "dashkeys";
+import DashTx from "dashtx/dashtx.js";
 
-let KeyUtils = require("./key-utils.js");
+import Bincode from "./bincode.js";
+import KeyUtils from "./key-utils.js";
 
 const ST_CREATE_IDENTITY = 2;
 const L2_VERSION_PLATFORM = 1; // actually constant "0" ??
@@ -40,57 +40,53 @@ let KEY_TYPES = {
   ECDSA_SECP256K1: 0,
 };
 
-async function main() {
-  // let fundingWif = await readWif("./funding.wif");
-  // let fundingInfo = await wifToInfo(fundingWif, "testnet");
+let Thingy = {};
 
-  // KeyUtils.set(fundingInfo.address, {
-  //   address: fundingInfo.address,
-  //   privateKey: fundingInfo.privateKey,
-  //   publicKey: fundingInfo.publicKey,
-  //   pubKeyHash: fundingInfo.pubKeyHashHex,
-  // });
+/**
+ * @typedef AssetLockChainProof
+ * @prop {Number} core_chain_locked_height
+ * @prop {Object} out_point
+ * @prop {String} out_point.txid
+ * @prop {Number} out_point.vout
+ */
 
-  // let changeWif = await readWif("./change.wif");
-  // let changeInfo = await wifToInfo(changeWif, "testnet");
-
-  let assetWif = await readWif("./asset.wif");
-  let assetInfo = await wifToInfo(assetWif, "testnet");
-
-  let masterWif = await readWif("./master.wif");
-  let masterInfo = await wifToInfo(masterWif, "testnet");
-
-  let otherWif = await readWif("./other.wif");
-  let otherInfo = await wifToInfo(otherWif, "testnet");
-
-  let identityIdHex = await readHex("./identity-id.hex");
-  let txidHex = await readHex("./txid.hex");
-
-  let txlocksigHex = await readHex("./rawtxlocksig.hex");
-
-  // let txid = await DashTx.utils.rpc(
-  //   rpcAuthUrl,
-  //   "sendrawtransaction",
-  //   txSigned.transaction,
-  // );
-
+/**
+ * @param {import('dashhd').HDWallet} assetKey
+ * @param {import('dashhd').HDWallet} masterKey
+ * @param {import('dashhd').HDWallet} otherKey
+ * @param {String} identityIdHex
+ * @param {String} txidHex
+ * @param {String} [txlocksigHex]
+ * @param {import('dashtx').TxInfo} [txCore]
+ */
+Thingy.doStuff = async function (
+  assetKey,
+  masterKey,
+  otherKey,
+  identityIdHex,
+  txidHex,
+  txlocksigHex,
+  txCore,
+) {
   // const INSTANT_ALP = 0;
   // const CHAIN_ALP = 1;
 
-  // let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
-  // let nextBlock = blockchaininfo.blocks + 1;
-
   let assetLockProof;
-  let weEvenKnowHowToGetIsdlock = true;
-  if (weEvenKnowHowToGetIsdlock) {
+  if (txlocksigHex) {
     assetLockProof = await getAssetLockInstantProof(txlocksigHex);
   } else {
-    assetLockProof = await getAssetLockChainProof(txidHex);
+    assetLockProof = await getAssetLockChainProof(txidHex, txCore);
   }
 
+  if (!masterKey.privateKey) {
+    throw new Error("'masterKey' is missing 'privateKey'");
+  }
+  if (!otherKey.privateKey) {
+    throw new Error("'otherKey' is missing 'privateKey'");
+  }
   let identityKeys = await getKnownIdentityKeys(
-    { privateKey: masterInfo.privateKey, publicKey: masterInfo.publicKey },
-    { privateKey: otherInfo.privateKey, publicKey: otherInfo.publicKey },
+    { privateKey: masterKey.privateKey, publicKey: masterKey.publicKey },
+    { privateKey: otherKey.privateKey, publicKey: otherKey.publicKey },
   );
   let stKeys = await getIdentityTransitionKeys(identityKeys);
 
@@ -120,6 +116,7 @@ async function main() {
 
   let nullSigTransitionAb = Bincode.encode(
     Bincode.StateTransition,
+    //@ts-expect-error -- TODO ??
     stateTransition,
     {
       signable: true,
@@ -133,9 +130,12 @@ async function main() {
 
   let nullSigMagicHash = await KeyUtils.doubleSha256(nullSigTransition);
 
+  if (!assetKey.privateKey) {
+    throw new Error("'assetKey' is missing 'privateKey'");
+  }
   {
     let magicSigBytes = await KeyUtils.magicSign({
-      privKeyBytes: assetInfo.privateKey,
+      privKeyBytes: assetKey.privateKey,
       doubleSha256Bytes: nullSigMagicHash,
     });
 
@@ -165,6 +165,7 @@ async function main() {
   {
     let fullSigTransitionAb = Bincode.encode(
       Bincode.StateTransition,
+      //@ts-expect-error
       stateTransition,
       {
         signable: false,
@@ -177,11 +178,23 @@ async function main() {
     grpcTransition = bytesToBase64(fullSigTransition);
   }
 
-  console.log("");
+  console.log();
+  console.log();
   console.log(`grpcurl -plaintext -d '{
   "stateTransition": "${grpcTransition}"
 }' seed-1.testnet.networks.dash.org:1443 org.dash.platform.dapi.v0.Platform.broadcastStateTransition`);
-}
+  console.log();
+  console.log(`https://platform-explorer.com/`);
+  // base58
+  console.log(
+    `https://testnet.platform-explorer.com/identity/${"<base58-maybe-or-maybe-base64>"}`,
+  );
+  console.log(
+    `https://testnet.platform-explorer.com/transaction/${"<32-byte-hex-hash>"}`,
+  );
+};
+
+export default Thingy;
 
 /** @param {HexString} txlocksigHex */
 async function getAssetLockInstantProof(txlocksigHex) {
@@ -230,17 +243,9 @@ async function getAssetLockInstantProof(txlocksigHex) {
 
 /**
  * @param {HexString} txidHex
+ * @param {any} txInfo - TODO CoreTx
  */
-async function getAssetLockChainProof(txidHex) {
-  let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
-  let getJson = true;
-
-  let txInfo = await DashTx.utils.rpc(
-    rpcAuthUrl,
-    "getrawtransaction",
-    txidHex,
-    getJson,
-  );
+async function getAssetLockChainProof(txidHex, txInfo) {
   //@ts-expect-error
   let vout = txInfo.vout.findIndex(function (voutInfo) {
     return voutInfo.scriptPubKey?.hex === "6a00"; // TODO match the burn
@@ -255,6 +260,7 @@ async function getAssetLockChainProof(txidHex) {
       vout: vout,
     },
   };
+
   return assetLockChainProof;
 }
 
@@ -385,36 +391,6 @@ async function readWif(path) {
 
   return wif;
 }
-
-/**
- * @param {String} wif
- * @param {DashKeys.VERSION_PRIVATE} version - mainnet, testnet
- */
-async function wifToInfo(wif, version) {
-  let privateKey = await DashKeys.wifToPrivKey(wif, { version });
-  let publicKey = await KeyUtils.toPublicKey(privateKey);
-  let pubKeyHash = await DashKeys.pubkeyToPkh(publicKey);
-  let address = await DashKeys.pkhToAddr(pubKeyHash, {
-    version,
-  });
-
-  let privateKeyHex = DashKeys.utils.bytesToHex(privateKey);
-  let publicKeyHex = DashKeys.utils.bytesToHex(publicKey);
-  let pubKeyHashHex = DashKeys.utils.bytesToHex(pubKeyHash);
-
-  return {
-    wif,
-    privateKey,
-    privateKeyHex,
-    publicKey,
-    publicKeyHex,
-    pubKeyHash,
-    pubKeyHashHex,
-    address,
-  };
-}
-
-main();
 
 /** @typedef {String} Base58 */
 /** @typedef {String} Base64 */

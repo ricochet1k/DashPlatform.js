@@ -8,8 +8,10 @@ import DashTx from "dashtx/dashtx.js";
 import DashPlatform from "./dashplatform.js";
 import Bincode from "./bincode.js";
 import QRCode from "./_qr.js";
-
 import KeyUtils from "./key-utils.js";
+
+import Thingy from "./2-create-identity-transition.js";
+
 import EventSourcePackage from "launchdarkly-eventsource";
 
 Dotenv.config({ path: ".env" });
@@ -127,48 +129,86 @@ async function main() {
   let seed = await DashPhrase.toSeed(walletPhrase, walletSalt);
   let walletKey = await DashHd.fromSeed(seed);
 
-  await createPlatformAssetLock(walletKey, coinType, identityIndex);
-}
-
-/**
- * @param {import('dashhd').HDWallet} walletKey
- * @param {Uint32} coinType
- * @param {Uint32} identityIndex
- */
-async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   let hdOpts = { version: "testnet" }; // TODO
-
-  let dashTx = DashTx.create(KeyUtils);
 
   let regFundAddressPath = `m/9'/${coinType}'/5'/1'/${identityIndex}`;
   //@ts-expect-error - monkey patch
-  let regFundAddress = await DashHd.deriveIdentRegFundKeyPath(
+  let regFundKey = await DashHd.deriveIdentRegFundKeyPath(
     walletKey,
     regFundAddressPath,
   );
-  let assetAddress = await DashHd.deriveChild(
-    regFundAddress,
-    0,
-    DashHd.HARDENED,
-  );
-
-  //let authWalletPath = `m/9'/${coinType}'/5'/0'/0'/${identityIndex}'`;
-  ////@ts-expect-error - monkey patch
-  //let authWallet = await DashHd.deriveIdentAuthWalletPath(
-  //  walletKey,
-  //  authWalletPath,
-  //);
-  //let authMasterAddress = await authWallet.deriveAuthKey(0);
-  //let authOtherAddress = await authWallet.deriveAuthKey(1);
-
+  let assetKey = await DashHd.deriveChild(regFundKey, 0, DashHd.HARDENED);
   let topupAddressPath = `m/9'/${coinType}'/5'/2'/0`;
   //@ts-expect-error - monkey patch
-  let topupAddress = await DashHd.deriveIdentTopupKeyPath(
+  let topupKey = await DashHd.deriveIdentTopupKeyPath(
     walletKey,
     topupAddressPath,
   );
 
-  let fundingWif = await DashHd.toWif(regFundAddress.privateKey, hdOpts);
+  let { identityIdHex, txidHex, assetProof } = await createPlatformAssetLock(
+    hdOpts,
+    regFundKey,
+    topupKey, // TODO next change key from wallet
+    assetKey,
+  );
+
+  let txlocksigHex;
+  let txCore;
+  if (assetProof.data.raw) {
+    txlocksigHex = assetProof.data.raw;
+  } else if (assetProof.data.vin) {
+    txCore = assetProof.data;
+  } else {
+    console.log(`DEBUG assetProof`);
+    console.log(assetProof);
+    throw new Error("internal error: no acceptable asset proof");
+  }
+
+  console.log();
+  console.log(`txidHex: `, txidHex);
+  console.log(`identityIdHex:`, identityIdHex);
+  console.log(`txlocksigHex:`, txlocksigHex);
+  console.log(`txCore:`, txCore);
+
+  let authWalletPath = `m/9'/${coinType}'/5'/0'/0'/${identityIndex}'`;
+  //@ts-expect-error - monkey patch
+  let authWallet = await DashHd.deriveIdentAuthWalletPath(
+    walletKey,
+    authWalletPath,
+  );
+  let masterKey = await authWallet.deriveAuthKey(0);
+  let otherKey = await authWallet.deriveAuthKey(1);
+
+  await Thingy.doStuff(
+    assetKey,
+    masterKey,
+    otherKey,
+    identityIdHex,
+    txidHex,
+    txlocksigHex,
+    txCore,
+  );
+  // walletKey, coinType, identityIndex
+}
+
+/**
+ * @param {import('dashhd').HDToAddressOpts} hdOpts
+ * @param {import('dashhd').HDWallet} regFundKey
+ * @param {import('dashhd').HDWallet} changeKey
+ * @param {import('dashhd').HDWallet} assetKey
+ */
+async function createPlatformAssetLock(
+  hdOpts,
+  regFundKey,
+  changeKey,
+  assetKey,
+) {
+  let dashTx = DashTx.create(KeyUtils);
+
+  if (!regFundKey.privateKey) {
+    throw new Error("'regFundKey' is missing 'privateKey'");
+  }
+  let fundingWif = await DashHd.toWif(regFundKey.privateKey, hdOpts);
   let fundingInfo = await wifToInfo(fundingWif, "testnet");
 
   KeyUtils.set(fundingInfo.address, {
@@ -178,10 +218,16 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
     pubKeyHash: fundingInfo.pubKeyHashHex,
   });
 
-  let changeWif = await DashHd.toWif(topupAddress.privateKey, hdOpts);
+  if (!changeKey.privateKey) {
+    throw new Error("'topupKey' is missing 'privateKey'");
+  }
+  let changeWif = await DashHd.toWif(changeKey.privateKey, hdOpts);
   let changeInfo = await wifToInfo(changeWif, "testnet");
 
-  let assetWif = await DashHd.toWif(assetAddress.privateKey, hdOpts);
+  if (!assetKey.privateKey) {
+    throw new Error("'assetKey' is missing 'privateKey'");
+  }
+  let assetWif = await DashHd.toWif(assetKey.privateKey, hdOpts);
   let assetInfo = await wifToInfo(assetWif, "testnet");
 
   console.log("Asset WIF", assetWif, "(would be ephemeral, non-hd)");
@@ -192,6 +238,8 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
     utxo.squence = "00000000"; // ??
   }
 
+  // TODO list transactions from funding address and check for
+  //      - check the funding address for transactions
   let fundingTotal = DashTx.sum(fundingUtxos);
   console.log();
   console.log(`funding utxos (${fundingTotal})`);
@@ -211,10 +259,12 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
       pubKeyHash: changeInfo.pubKeyHashHex,
     });
   } else if (changeSats < 250) {
-    console.log("need more sats:", 250 - changeSats);
-    throw new Error(
-      `too few sats for test: ${fundingTotal} (needs at least 100000000 + 250 + 10000)`,
-    );
+    let needSats = 250 - changeSats;
+    promptQr(fundingInfo.address, needSats);
+    process.exit(1);
+    // throw new Error(
+    //   `too few sats for test: ${fundingTotal} (needs at least 100000000 + 250 + 10000)`,
+    // );
   }
 
   let assetExtraOutput = {
@@ -271,33 +321,31 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   );
 
   console.log();
-  console.log(`Funding Outpoint Info`);
+  console.log(`Funding Outpoint Info (BE, internal)`);
   let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
   console.log(outpoint);
 
-  let sendTx = await DashTx.utils.rpc(
+  let txidHex = await DashTx.utils.rpc(
     rpcAuthUrl,
     "sendrawtransaction",
     txSigned.transaction,
   );
-  console.log("DEBUG sendTx", sendTx);
+  console.log("DEBUG send result (txidHex) (LE, for RPC)", txidHex);
 
+  let assetProof;
   {
     let assetInstantEvent = startEventSource(
       zmqAuthUrl,
       "rawtxlocksig",
       createCheckDataIsProof(txSigned),
     );
-    let assetChainPoll = pollAssetLockChainProof(outpoint.txid);
-    let assetProof = await Promise.race([
+    let assetChainPoll = pollAssetLockChainProof(txidHex);
+    assetProof = await Promise.race([
       assetInstantEvent.promise,
       assetChainPoll.promise,
     ]);
     assetInstantEvent.source.close();
     assetChainPoll.source.close();
-
-    console.log(`Got Asset Proof:`, assetProof);
-    console.log(assetProof);
   }
 
   console.log();
@@ -305,11 +353,43 @@ async function createPlatformAssetLock(walletKey, coinType, identityIndex) {
   let fundingOutPointHex = `${outpoint.txid}${outpoint.voutHex}`;
   console.log(fundingOutPointHex);
 
-  console.log();
-  console.log(`Identity Id Hex`);
   let identityId = await createIdentityId(fundingOutPointHex);
   let identityIdHex = DashTx.utils.bytesToHex(identityId);
-  console.log(identityIdHex);
+
+  return {
+    txidHex,
+    identityIdHex,
+    assetProof,
+  };
+}
+
+/**
+ * @param {String} fundingAddress
+ * @param {Number} needSats
+ */
+function promptQr(fundingAddress, needSats) {
+  let dashAmount = DashTx.toDash(needSats);
+  let content = `dash:${fundingAddress}?amount=${dashAmount}`;
+  let ascii = QRCode.ascii(content, {
+    indent: 3,
+    padding: 4,
+    width: 256,
+    height: 256,
+    color: "#000000",
+    background: "#ffffff",
+    ecl: "M",
+  });
+  console.error();
+  console.error(`ERROR`);
+  console.error(
+    `   not enough DASH at funding address (including instant send)`,
+  );
+  console.error();
+  console.error(`SOLUTION`);
+  console.error(`   send ${dashAmount} to ${fundingAddress}`);
+  console.error(``);
+  console.error(ascii);
+  console.error();
 }
 
 /**
@@ -353,11 +433,12 @@ function pollAssetLockChainProof(txidHex) {
         resolve(null);
         return;
       }
-      let assetLockChainProof = await getAssetLockChainProof(txidHex);
-      if (assetLockChainProof) {
+      // TODO DashTx.TxCoreInfo
+      let txCore = await getTransactionJson(txidHex);
+      if (txCore) {
         resolve({
           source: "rawtransaction",
-          data: assetLockChainProof,
+          data: txCore,
         });
         return;
       }
@@ -382,7 +463,7 @@ function pollAssetLockChainProof(txidHex) {
 /**
  * @param {HexString} txidHex
  */
-async function getAssetLockChainProof(txidHex) {
+async function getTransactionJson(txidHex) {
   const E_NO_TX = -5;
   let getJson = true;
 
@@ -402,22 +483,7 @@ async function getAssetLockChainProof(txidHex) {
     return null;
   }
 
-  //@ts-expect-error
-  let vout = txInfo.vout.findIndex(function (voutInfo) {
-    return voutInfo.scriptPubKey?.hex === "6a00"; // TODO match the burn
-  });
-
-  let assetLockChainProof = {
-    // type: CHAIN_ALP,
-    core_chain_locked_height: txInfo.height,
-    // out_point: fundingOutPointHex,
-    out_point: {
-      txid: DashTx.utils.hexToBytes(txidHex),
-      vout: vout,
-    },
-  };
-
-  return assetLockChainProof;
+  return txInfo;
 }
 
 /**
@@ -531,84 +597,55 @@ function startEventSource(url, eventName, checkData) {
  */
 
 /**
+ * THIS IS PROBABLY WRONG
+ * We'd actually need to do getaddresstxids, getrawtransaction, getaddressutxos, getaddressmempool to get all of the data to pair the coins properly
  * @param {Array<String>} addresses
  */
 //@ts-expect-error - monkey patch
 DashTx.TODOgetUtxos = async function (addresses) {
-  let oldDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+  // let oldDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+  let utxos = await DashTx.utils.rpc(rpcAuthUrl, "getaddressutxos", {
+    addresses: addresses,
+  });
+  console.log(`DEBUG utxos`);
+  console.log(utxos);
+
+  let memDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
     addresses: addresses,
   });
 
-  let newDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
-    addresses: addresses,
-  });
+  let oldTotal = DashTx.sum(utxos);
+  let newTotal = DashTx.sum(memDeltas);
+  let total = newTotal + oldTotal;
+  if (total === 0) {
+    return [];
+  } else if (total < 0) {
+    throw new Error("sanity fail: double spend detected");
+  }
 
-  let deltas = oldDeltas.concat(newDeltas);
-  //@ts-expect-error - monkey patch
-  let utxos = DashTx.TODOdeltasToUtxos(deltas);
-
-  return utxos;
-};
-
-/**
- * @param {Array<Delta>} deltas
- */
-//@ts-expect-error - monkey patch
-DashTx.TODOdeltasToUtxos = function (deltas) {
-  /** @type {Object.<String, Delta>} */
-  let deltasMap = {};
-  /** @type {Array<import('dashtx').CoreUtxo>} */
-  let utxos = [];
-
-  for (let delta of deltas) {
-    let outpoint = `${delta.txid}:${delta.index}`;
-
-    if (!deltasMap[outpoint]) {
-      deltasMap[outpoint] = delta;
-      continue;
-    }
-
-    let spent = deltasMap[outpoint];
-    if (spent.satoshis !== -delta.satoshis) {
+  for (let delta of memDeltas) {
+    if (delta.satoshis < 0) {
       throw new Error(
-        `sanity fail: ${outpoint} matched a third time: ${spent.satoshis} (running total) and ${delta.satoshis} (third instance)`,
+        "dev error: reconciling instant-send debits is not yet supported",
       );
     }
 
-    deltasMap[outpoint].satoshis = 0;
-  }
-
-  let outpoints = Object.keys(deltasMap);
-  for (let outpoint of outpoints) {
-    let delta = deltasMap[outpoint];
-
-    console.log("DEBUG delta", delta);
-    if (delta.satoshis > 0) {
-      // TODO expose decodeUnchecked(), rename 'pubKeyHash' (data) to 'hex'
-      let pubKeyHashCheck = DashKeys._dash58check.decode(delta.address, {
-        //@ts-expect-error
-        versions: VERSIONS_TESTNET,
-      });
-      console.log(`DEBUG pkh`, pubKeyHashCheck.pubKeyHash);
-      let utxo = {
-        address: delta.address,
-        pubKeyHash: pubKeyHashCheck.pubKeyHash,
-        txid: delta.txid,
-        outputIndex: delta.index,
-        satoshis: delta.satoshis,
-        script: `76a914${pubKeyHashCheck.pubKeyHash}88ac`,
-      };
-      utxos.push(utxo);
-      continue;
-    }
-
-    if (delta.satoshis === 0) {
-      continue;
-    }
-
-    throw new Error(
-      `sanity fail: invalid satoshi value for outpoint '${outpoint}': ${delta.satoshis}`,
-    );
+    // TODO expose decodeUnchecked(), rename 'pubKeyHash' (data) to 'hex'
+    let pubKeyHashCheck = DashKeys._dash58check.decode(delta.address, {
+      //@ts-expect-error
+      versions: VERSIONS_TESTNET,
+    });
+    let utxo = {
+      address: delta.address,
+      //@ts-expect-error - needs better abstraction
+      pubKeyHash: pubKeyHashCheck.pubKeyHash,
+      txid: delta.txid,
+      outputIndex: delta.index,
+      satoshis: delta.satoshis,
+      //@ts-expect-error - needs better abstraction
+      script: `76a914${pubKeyHashCheck.pubKeyHash}88ac`,
+    };
+    utxos.push(utxo);
   }
 
   return utxos;
