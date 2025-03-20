@@ -5,6 +5,7 @@ import DashTx from "dashtx/dashtx.js";
 
 import Bincode from "./bincode.js";
 import KeyUtils from "./key-utils.js";
+import baseX from "base-x";
 
 const ST_CREATE_IDENTITY = 2;
 const L2_VERSION_PLATFORM = 1; // actually constant "0" ??
@@ -39,6 +40,9 @@ let KEY_TYPES = {
   0: "ECDSA_SECP256K1",
   ECDSA_SECP256K1: 0,
 };
+
+const BASE58 = `123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz`;
+let base58 = baseX(BASE58);
 
 let Thingy = {};
 
@@ -162,6 +166,7 @@ Thingy.doStuff = async function (
   console.log(JSON.stringify(stateTransition, null, 2));
 
   let grpcTransition = "";
+  let transitionHashHex = "";
   {
     let fullSigTransitionAb = Bincode.encode(
       Bincode.StateTransition,
@@ -175,6 +180,12 @@ Thingy.doStuff = async function (
     console.log();
     console.log(`transition (fully signed):`);
     console.log(DashTx.utils.bytesToHex(fullSigTransition));
+    let transitionHashAb = await crypto.subtle.digest(
+      { name: "SHA-256" },
+      fullSigTransition,
+    );
+    let transitionHash = new Uint8Array(transitionHashAb);
+    transitionHashHex = DashTx.utils.bytesToHex(transitionHash);
     grpcTransition = bytesToBase64(fullSigTransition);
   }
 
@@ -184,13 +195,11 @@ Thingy.doStuff = async function (
   "stateTransition": "${grpcTransition}"
 }' seed-1.testnet.networks.dash.org:1443 org.dash.platform.dapi.v0.Platform.broadcastStateTransition`);
   console.log();
-  console.log(`https://platform-explorer.com/`);
-  // base58
+  let identityIdBytes = DashTx.utils.hexToBytes(identityIdHex);
+  let identity = base58.encode(identityIdBytes);
+  console.log(`https://testnet.platform-explorer.com/identity/${identity}`);
   console.log(
-    `https://testnet.platform-explorer.com/identity/${"<base58-maybe-or-maybe-base64>"}`,
-  );
-  console.log(
-    `https://testnet.platform-explorer.com/transaction/${"<32-byte-hex-hash>"}`,
+    `https://testnet.platform-explorer.com/transaction/${transitionHashHex}`,
   );
 };
 

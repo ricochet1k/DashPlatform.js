@@ -137,7 +137,25 @@ async function main() {
     walletKey,
     regFundAddressPath,
   );
+
   let assetKey = await DashHd.deriveChild(regFundKey, 0, DashHd.HARDENED);
+  let assetWif = await DashHd.toWif(assetKey.privateKey, hdOpts);
+  let assetInfo = await wifToInfo(assetWif, "testnet");
+  console.log("Asset WIF", assetWif, "(would be ephemeral, non-hd)");
+  // TODO the asset wif isn't used that way...
+  // {
+  //   let assetDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+  //     addresses: [assetInfo.address],
+  //   });
+  //   let memDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+  //     addresses: [assetInfo.address],
+  //   });
+  //   let isUsed = assetDeltas.length > 0 || memDeltas.length;
+  //   if (isUsed) {
+  //     throw new Error(`asset key has been used`);
+  //   }
+  // }
+
   let topupAddressPath = `m/9'/${coinType}'/5'/2'/0`;
   //@ts-expect-error - monkey patch
   let topupKey = await DashHd.deriveIdentTopupKeyPath(
@@ -149,7 +167,7 @@ async function main() {
     hdOpts,
     regFundKey,
     topupKey, // TODO next change key from wallet
-    assetKey,
+    assetInfo,
   );
 
   let txlocksigHex;
@@ -195,13 +213,13 @@ async function main() {
  * @param {import('dashhd').HDToAddressOpts} hdOpts
  * @param {import('dashhd').HDWallet} regFundKey
  * @param {import('dashhd').HDWallet} changeKey
- * @param {import('dashhd').HDWallet} assetKey
+ * @param {import('dashhd').HDKey} assetInfo
  */
 async function createPlatformAssetLock(
   hdOpts,
   regFundKey,
   changeKey,
-  assetKey,
+  assetInfo,
 ) {
   let dashTx = DashTx.create(KeyUtils);
 
@@ -210,6 +228,18 @@ async function createPlatformAssetLock(
   }
   let fundingWif = await DashHd.toWif(regFundKey.privateKey, hdOpts);
   let fundingInfo = await wifToInfo(fundingWif, "testnet");
+  {
+    let fundingDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+      addresses: [fundingInfo.address],
+    });
+    let memDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+      addresses: [fundingInfo.address],
+    });
+    let totalUses = fundingDeltas.length + memDeltas.length;
+    if (totalUses >= 2) {
+      throw new Error(`funding key has been used 2+ times`);
+    }
+  }
 
   KeyUtils.set(fundingInfo.address, {
     address: fundingInfo.address,
@@ -223,14 +253,6 @@ async function createPlatformAssetLock(
   }
   let changeWif = await DashHd.toWif(changeKey.privateKey, hdOpts);
   let changeInfo = await wifToInfo(changeWif, "testnet");
-
-  if (!assetKey.privateKey) {
-    throw new Error("'assetKey' is missing 'privateKey'");
-  }
-  let assetWif = await DashHd.toWif(assetKey.privateKey, hdOpts);
-  let assetInfo = await wifToInfo(assetWif, "testnet");
-
-  console.log("Asset WIF", assetWif, "(would be ephemeral, non-hd)");
 
   //@ts-expect-error - monkey patch
   let fundingUtxos = await DashTx.TODOgetUtxos([fundingInfo.address]);
@@ -429,6 +451,9 @@ function pollAssetLockChainProof(txidHex) {
 
   let promise = new Promise(async function (resolve) {
     for (;;) {
+      console.log("Fetch (rawtransaction): sleeping for 15s...");
+      await sleep(15000, setTimeoutToken);
+
       if (!isActive) {
         resolve(null);
         return;
@@ -442,8 +467,6 @@ function pollAssetLockChainProof(txidHex) {
         });
         return;
       }
-      console.log("Fetch (rawtransaction): sleeping to try again...");
-      await sleep(15000, setTimeoutToken);
     }
   });
 
