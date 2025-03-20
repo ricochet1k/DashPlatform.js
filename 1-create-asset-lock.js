@@ -514,6 +514,8 @@ async function sleep(ms, setTimeoutToken) {
  * @param {CheckData} checkData
  */
 function startEventSource(url, eventName, checkData) {
+  let isActive = true;
+
   let tickerHeartbeatMs = 5 * 1000;
   // in case of a network hiccup lasting several seconds
   let tickerHeartbeatTimeout = 3 * tickerHeartbeatMs;
@@ -540,6 +542,12 @@ function startEventSource(url, eventName, checkData) {
 
     /** @param {MessageEvent} event */
     async function onMessage(event) {
+      if (!isActive) {
+        console.log("EventSource: received message after close");
+        source.close();
+        return;
+      }
+
       console.log(`DEBUG MessageEvent`, event);
       let data = JSON.parse(event.data);
 
@@ -572,6 +580,12 @@ function startEventSource(url, eventName, checkData) {
     }
 
     source.addEventListener("error", function (err) {
+      if (!isActive) {
+        console.log("EventSource: received error after close (probably okay)");
+        source.close();
+        return;
+      }
+
       console.error("error: disconnected from EventSource", err);
       // TODO reconnect?
     });
@@ -582,8 +596,13 @@ function startEventSource(url, eventName, checkData) {
   });
 
   return {
-    promise,
-    source,
+    promise: promise,
+    source: {
+      close: function () {
+        isActive = false;
+        source.close();
+      },
+    },
   };
 }
 
