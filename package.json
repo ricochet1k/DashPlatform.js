@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A lightweight library Dash Platform identities, data contracts, and documents",
   "main": "dashplatform.js",
+  "type": "module",
   "scripts": {
     "test": "vitest",
     "jshint": "npx -p jshint@2.x -- jshint -c ./.jshintrc ./*.js",

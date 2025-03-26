@@ -4,12 +4,12 @@ import Dotenv from "dotenv";
 import DashPhrase from "dashphrase";
 import DashHd from "./dashhd-utils.js";
 import DashKeys from "dashkeys";
-import DashTx from "dashtx/dashtx.js";
-import DashPlatform from "./dashplatform.js";
-import Bincode from "./bincode.js";
-import QRCode from "./_qr.js";
+import * as DashTx from "dashtx/dashtx.js";
+import * as DashPlatform from "./dashplatform.js";
+import * as Bincode from "./bincode.js";
+import * as QRCode from "./_qr.js";
 
-import KeyUtils from "./key-utils.js";
+import * as KeyUtils from "./key-utils.js";
 
 Dotenv.config({ path: ".env" });
 
@@ -70,6 +70,7 @@ let identityEcdsaPath = "";
   identityEcdsaPath = `m/${purposeDip13}'/${coinType}'/${featureId}'/${subfeatureKey}'/${keyType}'`;
 }
 
+const hdOpts = { version: "testnet" };
 
 async function createPlatformIdentity(walletKey, coinType, identityIndex) {
   let authWalletPath = `m/9'/${coinType}'/5'/0'/0'/${identityIndex}'`;
@@ -100,7 +101,6 @@ async function createPlatformIdentity(walletKey, coinType, identityIndex) {
     topupAddressPath,
   );
 
-  let hdOpts = { version: "testnet" };
   console.log();
   console.log(`Identity Index: ${identityIndex}, Topup Index: 0`);
   console.log(
@@ -126,6 +126,8 @@ async function createPlatformIdentity(walletKey, coinType, identityIndex) {
     "(will be used for change)",
   );
   console.log();
+
+  return regFundAddress
 }
 
 async function main() {
@@ -168,7 +170,7 @@ async function main() {
   let seed = await DashPhrase.toSeed(walletPhrase, walletSalt);
   let walletKey = await DashHd.fromSeed(seed);
 
-  await createPlatformIdentity(walletKey, coinType, identityIndex);
+  let regFundAddress = await createPlatformIdentity(walletKey, coinType, identityIndex);
 
   let fundingAddress = await DashHd.toAddr(regFundAddress.publicKey, hdOpts);
   let oldDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {

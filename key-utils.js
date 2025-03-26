@@ -1,18 +1,4 @@
-"use strict";
-
-let Secp256k1 = require("@dashincubator/secp256k1");
-
-/** @typedef {Required<import('dashtx').TxKeyUtils>} TxKeyUtils */
-/**
- * @typedef KeyUtilsPartial
- * @prop {KeySet} set
- * @prop {KeySignAsn1} signAsn1
- * @prop {KeySignMagic} magicSign
- * @prop {DoubleSHA256} doubleSha256
- * @prop {KeySignP1363} signP1363
- * @prop {ASN1ToP1363Signature} asn1ToP1363Signature
- */
-/** @typedef {TxKeyUtils & KeyUtilsPartial} KeyUtils */
+import * as Secp256k1 from "@dashincubator/secp256k1";
 
 /**
  * @callback KeySet
@@ -56,9 +42,6 @@ let Secp256k1 = require("@dashincubator/secp256k1");
  * @returns {Uint8Array} - p1363Sig
  */
 
-/** @type {KeyUtils} */
-let KeyUtils = module.exports;
-
 /**
  * @typedef KeyInfo
  * @prop {String} address
@@ -70,19 +53,19 @@ let KeyUtils = module.exports;
 /** @type Object.<String, KeyInfo> */
 let keysMap = {};
 
-KeyUtils.set = function (id, keyInfo) {
+export const set = function (id, keyInfo) {
   if (!id) {
     throw new Error(`key identifier is not defined)`);
   }
   keysMap[id] = keyInfo;
 };
 
-KeyUtils.sign = async function (privKeyBytes, hashBytes) {
-  let asn1Bytes = await KeyUtils.signAsn1(privKeyBytes, hashBytes);
+export const sign = async function (privKeyBytes, hashBytes) {
+  let asn1Bytes = await signAsn1(privKeyBytes, hashBytes);
   return asn1Bytes;
 };
 
-KeyUtils.signAsn1 = async function (privKeyBytes, hashBytes) {
+export const signAsn1 = async function (privKeyBytes, hashBytes) {
   let testing = true;
   let sigOpts = { canonical: true };
   if (!testing) {
@@ -92,7 +75,7 @@ KeyUtils.signAsn1 = async function (privKeyBytes, hashBytes) {
   return sigBytes;
 };
 
-KeyUtils.doubleSha256 = async function (bytes) {
+export const doubleSha256 = async function (bytes) {
   let firstHash = await sha256(bytes);
   let secondHash = await sha256(firstHash);
   return secondHash;
@@ -110,7 +93,7 @@ async function sha256(bytes) {
 /**
  * This is called "Simple Sign" by the Rust SDK.
  */
-KeyUtils.magicSign = async function ({ privKeyBytes, doubleSha256Bytes }) {
+export const magicSign = async function ({ privKeyBytes, doubleSha256Bytes }) {
   if (doubleSha256Bytes?.length !== 32) {
     throw new Error(`'doubleSha256Bytes' must be a 32-byte double sha256 hash`);
   }
@@ -133,9 +116,9 @@ KeyUtils.magicSign = async function ({ privKeyBytes, doubleSha256Bytes }) {
   return magicSig;
 };
 
-KeyUtils.signP1363 = async function (privKeyBytes, hashBytes, sigBytes) {
-  let asn1Bytes = await KeyUtils.signAsn1(privKeyBytes, hashBytes);
-  let p1363Bytes = KeyUtils.asn1ToP1363Signature(asn1Bytes, sigBytes);
+export const signP1363 = async function (privKeyBytes, hashBytes, sigBytes) {
+  let asn1Bytes = await signAsn1(privKeyBytes, hashBytes);
+  let p1363Bytes = asn1ToP1363Signature(asn1Bytes, sigBytes);
   // TODO DEBUG TESTING
   // for (let i = 0; i < p1363Bytes.length; i += 1) {
   //   p1363Bytes[i] = 0xff;
@@ -143,7 +126,7 @@ KeyUtils.signP1363 = async function (privKeyBytes, hashBytes, sigBytes) {
   return p1363Bytes;
 };
 
-KeyUtils.asn1ToP1363Signature = function (asn1, p1363Signature) {
+export const asn1ToP1363Signature = function (asn1, p1363Signature) {
   if (asn1[0] !== 0x30) {
     throw new Error("Invalid DER signature format");
   }
@@ -184,7 +167,7 @@ KeyUtils.asn1ToP1363Signature = function (asn1, p1363Signature) {
   return p1363Signature;
 };
 
-KeyUtils.getPrivateKey = async function (input) {
+export const getPrivateKey = async function (input) {
   if (!input.address) {
     //throw new Error('should put the address on the input there buddy...');
     console.warn("missing address:", input.txid, input.outputIndex);
@@ -195,17 +178,17 @@ KeyUtils.getPrivateKey = async function (input) {
   return keyInfo.privateKey;
 };
 
-KeyUtils.getPublicKey = async function (txInput, i) {
-  let privKeyBytes = await KeyUtils.getPrivateKey(txInput, i);
+export const getPublicKey = async function (txInput, i) {
+  let privKeyBytes = await getPrivateKey(txInput, i);
   if (!privKeyBytes) {
     return null;
   }
-  let pubKeyBytes = await KeyUtils.toPublicKey(privKeyBytes);
+  let pubKeyBytes = await toPublicKey(privKeyBytes);
 
   return pubKeyBytes;
 };
 
-KeyUtils.toPublicKey = async function (privKeyBytes) {
+export const toPublicKey = async function (privKeyBytes) {
   let isCompressed = true;
   let pubKeyBytes = Secp256k1.getPublicKey(privKeyBytes, isCompressed);
 

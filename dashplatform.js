@@ -1,19 +1,12 @@
-//@ts-ignore
-var DashPlatform = ("object" === typeof module && exports) || {};
-(function (window, DashPlatform) {
-  "use strict";
+import * as DashTx from 'dashtx/dashtx.js'
 
-  let DashTx = window.DashTx || require("dashtx");
-
-  let Tx = {};
-
-  /**
-   * ex: 01 01 40420f00 00000000 19 76a914cdfca4ae1cf2333056659a2c 8dc656f36d228402
-   * @param {Object} opts
-   * @param {Uint8} [opts.version]
-   * @param {Array<import('dashtx').TxOutput>} opts.creditOutputs
-   */
-  Tx.packAssetLock = function ({ version = 1, creditOutputs }) {
+/**
+ * ex: 01 01 40420f00 00000000 19 76a914cdfca4ae1cf2333056659a2c 8dc656f36d228402
+ * @param {Object} opts
+ * @param {Uint8} [opts.version]
+ * @param {Array<DashTx.TxOutput>} opts.creditOutputs
+ */
+export function packAssetLock({ version = 1, creditOutputs }) {
     let versionHex = DashTx.utils.toUint32LE(version);
     versionHex = versionHex.slice(0, 2);
 
@@ -34,16 +27,6 @@ var DashPlatform = ("object" === typeof module && exports) || {};
 
     return hexes.join("");
   };
-
-  //@ts-ignore
-  DashPlatform.Tx = Tx;
-
-  // @ts-ignore
-  window.DashPlatform = DashPlatform;
-})(("object" === typeof window && window) || {}, DashPlatform);
-if ("object" === typeof module) {
-  module.exports = DashPlatform;
-}
 
 /** @typedef {Number} Uint32 */
 /** @typedef {Number} Uint8 */

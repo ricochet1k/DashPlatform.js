@@ -1,8 +1,6 @@
 "use strict";
 
-let Qr = module.exports;
-
-let QrCode = require("qrcode-svg");
+import QrCode from "qrcode-svg";
 
 /**
  * @typedef QrOpts
@@ -20,7 +18,7 @@ let QrCode = require("qrcode-svg");
  * @param {String} data
  * @param {QrOpts} opts
  */
-Qr._create = function (data, opts) {
+function _create(data, opts) {
   //@ts-ignore
   return new QrCode({
     content: data,
@@ -84,9 +82,9 @@ let charMaps = {
  * @param {String} data
  * @param {QrOpts} opts
  */
-Qr.quadAscii = function (data, opts) {
+export function quadAscii(data, opts) {
   let charMap = charMaps[opts.size || "mini"];
-  let qrcode = Qr._create(data, opts);
+  let qrcode = _create(data, opts);
   let indent = opts?.indent ?? 4;
   let modules = qrcode.qrcode.modules;
 
@@ -129,15 +127,15 @@ Qr.quadAscii = function (data, opts) {
  * @param {String} data
  * @param {QrOpts} opts
  */
-Qr.ascii = function (data, opts) {
+export function ascii(data, opts) {
   if (!opts.size) {
     opts.size = "mini";
   }
   if (["mini", "micro"].includes(opts.size)) {
-    return Qr.quadAscii(data, opts);
+    return quadAscii(data, opts);
   }
 
-  let qrcode = Qr._create(data, opts);
+  let qrcode = _create(data, opts);
   let indent = opts?.indent ?? 4;
   let modules = qrcode.qrcode.modules;
 

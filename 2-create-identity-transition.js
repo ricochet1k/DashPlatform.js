@@ -3,7 +3,7 @@ import Fs from "node:fs/promises";
 // import DashKeys from "dashkeys";
 import DashTx from "dashtx/dashtx.js";
 
-import Bincode from "./bincode.js";
+import * as Bincode from "./bincode.js";
 import KeyUtils from "./key-utils.js";
 import baseX from "base-x";
 
