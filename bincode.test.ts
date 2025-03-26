@@ -340,7 +340,7 @@ it("should encode/decode IdentityPublicKey", () => {
 })
 
 it("should encode/decode OutPoint", () => {
-  // WARNING: There are many versions of OutPoint, this one is the bincode::serde::encode_to_vec
+  // WARNING: There are many encodings of OutPoint, this one is the bincode::serde::encode_to_vec
   // representation which uses length-prefixed txid and varuint encoding for vout (same as used in IdentityCreateTransitionV0)
   const op_hex = '200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20fb3039'
 
