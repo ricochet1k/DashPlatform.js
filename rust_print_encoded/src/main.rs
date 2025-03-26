@@ -1,9 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use dpp::{
+    bincode,
     dashcore::{
-        OutPoint, Txid,
-        hashes::{Hash, sha256d},
+        BlockHash, InstantLock, OutPoint, Transaction, Txid,
+        bls_sig_utils::BLSSignature,
+        hashes::{Hash, hex::FromHex, sha256d},
     },
     data_contract::{
         TokenConfiguration,
@@ -38,9 +40,10 @@ use dpp::{
     identity::{
         KeyID, KeyType, PartialIdentity, Purpose, SecurityLevel,
         identity_public_key::v0::IdentityPublicKeyV0,
+        state_transition::asset_lock_proof::{InstantAssetLockProof, chain::ChainAssetLockProof},
     },
     platform_value::{BinaryData, Value, string_encoding::Encoding},
-    prelude::{DataContract, Identifier, IdentityPublicKey},
+    prelude::{AssetLockProof, DataContract, Identifier, IdentityPublicKey},
     serialization::{PlatformSerializable, PlatformSerializableWithPlatformVersion, Signable},
     state_transition::{
         JsonStateTransitionSerializationOptions, StateTransition, StateTransitionJsonConvert,
@@ -49,6 +52,7 @@ use dpp::{
             DataContractCreateTransition, DataContractCreateTransitionV0,
             methods::DataContractCreateTransitionMethodsV0,
         },
+        identity_create_transition::{IdentityCreateTransition, v0::IdentityCreateTransitionV0},
     },
     version::{PlatformVersion, TryIntoPlatformVersioned},
 };
@@ -361,8 +365,62 @@ fn main() {
 
     let op = OutPoint::new(txid, 12345);
     println!("OutPoint to_string: {}", op.to_string());
-    let op_bytes: Vec<u8> = op.try_into().unwrap();
+    let op_bytes: Vec<u8> =
+        bincode::serde::encode_to_vec(op, bincode::config::standard().with_big_endian()).unwrap(); //op.try_into().unwrap();
     println!("OutPoint bincode: {}", to_hex(&op_bytes));
+
+    let idc_chain = IdentityCreateTransition::V0(IdentityCreateTransitionV0 {
+        public_keys: Vec::new(),
+        asset_lock_proof: AssetLockProof::Chain(ChainAssetLockProof {
+            core_chain_locked_height: 1234567,
+            out_point: op,
+        }),
+        user_fee_increase: 0x42,
+        signature: BinaryData::new(Vec::new()),
+        identity_id: Identifier::new([0x12; 32]),
+    });
+
+    println!(
+        "IdentityCreate with AssetLockProof.Chain: {}",
+        to_hex(
+            &StateTransition::IdentityCreate(idc_chain)
+                .serialize_to_bytes()
+                .unwrap()
+        )
+    );
+
+    let idc_instant = IdentityCreateTransition::V0(IdentityCreateTransitionV0 {
+        public_keys: Vec::new(),
+        asset_lock_proof: AssetLockProof::Instant(InstantAssetLockProof {
+            instant_lock: InstantLock {
+                version: 0,
+                inputs: Vec::new(),
+                txid,
+                cyclehash: BlockHash::from_raw_hash(sha256d::Hash::from_byte_array([0x12; 32])),
+                signature: BLSSignature::from_byte_iter([0x48u8; 96].into_iter().map(Ok)).unwrap(),
+            },
+            transaction: Transaction {
+                version: 2,
+                lock_time: 0,
+                input: Vec::new(),
+                output: Vec::new(),
+                special_transaction_payload: None,
+            },
+            output_index: 0,
+        }),
+        user_fee_increase: 0x42,
+        signature: BinaryData::new(Vec::new()),
+        identity_id: Identifier::new([0x12; 32]),
+    });
+
+    println!(
+        "IdentityCreate with AssetLockProof.Instant: {}",
+        to_hex(
+            &StateTransition::IdentityCreate(idc_instant)
+                .serialize_to_bytes()
+                .unwrap()
+        )
+    );
 }
 
 fn to_hex(bytes: &[u8]) -> String {

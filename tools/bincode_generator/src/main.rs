@@ -39,6 +39,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         version.truncate(index);
     }
 
+    // TODO: Bincode's derive implementation and the serde-compat bincode library
+    // end up working differently for [u8; 32], where bincode writes the bytes
+    // directly with no length prefix, serde writes it as &[u8] which has a length
+    // prefix.
+
     for pkg in &[
         // "../../../platform/packages/rs-sdk/src",
         "../../../rust-dashcore/dash/src",

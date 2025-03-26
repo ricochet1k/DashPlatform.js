@@ -3,9 +3,9 @@ import {
   Int128, Int16, Int32, Int64, Int8, Uint128, Uint16, Uint32, Uint64, Uint8, Float64,
   VarInt, VarUint, Vec, Tuple, Map, Option, String, Nothing, Range, NotSignable,
   SocketAddr,
-} from "./bincode.ts"
-import { Transaction } from "./bincode_types.ts";
-export const Hash = FixedBytes(32)
+} from "../bincode.ts"
+import { Transaction } from "../bincode_types.ts";
+export const Hash = Bytes; //FixedBytes(32)
 
 /** @type {*} */
 export const Value = Lazy("Value", () => REAL_Value);

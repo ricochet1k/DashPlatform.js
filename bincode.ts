@@ -224,7 +224,7 @@ export function Struct<N extends string, T extends {[k: string]: BinCodeable<any
       // }
       const instance = Object.create(strct.prototype);
       for (const key in fields) {
-        if (!(key in data)) {
+        if (!(key in data) && !fields[key].isValid(undefined)) {
           throw new Error("Struct " + name + " missing key: " + key);
         }
         instance[key] = data[key];
@@ -273,9 +273,9 @@ export function Struct<N extends string, T extends {[k: string]: BinCodeable<any
     for (const innerKey in fields) {
       if (DEBUG) bc._debug(`  decoding ${name}.${innerKey} (${fields[innerKey].name})`)
       val[innerKey] = fields[innerKey].decode(bc);
-      if (DEBUG) bc._debug(`  decoded ${name}.${innerKey} (${fields[innerKey].name}) to ${JSON.stringify(val[innerKey])}`)
+      if (DEBUG) bc._debug(`  decoded ${name}.${innerKey} (${fields[innerKey].name}) to ${val[innerKey]}`)
     }
-    if (DEBUG) bc._debug(`decoded ${name} to ${JSON.stringify(val)}`)
+    // if (DEBUG) bc._debug(`decoded ${name} to ${JSON.stringify(val)}`)
     return strct(val);
   }
 
@@ -345,17 +345,17 @@ export function StructTuple<N extends string, T extends BinCodeable<any>[]>(name
     }
   }}[name+"_encode"]
 
-  strct.decode = function decode(bc: BinCode): T {
+  strct.decode = {[name+"_decode"]: function(bc: BinCode): T {
     /** @type {any} */
     let val: any = [];
     for (let innerKey = 0; innerKey < fields.length; innerKey++) {
       if (DEBUG) bc._debug(`  decoding ${name}.${innerKey} (${fields[innerKey].name})`)
       val[innerKey] = fields[innerKey].decode(bc);
-      if (DEBUG) bc._debug(`  decoded ${name}.${innerKey} (${fields[innerKey].name}) to ${JSON.stringify(val[innerKey])}`)
+      // if (DEBUG) bc._debug(`  decoded ${name}.${innerKey} (${fields[innerKey].name}) to ${JSON.stringify(val[innerKey])}`)
     }
-    if (DEBUG) bc._debug(`decoded ${name} to ${JSON.stringify(val)}`)
+    // if (DEBUG) bc._debug(`decoded ${name} to ${JSON.stringify(val)}`)
     return strct(...val);
-  }
+  }}[name+"_decode"]
 
   return strct;
 }
@@ -375,13 +375,13 @@ type EnumType<T extends {[k: string]: {[f: string]: BinCodeable<any>} | BinCodea
 }[keyof T]
 
 type EnumVariantStruct<N extends string, V extends string, T extends {[f: string]: BinCodeable<any>}> = {
-  (data: UnBinCodeable<T>): UnBinCodeable<T> & {$$enum: N, $$variant: V}
+  (data: UnBinCodeable<T>): UnBinCodeable<T> & {[ENUM]: N, [VARIANT]: V, [DISCRIMINANT]: number}
   discriminant: number
   fields: T
 }
 
 type EnumVariantTuple<N extends string, V extends string, T extends BinCodeable<any>[]> = {
-  (...data: UnBinCodeable<T>): UnBinCodeable<T> & {$$enum: N, $$variant: V}
+  (...data: UnBinCodeable<T>): UnBinCodeable<T> & {[ENUM]: N, [VARIANT]: V, [DISCRIMINANT]: number}
   discriminant: number
   fields: T
 }
@@ -391,23 +391,43 @@ type EnumVariant<N extends string, V extends string, T extends BinCodeable<any>[
   T extends {[f: string]: BinCodeable<any>}? EnumVariantStruct<N, V, T> : never;
 
 type BinCodeableEnum<N extends string, T extends { [k: string]: { [f: string]: BinCodeable<any>; } | BinCodeable<any>[]; }> = BinCodeable<EnumType<T>> & {
-  $$type: {$$enum: N};
+  $$type: {[ENUM]: N};
   variants: T;
 } & { [V in keyof T & string]: EnumVariant<N, V, T[V]> }
+
+export const ENUM = Symbol("ENUM")
+export const VARIANTS = Symbol("VARIANTS")
+export const VARIANT = Symbol("VARIANT")
+export const VARIANT_NAME = Symbol("VARIANT_NAME")
+export const DISCRIMINANT = Symbol("DISCRIMINANT")
+
+type MatchFns<Variants, R> = {[k in keyof Variants]: (x: Variants[k] extends (data: any) => infer V ? V : never) => R};
+export function match<Enum, T>(value: Enum, fns: Enum extends {[VARIANTS]: any} ? MatchFns<Enum[typeof VARIANTS], T> : never): T {
+  const anyValue = value as any;
+  const variantName = anyValue[VARIANT];
+  const fn = fns[variantName];
+  if (!fn) {
+    throw new Error("No match for " + variantName);
+  }
+  return fn(anyValue)
+}
 
 export function Enum<N extends string, T extends {[k: string]: {[f: string]: BinCodeable<any>} | BinCodeable<any>[]}>(name: N, definitions: T): BinCodeableEnum<N, T> {
   const enumClass: any = {[name]: function() {
     // console.log("DEBUG:", "Enum", name, {this: this});
   }}[name];
 
-  Object.defineProperty(enumClass.prototype, '$$enum', {
-    value: {$$enum: name},
-    writable: false,
-    enumerable: false,
-    configurable: false,
-  });
-
   enumClass.variants = {};
+
+  Object.defineProperties(enumClass.prototype, {
+    [ENUM]: {
+      value: name,
+      writable: false,
+      enumerable: false,
+      configurable: false,
+    },
+    [VARIANTS]: enumClass.variants,
+  });
 
   enumClass.isValid = function isValid(value: unknown): boolean{
     // We need to check that exactly one of the definitions is valid
@@ -504,13 +524,13 @@ export function Enum<N extends string, T extends {[k: string]: {[f: string]: Bin
         writable: true,
         value: variantClass,
       },
-      $$variant: {
+      [VARIANT]: {
         value: variantName,
         writable: false,
         enumerable: false,
         configurable: false,
       },
-      $$discriminant: {
+      [DISCRIMINANT]: {
         value: theDiscriminant,
         writable: false,
         enumerable: false,
@@ -553,14 +573,14 @@ export function Enum<N extends string, T extends {[k: string]: {[f: string]: Bin
       return variantStruct.isValid(val);
     }
 
-    variantClass.decode = function decode(bc: BinCode) {
+    variantClass.decode = {[name+variantName+"_decode"]: function(bc: BinCode) {
       const data = variantStruct.decode(bc);
-      if (DEBUG) bc._debug(`decoded ${name}.${variantName} to ${JSON.stringify(data)}`)
+      // if (DEBUG) bc._debug(`decoded ${name}.${variantName} to ${JSON.stringify(data)}`)
       if (isTuple)
         return variantClass(...data as any);
       else
         return variantClass(data);
-    }
+    }}[name+variantName+"_decode"]
 
     variantClass.encode = {[name+variantName+"_encode"]: function(bc: BinCode, val: any) {
       return variantStruct.encode(bc, val);

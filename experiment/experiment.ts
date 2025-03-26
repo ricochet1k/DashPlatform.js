@@ -158,7 +158,7 @@ console.log('asset_lock', asset_lock)
 const data_contract_create = db.StateTransition.DataContractCreate(
     db.DataContractCreateTransition.V0(
         db.DataContractCreateTransitionV0({
-            data_contract: db.DataContractInSerializationFormat.V1({
+            data_contract: db.DataContractInSerializationFormat.V0({
                 id: db.Identifier(db.IdentifierBytes32(new Uint8Array(32))),
                 config: db.DataContractConfig.V0({
                     can_be_deleted: false,
@@ -174,8 +174,6 @@ const data_contract_create = db.StateTransition.DataContractCreate(
                 owner_id: db.Identifier(db.IdentifierBytes32(new Uint8Array(32))),
                 schema_defs: undefined,
                 document_schemas: new Map,
-                groups: new Map,
-                tokens: new Map,
             }),
             identity_nonce: 43n,
             user_fee_increase: 0,

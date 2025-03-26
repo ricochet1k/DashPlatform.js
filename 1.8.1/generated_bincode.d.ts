@@ -1,5 +1,5 @@
-import { BinCode, BinCodeable } from "./bincode.ts";
-import { Option, FixedBytes, Hash, SocketAddr, Transaction } from "./bincode_types.ts";
+import { BinCode, BinCodeable, VARIANTS } from "../bincode.ts";
+import { Option, FixedBytes, Hash, SocketAddr, Transaction } from "../bincode_types.ts";
 declare module "./generated_bincode.js" {
 
 /**
@@ -33,6 +33,13 @@ export abstract class AssetLockProof {
   static encode(bc: BinCode, v: AssetLockProof): void;
   /** @ignore */
   static decode(bc: BinCode): AssetLockProof;
+  /** @ignore @internal */
+  [VARIANTS]: typeof AssetLockProof.variants;
+  /** @ignore */
+  static variants: {
+    Instant: typeof AssetLockProof.Instant,
+    Chain: typeof AssetLockProof.Chain,
+  };
 }
 namespace AssetLockProof {
   /** @function */
@@ -113,6 +120,13 @@ export abstract class ContractBounds {
   static encode(bc: BinCode, v: ContractBounds): void;
   /** @ignore */
   static decode(bc: BinCode): ContractBounds;
+  /** @ignore @internal */
+  [VARIANTS]: typeof ContractBounds.variants;
+  /** @ignore */
+  static variants: {
+    SingleContract: typeof ContractBounds.SingleContract,
+    SingleContractDocumentType: typeof ContractBounds.SingleContractDocumentType,
+  };
 }
 namespace ContractBounds {
   /**
@@ -166,6 +180,12 @@ export abstract class DataContractConfig {
   static encode(bc: BinCode, v: DataContractConfig): void;
   /** @ignore */
   static decode(bc: BinCode): DataContractConfig;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DataContractConfig.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DataContractConfig.V0,
+  };
 }
 namespace DataContractConfig {
   /** @function */
@@ -264,6 +284,12 @@ export abstract class DataContractCreateTransition {
   static encode(bc: BinCode, v: DataContractCreateTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DataContractCreateTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DataContractCreateTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DataContractCreateTransition.V0,
+  };
 }
 namespace DataContractCreateTransition {
   /** @function */
@@ -308,6 +334,12 @@ export abstract class DataContractInSerializationFormat {
   static encode(bc: BinCode, v: DataContractInSerializationFormat): void;
   /** @ignore */
   static decode(bc: BinCode): DataContractInSerializationFormat;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DataContractInSerializationFormat.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DataContractInSerializationFormat.V0,
+  };
 }
 namespace DataContractInSerializationFormat {
   /** @function */
@@ -362,6 +394,12 @@ export abstract class DataContractUpdateTransition {
   static encode(bc: BinCode, v: DataContractUpdateTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DataContractUpdateTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DataContractUpdateTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DataContractUpdateTransition.V0,
+  };
 }
 namespace DataContractUpdateTransition {
   /** @function */
@@ -407,6 +445,12 @@ export abstract class DocumentBaseTransition {
   static encode(bc: BinCode, v: DocumentBaseTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentBaseTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentBaseTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentBaseTransition.V0,
+  };
 }
 namespace DocumentBaseTransition {
   /** @function */
@@ -450,6 +494,12 @@ export abstract class DocumentCreateTransition {
   static encode(bc: BinCode, v: DocumentCreateTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentCreateTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentCreateTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentCreateTransition.V0,
+  };
 }
 namespace DocumentCreateTransition {
   /** @function */
@@ -503,6 +553,12 @@ export abstract class DocumentDeleteTransition {
   static encode(bc: BinCode, v: DocumentDeleteTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentDeleteTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentDeleteTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentDeleteTransition.V0,
+  };
 }
 namespace DocumentDeleteTransition {
   /** @function */
@@ -536,6 +592,12 @@ export abstract class DocumentPurchaseTransition {
   static encode(bc: BinCode, v: DocumentPurchaseTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentPurchaseTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentPurchaseTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentPurchaseTransition.V0,
+  };
 }
 namespace DocumentPurchaseTransition {
   /** @function */
@@ -571,6 +633,12 @@ export abstract class DocumentReplaceTransition {
   static encode(bc: BinCode, v: DocumentReplaceTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentReplaceTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentReplaceTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentReplaceTransition.V0,
+  };
 }
 namespace DocumentReplaceTransition {
   /** @function */
@@ -606,6 +674,12 @@ export abstract class DocumentTransferTransition {
   static encode(bc: BinCode, v: DocumentTransferTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentTransferTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentTransferTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentTransferTransition.V0,
+  };
 }
 namespace DocumentTransferTransition {
   /** @function */
@@ -641,6 +715,17 @@ export abstract class DocumentTransition {
   static encode(bc: BinCode, v: DocumentTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentTransition.variants;
+  /** @ignore */
+  static variants: {
+    Create: typeof DocumentTransition.Create,
+    Replace: typeof DocumentTransition.Replace,
+    Delete: typeof DocumentTransition.Delete,
+    Transfer: typeof DocumentTransition.Transfer,
+    UpdatePrice: typeof DocumentTransition.UpdatePrice,
+    Purchase: typeof DocumentTransition.Purchase,
+  };
 }
 namespace DocumentTransition {
   /** @function */
@@ -694,6 +779,12 @@ export abstract class DocumentUpdatePriceTransition {
   static encode(bc: BinCode, v: DocumentUpdatePriceTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentUpdatePriceTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentUpdatePriceTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentUpdatePriceTransition.V0,
+  };
 }
 namespace DocumentUpdatePriceTransition {
   /** @function */
@@ -730,6 +821,12 @@ export abstract class DocumentsBatchTransition {
   static encode(bc: BinCode, v: DocumentsBatchTransition): void;
   /** @ignore */
   static decode(bc: BinCode): DocumentsBatchTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof DocumentsBatchTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof DocumentsBatchTransition.V0,
+  };
 }
 namespace DocumentsBatchTransition {
   /** @function */
@@ -792,6 +889,12 @@ export abstract class IdentityCreateTransition {
   static encode(bc: BinCode, v: IdentityCreateTransition): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityCreateTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityCreateTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityCreateTransition.V0,
+  };
 }
 namespace IdentityCreateTransition {
   /** @function */
@@ -839,6 +942,12 @@ export abstract class IdentityCreditTransferTransition {
   static encode(bc: BinCode, v: IdentityCreditTransferTransition): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityCreditTransferTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityCreditTransferTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityCreditTransferTransition.V0,
+  };
 }
 namespace IdentityCreditTransferTransition {
   /** @function */
@@ -887,6 +996,13 @@ export abstract class IdentityCreditWithdrawalTransition {
   static encode(bc: BinCode, v: IdentityCreditWithdrawalTransition): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityCreditWithdrawalTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityCreditWithdrawalTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityCreditWithdrawalTransition.V0,
+    V1: typeof IdentityCreditWithdrawalTransition.V1,
+  };
 }
 namespace IdentityCreditWithdrawalTransition {
   /** @function */
@@ -976,6 +1092,12 @@ export abstract class IdentityPublicKey {
   static encode(bc: BinCode, v: IdentityPublicKey): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityPublicKey;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityPublicKey.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityPublicKey.V0,
+  };
 }
 namespace IdentityPublicKey {
   /** @function */
@@ -1000,6 +1122,12 @@ export abstract class IdentityPublicKeyInCreation {
   static encode(bc: BinCode, v: IdentityPublicKeyInCreation): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityPublicKeyInCreation;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityPublicKeyInCreation.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityPublicKeyInCreation.V0,
+  };
 }
 namespace IdentityPublicKeyInCreation {
   /** @function */
@@ -1076,6 +1204,12 @@ export abstract class IdentityTopUpTransition {
   static encode(bc: BinCode, v: IdentityTopUpTransition): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityTopUpTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityTopUpTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityTopUpTransition.V0,
+  };
 }
 namespace IdentityTopUpTransition {
   /** @function */
@@ -1116,6 +1250,12 @@ export abstract class IdentityUpdateTransition {
   static encode(bc: BinCode, v: IdentityUpdateTransition): void;
   /** @ignore */
   static decode(bc: BinCode): IdentityUpdateTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof IdentityUpdateTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof IdentityUpdateTransition.V0,
+  };
 }
 namespace IdentityUpdateTransition {
   /** @function */
@@ -1206,6 +1346,16 @@ export abstract class KeyType {
   static encode(bc: BinCode, v: KeyType): void;
   /** @ignore */
   static decode(bc: BinCode): KeyType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof KeyType.variants;
+  /** @ignore */
+  static variants: {
+    ECDSA_SECP256K1: typeof KeyType.ECDSA_SECP256K1,
+    BLS12_381: typeof KeyType.BLS12_381,
+    ECDSA_HASH160: typeof KeyType.ECDSA_HASH160,
+    BIP13_SCRIPT_HASH: typeof KeyType.BIP13_SCRIPT_HASH,
+    EDDSA_25519_HASH160: typeof KeyType.EDDSA_25519_HASH160,
+  };
 }
 namespace KeyType {
   /** default */
@@ -1230,6 +1380,12 @@ export abstract class MasternodeVoteTransition {
   static encode(bc: BinCode, v: MasternodeVoteTransition): void;
   /** @ignore */
   static decode(bc: BinCode): MasternodeVoteTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof MasternodeVoteTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof MasternodeVoteTransition.V0,
+  };
 }
 namespace MasternodeVoteTransition {
   /** @function */
@@ -1291,6 +1447,14 @@ export abstract class Pooling {
   static encode(bc: BinCode, v: Pooling): void;
   /** @ignore */
   static decode(bc: BinCode): Pooling;
+  /** @ignore @internal */
+  [VARIANTS]: typeof Pooling.variants;
+  /** @ignore */
+  static variants: {
+    Never: typeof Pooling.Never,
+    IfAvailable: typeof Pooling.IfAvailable,
+    Standard: typeof Pooling.Standard,
+  };
 }
 namespace Pooling {
   /** default */
@@ -1313,6 +1477,18 @@ export abstract class Purpose {
   static encode(bc: BinCode, v: Purpose): void;
   /** @ignore */
   static decode(bc: BinCode): Purpose;
+  /** @ignore @internal */
+  [VARIANTS]: typeof Purpose.variants;
+  /** @ignore */
+  static variants: {
+    AUTHENTICATION: typeof Purpose.AUTHENTICATION,
+    ENCRYPTION: typeof Purpose.ENCRYPTION,
+    DECRYPTION: typeof Purpose.DECRYPTION,
+    TRANSFER: typeof Purpose.TRANSFER,
+    SYSTEM: typeof Purpose.SYSTEM,
+    VOTING: typeof Purpose.VOTING,
+    OWNER: typeof Purpose.OWNER,
+  };
 }
 namespace Purpose {
   /**
@@ -1351,6 +1527,34 @@ export abstract class Value {
   static encode(bc: BinCode, v: Value): void;
   /** @ignore */
   static decode(bc: BinCode): Value;
+  /** @ignore @internal */
+  [VARIANTS]: typeof Value.variants;
+  /** @ignore */
+  static variants: {
+    U128: typeof Value.U128,
+    I128: typeof Value.I128,
+    U64: typeof Value.U64,
+    I64: typeof Value.I64,
+    U32: typeof Value.U32,
+    I32: typeof Value.I32,
+    U16: typeof Value.U16,
+    I16: typeof Value.I16,
+    U8: typeof Value.U8,
+    I8: typeof Value.I8,
+    Bytes: typeof Value.Bytes,
+    Bytes20: typeof Value.Bytes20,
+    Bytes32: typeof Value.Bytes32,
+    Bytes36: typeof Value.Bytes36,
+    EnumU8: typeof Value.EnumU8,
+    EnumString: typeof Value.EnumString,
+    Identifier: typeof Value.Identifier,
+    Float: typeof Value.Float,
+    Text: typeof Value.Text,
+    Bool: typeof Value.Bool,
+    Null: typeof Value.Null,
+    Array: typeof Value.Array,
+    Map: typeof Value.Map,
+  };
 }
 namespace Value {
   /**
@@ -1605,6 +1809,12 @@ export abstract class ResourceVote {
   static encode(bc: BinCode, v: ResourceVote): void;
   /** @ignore */
   static decode(bc: BinCode): ResourceVote;
+  /** @ignore @internal */
+  [VARIANTS]: typeof ResourceVote.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof ResourceVote.V0,
+  };
 }
 namespace ResourceVote {
   /** @function */
@@ -1638,6 +1848,14 @@ export abstract class ResourceVoteChoice {
   static encode(bc: BinCode, v: ResourceVoteChoice): void;
   /** @ignore */
   static decode(bc: BinCode): ResourceVoteChoice;
+  /** @ignore @internal */
+  [VARIANTS]: typeof ResourceVoteChoice.variants;
+  /** @ignore */
+  static variants: {
+    TowardsIdentity: typeof ResourceVoteChoice.TowardsIdentity,
+    Abstain: typeof ResourceVoteChoice.Abstain,
+    Lock: typeof ResourceVoteChoice.Lock,
+  };
 }
 namespace ResourceVoteChoice {
   /** @function */
@@ -1696,6 +1914,15 @@ export abstract class SecurityLevel {
   static encode(bc: BinCode, v: SecurityLevel): void;
   /** @ignore */
   static decode(bc: BinCode): SecurityLevel;
+  /** @ignore @internal */
+  [VARIANTS]: typeof SecurityLevel.variants;
+  /** @ignore */
+  static variants: {
+    MASTER: typeof SecurityLevel.MASTER,
+    CRITICAL: typeof SecurityLevel.CRITICAL,
+    HIGH: typeof SecurityLevel.HIGH,
+    MEDIUM: typeof SecurityLevel.MEDIUM,
+  };
 }
 namespace SecurityLevel {
   const MASTER: () => SecurityLevel;
@@ -1718,6 +1945,20 @@ export abstract class StateTransition {
   static encode(bc: BinCode, v: StateTransition): void;
   /** @ignore */
   static decode(bc: BinCode): StateTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof StateTransition.variants;
+  /** @ignore */
+  static variants: {
+    DataContractCreate: typeof StateTransition.DataContractCreate,
+    DataContractUpdate: typeof StateTransition.DataContractUpdate,
+    DocumentsBatch: typeof StateTransition.DocumentsBatch,
+    IdentityCreate: typeof StateTransition.IdentityCreate,
+    IdentityTopUp: typeof StateTransition.IdentityTopUp,
+    IdentityCreditWithdrawal: typeof StateTransition.IdentityCreditWithdrawal,
+    IdentityUpdate: typeof StateTransition.IdentityUpdate,
+    IdentityCreditTransfer: typeof StateTransition.IdentityCreditTransfer,
+    MasternodeVote: typeof StateTransition.MasternodeVote,
+  };
 }
 namespace StateTransition {
   /** @function */
@@ -1793,6 +2034,14 @@ export abstract class StorageKeyRequirements {
   static encode(bc: BinCode, v: StorageKeyRequirements): void;
   /** @ignore */
   static decode(bc: BinCode): StorageKeyRequirements;
+  /** @ignore @internal */
+  [VARIANTS]: typeof StorageKeyRequirements.variants;
+  /** @ignore */
+  static variants: {
+    Unique: typeof StorageKeyRequirements.Unique,
+    Multiple: typeof StorageKeyRequirements.Multiple,
+    MultipleReferenceToLatest: typeof StorageKeyRequirements.MultipleReferenceToLatest,
+  };
 }
 namespace StorageKeyRequirements {
   const Unique: () => StorageKeyRequirements;
@@ -1843,6 +2092,12 @@ export abstract class Vote {
   static encode(bc: BinCode, v: Vote): void;
   /** @ignore */
   static decode(bc: BinCode): Vote;
+  /** @ignore @internal */
+  [VARIANTS]: typeof Vote.variants;
+  /** @ignore */
+  static variants: {
+    ResourceVote: typeof Vote.ResourceVote,
+  };
 }
 namespace Vote {
   /** @function */
@@ -1866,6 +2121,12 @@ export abstract class VotePoll {
   static encode(bc: BinCode, v: VotePoll): void;
   /** @ignore */
   static decode(bc: BinCode): VotePoll;
+  /** @ignore @internal */
+  [VARIANTS]: typeof VotePoll.variants;
+  /** @ignore */
+  static variants: {
+    ContestedDocumentResourceVotePoll: typeof VotePoll.ContestedDocumentResourceVotePoll,
+  };
 }
 namespace VotePoll {
   /** @function */

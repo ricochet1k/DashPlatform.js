@@ -11,7 +11,7 @@ export type Option<T> = T | null | undefined;
  */
 export type FixedBytes<N extends number> = Uint8Array;
 
-export type Hash = FixedBytes<32>;
+export type Hash = typeof Bincode.Bytes; //FixedBytes<32>;
 
 export type SocketAddr = typeof Bincode.SocketAddr extends Bincode.BinCodeable<infer T> ? T : never;
 

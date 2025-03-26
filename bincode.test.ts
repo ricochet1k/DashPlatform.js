@@ -9,12 +9,13 @@ import {
   String,
   Struct,
 } from "./bincode.ts"
-import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, StateTransition, Identifier, IdentifierBytes32, IdentityPublicKey } from "./2.0.0/generated_bincode"
+import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, StateTransition, IdentityPublicKeyV0, KeyType, Purpose, SecurityLevel, Identifier, IdentifierBytes32, IdentityPublicKey, OutPoint } from "./2.0.0/generated_bincode"
 import { toJsonCamelCase } from "./dash_bincode"
 
 import * as secp from "@noble/secp256k1"
 import * as KeyUtils from "./key-utils"
 import { doubleSha256 } from "../DashTx.js/dashtx.js"
+import { signTransitionWithRawKey } from "./sign.ts"
 
 const Enum1 = Enum("Enum1", {
   Foo: { F0: String },
@@ -252,48 +253,31 @@ it("should encode/decode DataContractCreateTransitions", async () => {
 
   // Now sign it
 
-  const data_contract_create_v0 = (data_contract_create as DataContractCreateTransition.V0)[0]
-  const data_contract_v1 = (data_contract_create_v0.data_contract as DataContractInSerializationFormat.V1)[0]
-
-  console.log('owner_id', data_contract_v1.owner_id[0][0])
-  console.log('nonce', BigInt(data_contract_create_v0.identity_nonce))
-  const contract_id_bytes = new Uint8Array(32 + 8)
-  contract_id_bytes.set(data_contract_v1.owner_id[0][0], 0)
-  new DataView(contract_id_bytes.buffer).setBigUint64(32, BigInt(data_contract_create_v0.identity_nonce), false)
-  const contract_id = await doubleSha256(contract_id_bytes)
-
-  data_contract_v1.id = Identifier(IdentifierBytes32(contract_id))
-
-  const new_signable_bytes = encode(StateTransition, StateTransition.DataContractCreate(data_contract_create), { signable: true })
-  const new_signable_bytes_expected = "000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00"
-  expect(toHex(new_signable_bytes)).toStrictEqual(new_signable_bytes_expected)
-  const hash = await doubleSha256(new Uint8Array(new_signable_bytes))
-  console.log('hash', toHex(hash))
-
   const private_key = fromHex(
     "6c554775029f960891e3edf2d36b26a30d9a4b10034bb49f3a6c4617f557f7bc",
   )
   const publicKey = await KeyUtils.toPublicKey(private_key)
   console.log('publicKey', toHex(publicKey))
 
-  const signature = (await secp.signAsync(hash, private_key, { extraEntropy: false }))
-  const signature_bytes = new Uint8Array(1 + 64)
-  signature_bytes[0] = signature.recovery + 27 + 4 // These magic numbers come from rust-dashcore/dash/src/signer.rs RecoverableSignature::to_compact_signature
-  signature_bytes.set(signature.toCompactRawBytes(), 1)
-  console.log('signature compact recovery', signature.recovery)
-  console.log('signature compact raw bytes', toHex(signature_bytes))
-
-  console.log('data_contract_create_v0.signature_public_key_id', data_contract_create_v0.signature_public_key_id)
-  data_contract_create_v0.signature_public_key_id = 0
-  data_contract_create_v0.signature = BinaryData(signature_bytes)
-
-  const state_transition_signed_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e0000411f3b6ee69cca6e9c7dda79e5a571b7bc9de307c5e27754c652ec62b22f7e6ff91966bd5e5db151484f1c81d766053154ed1a2f58a07303edf9f9a8cffe41891506")
-  const state_transition_signable_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00")
+  const identityPubKey = IdentityPublicKey.V0(IdentityPublicKeyV0({
+    id: 0,
+    purpose: Purpose.AUTHENTICATION(),
+    security_level: SecurityLevel.CRITICAL(),
+    key_type: KeyType.ECDSA_SECP256K1(),
+    read_only: true,
+    data: BinaryData(publicKey),
+  }))
 
   const state_transition_signed = StateTransition.DataContractCreate(data_contract_create)
+  await signTransitionWithRawKey(state_transition_signed, identityPubKey, private_key)
+
+  // We have to check the "signable" bytes AFTER signing because signing also sets the contract_id and other mutations
+  // that alter the signable bytes.
+  const state_transition_signable_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e00")
   const state_transition_signable_bytes2 = encode(StateTransition, state_transition_signed, { signable: true })
   expect(toHex(state_transition_signable_bytes2)).toStrictEqual(toHex(state_transition_signable_bytes))
 
+  const state_transition_signed_bytes = fromHex("000001fc399a05bcf7e416f4e57fd9870da2539b333e390ed76c0b0a16c017c11660790001000100000000000205050505050505050505050505050505050505050505050505050505050505050100010461736466160312047479706512066f626a656374120a70726f70657274696573160112047465737416021204747970651206737472696e671208706f736974696f6e040012146164646974696f6e616c50726f70657274696573130001fc000186a001fc000186a101fc000186a201fc000186a301fb271401fb2715010c00010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f010101000000010255530001017802787302000301000001fdab54a98ceb1f0ad201fdffffffffffffffff000000010100000301000001000100021008020203040a01fc0012dade000001fd0000001a21a278be0200030100000101000001121212121212121212121212121212121212121212121212121212121212121200030100000101000301000001000301000001000301000001000301000001000301000001000301000001000301000001010200fc0001477e0000411f3b6ee69cca6e9c7dda79e5a571b7bc9de307c5e27754c652ec62b22f7e6ff91966bd5e5db151484f1c81d766053154ed1a2f58a07303edf9f9a8cffe41891506")
   const state_transition_signed_bytes2 = encode(StateTransition, state_transition_signed)
   expect(toHex(state_transition_signed_bytes2)).toStrictEqual(toHex(state_transition_signed_bytes))
 
@@ -353,6 +337,29 @@ it("should encode/decode IdentityPublicKey", () => {
   const other_private_key = fromHex(
     "426ae4838204206cacdfc7a2e04ac6a2d9e3c2e94df935878581c552f22b0096",
   )
+})
+
+it("should encode/decode OutPoint", () => {
+  // WARNING: There are many versions of OutPoint, this one is the bincode::serde::encode_to_vec
+  // representation which uses length-prefixed txid and varuint encoding for vout (same as used in IdentityCreateTransitionV0)
+  const op_hex = '200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20fb3039'
+
+  const op = decode(OutPoint, fromHex(op_hex).buffer)
+  const op_bytes = encode(OutPoint, op)
+  expect(toHex(op_bytes)).toStrictEqual(op_hex)
+})
+
+it("should encode/decode IdentityCreateTransition", () => {
+  const ic_chain_hex = '03000001fc0012d687200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20fb303942001212121212121212121212121212121212121212121212121212121212121212';
+  const ic_instant_hex = '03000000a200000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2012121212121212121212121212121212121212121212121212121212121212124848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848480c0200000000010000000000000042001212121212121212121212121212121212121212121212121212121212121212';
+
+  const ic_chain = decode(StateTransition, fromHex(ic_chain_hex).buffer)
+  const ic_chain_bytes = encode(StateTransition, ic_chain)
+  expect(toHex(ic_chain_bytes)).toStrictEqual(ic_chain_hex)
+
+  const ic_instant = decode(StateTransition, fromHex(ic_instant_hex).buffer)
+  const ic_instant_bytes = encode(StateTransition, ic_instant)
+  expect(toHex(ic_instant_bytes)).toStrictEqual(ic_instant_hex)
 })
 
 // it("should encode/decode Identifier", () => {

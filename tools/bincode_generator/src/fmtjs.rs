@@ -25,9 +25,9 @@ pub fn write_js<W: std::io::Write>(
         "  VarInt, VarUint, Vec, Tuple, Map, Option, String, Nothing, Range, NotSignable,"
     )?;
     writeln!(f, "  SocketAddr,")?;
-    writeln!(f, "}} from \"./bincode.ts\"")?;
-    writeln!(f, "import {{ Transaction }} from \"./bincode_types.ts\";")?;
-    writeln!(f, "export const Hash = FixedBytes(32)")?;
+    writeln!(f, "}} from \"../bincode.ts\"")?;
+    writeln!(f, "import {{ Transaction }} from \"../bincode_types.ts\";")?;
+    writeln!(f, "export const Hash = Bytes; //FixedBytes(32)")?;
     writeln!(f, "")?;
 
     // Detect cycles

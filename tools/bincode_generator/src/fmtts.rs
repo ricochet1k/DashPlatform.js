@@ -10,11 +10,11 @@ pub fn write_dts<W: std::io::Write>(
 ) -> Result<(), std::io::Error> {
     writeln!(
         f,
-        "import {{ BinCode, BinCodeable }} from \"./bincode.ts\";"
+        "import {{ BinCode, BinCodeable, VARIANTS }} from \"../bincode.ts\";"
     )?;
     writeln!(
         f,
-        "import {{ Option, FixedBytes, Hash, SocketAddr, Transaction }} from \"./bincode_types.ts\";"
+        "import {{ Option, FixedBytes, Hash, SocketAddr, Transaction }} from \"../bincode_types.ts\";"
     )?;
     writeln!(f, "declare module \"./generated_bincode.js\" {{")?;
     writeln!(f)?;
@@ -170,6 +170,19 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::ItemEnum)> {
         writeln!(f, "  static encode(bc: BinCode, v: {}): void;", item.ident)?;
         writeln!(f, "  /** @ignore */")?;
         writeln!(f, "  static decode(bc: BinCode): {};", item.ident)?;
+        writeln!(f, "  /** @ignore @internal */")?;
+        writeln!(f, "  [VARIANTS]: typeof {}.variants;", item.ident)?;
+        writeln!(f, "  /** @ignore */")?;
+        writeln!(f, "  static variants: {{")?;
+        for (i, variant) in item.variants.iter().enumerate() {
+            writeln!(
+                f,
+                "    {}: typeof {}.{},",
+                variant.ident, item.ident, variant.ident
+            )?;
+        }
+        writeln!(f, "  }};")?;
+
         writeln!(f, "}}")?;
         writeln!(f, "namespace {} {{", item.ident)?;
         for (i, variant) in item.variants.iter().enumerate() {
