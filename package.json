@@ -20,7 +20,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "dependencies": {
-    "@dashevo/dapi-grpc": "^1.1.1",
+    "@dashevo/dapi-grpc": "^0.25.15",
     "@dashevo/wasm-dpp": "^1.1.1",
     "@dashincubator/secp256k1": "^1.7.1-5",
     "@noble/secp256k1": "^2.2.3",
@@ -29,7 +29,7 @@
     "dashkeys": "^1.1.5",
     "dashphrase": "^1.4.0",
     "dashtx": "^0.20.1",
-    "vitest": "^2.0.5"
+    "vitest": "^3.0.9"
   },
   "devDependencies": {
     "typedoc": "^0.28.0"
