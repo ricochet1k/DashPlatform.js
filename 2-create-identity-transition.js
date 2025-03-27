@@ -1,4 +1,3 @@
-import Fs from "node:fs/promises";
 
 // import DashKeys from "dashkeys";
 import * as DashTx from "dashtx/dashtx.js";
@@ -7,40 +6,6 @@ import * as Bincode from "./bincode.ts";
 import * as DashBincode from "./1.8.1/generated_bincode.js";
 import * as KeyUtils from "./key-utils.js";
 import baseX from "base-x";
-
-const ST_CREATE_IDENTITY = 2;
-const L2_VERSION_PLATFORM = 1; // actually constant "0" ??
-
-let KEY_LEVELS = {
-  0: "MASTER",
-  1: "CRITICAL",
-  2: "HIGH",
-  3: "MEDIUM",
-  MASTER: 0,
-  CRITICAL: 1,
-  HIGH: 2,
-  MEDIUM: 3,
-};
-
-let KEY_PURPOSES = {
-  0: "AUTHENTICATION",
-  1: "ENCRYPTION",
-  2: "DECRYPTION",
-  3: "TRANSFER",
-  4: "SYSTEM",
-  5: "VOTING",
-  AUTHENTICATION: 0,
-  ENCRYPTION: 1,
-  DECRYPTION: 2,
-  TRANSFER: 3,
-  SYSTEM: 4,
-  VOTING: 5,
-};
-
-let KEY_TYPES = {
-  0: "ECDSA_SECP256K1",
-  ECDSA_SECP256K1: 0,
-};
 
 const BASE58 = `123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz`;
 let base58 = baseX(BASE58);
@@ -64,7 +29,7 @@ let Thingy = {};
  * @param {String} [txlocksigHex]
  * @param {import('dashtx').TxInfo} [txCore]
  */
-Thingy.doStuff = async function (
+export async function createIdentityFromAssetLock(
   assetKey,
   masterKey,
   otherKey,
@@ -79,9 +44,9 @@ Thingy.doStuff = async function (
   /** @type {DashBincode.AssetLockProof} */
   let assetLockProof;
   if (txlocksigHex) {
-    assetLockProof = await getAssetLockInstantProof(txlocksigHex);
+    assetLockProof = await makeAssetLockInstantProof(txlocksigHex);
   } else {
-    assetLockProof = await getAssetLockChainProof(txidHex, txCore);
+    assetLockProof = await makeAssetLockChainProof(txidHex, txCore);
   }
 
   if (!masterKey.privateKey) {
@@ -206,10 +171,8 @@ Thingy.doStuff = async function (
   );
 };
 
-export default Thingy;
-
 /** @param {HexString} txlocksigHex */
-async function getAssetLockInstantProof(txlocksigHex) {
+async function makeAssetLockInstantProof(txlocksigHex) {
   {
     let len = txlocksigHex.length / 2;
     console.log();
@@ -255,7 +218,7 @@ async function getAssetLockInstantProof(txlocksigHex) {
  * @param {HexString} txidHex
  * @param {any} txInfo - TODO CoreTx
  */
-async function getAssetLockChainProof(txidHex, txInfo) {
+async function makeAssetLockChainProof(txidHex, txInfo) {
   //@ts-expect-error
   let vout = txInfo.vout.findIndex(voutInfo =>
      voutInfo.scriptPubKey?.hex === "6a00" // TODO match the burn
@@ -339,16 +302,18 @@ async function getKnownIdentityKeys(masterKey, otherKey) {
 function getIdentityTransitionKeys(identityKeys) {
   let stKeys = [];
   for (let key of identityKeys) {
-    let stKey = DashBincode.IdentityPublicKeyInCreation.V0(DashBincode.IdentityPublicKeyInCreationV0({
-      id: key.id,
-      key_type: key.type,
-      purpose: key.purpose,
-      security_level: key.securityLevel,
-      contract_bounds: undefined,
-      read_only: key.readOnly || false,
-      data: DashBincode.BinaryData(key.publicKey),
-      signature: DashBincode.BinaryData(new Uint8Array),
-    }));
+    let stKey = DashBincode.IdentityPublicKeyInCreation.V0(
+      DashBincode.IdentityPublicKeyInCreationV0({
+        id: key.id,
+        key_type: key.type,
+        purpose: key.purpose,
+        security_level: key.securityLevel,
+        contract_bounds: undefined,
+        read_only: key.readOnly || false,
+        data: DashBincode.BinaryData(key.publicKey),
+        signature: DashBincode.BinaryData(new Uint8Array),
+      })
+    );
     stKeys.push(stKey);
   }
   return stKeys;
@@ -360,34 +325,6 @@ function getIdentityTransitionKeys(identityKeys) {
 function bytesToBase64(bytes) {
   // @ts-expect-error Uint8Array is close enough to number[] for this to work
   return btoa(String.fromCharCode.apply(null, bytes));
-}
-
-/**
- * Reads a hex file as text, stripping comments (anything including and after a non-hex character), removing whitespace, and joining as a single string
- * @param {String} path
- */
-async function readHex(path) {
-  let text = await Fs.readFile(path, "utf8");
-  let lines = text.split("\n");
-  let hexes = [];
-  for (let line of lines) {
-    line = line.replace(/\s/g, "");
-    line = line.replace(/[^0-9a-f].*/i, "");
-    hexes.push(line);
-  }
-
-  let hex = hexes.join("");
-  return hex;
-}
-
-/**
- * @param {String} path
- */
-async function readWif(path) {
-  let wif = await Fs.readFile(path, "utf8");
-  wif = wif.trim();
-
-  return wif;
 }
 
 /** @typedef {String} Base58 */

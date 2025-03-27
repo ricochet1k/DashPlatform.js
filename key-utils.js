@@ -5,48 +5,6 @@ import Secp256k1 from "@dashincubator/secp256k1";
 import RIPEMD160 from "ripemd160"
 
 /**
- * @callback KeySet
- * @param {String} id - typically address
- * @param {KeyInfo} keyInfo
- */
-
-/**
- * @callback KeySignAsn1
- * @param {Uint8Array} privateKey
- * @param {Uint8Array} hashBytes
- * @returns {Promise<Uint8Array>}
- */
-
-/**
- * @callback DoubleSHA256
- * @param {Uint8Array} dataBytes
- * @returns {Promise<Uint8Array>}
- */
-
-/**
- * @callback KeySignMagic
- * @param {Object} opts
- * @param {Uint8Array} opts.privKeyBytes
- * @param {Uint8Array} opts.doubleSha256Bytes
- * @returns {Promise<Uint8Array>}
- */
-
-/**
- * @callback KeySignP1363
- * @param {Uint8Array} privateKey
- * @param {Uint8Array} hashBytes
- * @param {Uint8Array} [sigBytes] - preallocated 64 bytes
- * @returns {Promise<Uint8Array>}
- */
-
-/**
- * @callback ASN1ToP1363Signature
- * @param {Uint8Array} asn1Sig
- * @param {Uint8Array} [sigBytes]
- * @returns {Uint8Array} - p1363Sig
- */
-
-/**
  * @typedef KeyInfo
  * @prop {String} address
  * @prop {Uint8Array} privateKey
@@ -54,9 +12,13 @@ import RIPEMD160 from "ripemd160"
  * @prop {String} pubKeyHash
  */
 
-/** @type Object.<String, KeyInfo> */
-let keysMap = {};
+/** @type {Object.<String, KeyInfo>} */
+const keysMap = {};
 
+/**
+ * @param {String} id - typically address
+ * @param {KeyInfo} keyInfo
+ */
 export function set(id, keyInfo) {
   if (!id) {
     throw new Error(`key identifier is not defined)`);
@@ -64,11 +26,19 @@ export function set(id, keyInfo) {
   keysMap[id] = keyInfo;
 };
 
+/**
+ * @param {Uint8Array} privKeyBytes 
+ * @param {Uint8Array} hashBytes 
+ */
 export async function sign(privKeyBytes, hashBytes) {
   let asn1Bytes = await signAsn1(privKeyBytes, hashBytes);
   return asn1Bytes;
 };
 
+/**
+ * @param {Uint8Array} privKeyBytes 
+ * @param {Uint8Array} hashBytes 
+ */
 export async function signAsn1(privKeyBytes, hashBytes) {
   let testing = true;
   let sigOpts = { canonical: true };
@@ -79,6 +49,9 @@ export async function signAsn1(privKeyBytes, hashBytes) {
   return sigBytes;
 };
 
+/**
+ * @param {Uint8Array} bytes
+ */
 export async function doubleSha256(bytes) {
   let firstHash = await sha256(bytes);
   let secondHash = await sha256(firstHash);
@@ -107,6 +80,9 @@ export async function pubkeyHash(bytes) {
 
 /**
  * This is called "Simple Sign" by the Rust SDK.
+ * @param {Object} opts 
+ * @param {Uint8Array} opts.privKeyBytes 
+ * @param {Uint8Array} opts.doubleSha256Bytes 
  */
 export async function magicSign({ privKeyBytes, doubleSha256Bytes }) {
   if (doubleSha256Bytes?.length !== 32) {
@@ -131,6 +107,11 @@ export async function magicSign({ privKeyBytes, doubleSha256Bytes }) {
   return magicSig;
 };
 
+/**
+ * @param {Uint8Array} privKeyBytes 
+ * @param {Uint8Array} hashBytes 
+ * @param {Uint8Array} [sigBytes] - preallocated 64 bytes
+ */
 export async function signP1363(privKeyBytes, hashBytes, sigBytes) {
   let asn1Bytes = await signAsn1(privKeyBytes, hashBytes);
   let p1363Bytes = asn1ToP1363Signature(asn1Bytes, sigBytes);
@@ -141,6 +122,10 @@ export async function signP1363(privKeyBytes, hashBytes, sigBytes) {
   return p1363Bytes;
 };
 
+/**
+ * @param {Uint8Array} asn1 
+ * @param {Uint8Array} [p1363Signature] 
+ */
 export function asn1ToP1363Signature(asn1, p1363Signature) {
   if (asn1[0] !== 0x30) {
     throw new Error("Invalid DER signature format");
@@ -182,6 +167,9 @@ export function asn1ToP1363Signature(asn1, p1363Signature) {
   return p1363Signature;
 };
 
+/**
+ * @param {{ address?: string; txid: any; outputIndex: any; }} input
+ */
 export async function getPrivateKey(input) {
   if (!input.address) {
     //throw new Error('should put the address on the input there buddy...');
@@ -193,6 +181,10 @@ export async function getPrivateKey(input) {
   return keyInfo.privateKey;
 };
 
+/**
+ * @param {{ address?: string; txid: any; outputIndex: any; }} txInput
+ * @param {any} i
+ */
 export async function getPublicKey(txInput, i) {
   let privKeyBytes = await getPrivateKey(txInput, i);
   if (!privKeyBytes) {
@@ -203,6 +195,9 @@ export async function getPublicKey(txInput, i) {
   return pubKeyBytes;
 };
 
+/**
+ * @param {Uint8Array} privKeyBytes
+ */
 export async function toPublicKey(privKeyBytes) {
   let isCompressed = true;
   let pubKeyBytes = Secp256k1.getPublicKey(privKeyBytes, isCompressed);
