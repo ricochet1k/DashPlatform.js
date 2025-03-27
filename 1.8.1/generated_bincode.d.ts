@@ -56,6 +56,116 @@ namespace AssetLockProof {
   const Chain: (f0: ChainAssetLockProof) => AssetLockProof.Chain;
 }
 
+/**
+ * An Asset Unlock Base payload. This is the base payload of the Asset Unlock. In order to make
+ *  it a full payload the request info should be added.
+ */
+interface AssetUnlockBasePayload {
+  /** The payload protocol version, is currently expected to be 0. */
+  version: number;
+  /** The index of the unlock transaction. It gets bumped on each transaction */
+  index: bigint;
+  /** The fee used in Duffs (Satoshis) */
+  fee: number;
+}
+/** @ignore */
+const AssetUnlockBasePayload : BinCodeable<AssetUnlockBasePayload> & ((data: {
+  /** The payload protocol version, is currently expected to be 0. */
+  version: number,
+  /** The index of the unlock transaction. It gets bumped on each transaction */
+  index: bigint,
+  /** The fee used in Duffs (Satoshis) */
+  fee: number,
+}) => AssetUnlockBasePayload);
+
+/**
+ * A Credit Withdrawal payload. This is contained as the payload of a credit withdrawal special
+ *  transaction.
+ *  The Credit Withdrawal Special transaction and this payload is described in the Asset Lock DIP2X
+ *  (todo:update this).
+ *  The Credit Withdrawal Payload is signed by a quorum.
+ * 
+ *  Transaction using it have no inputs. Hence the proof of validity lies solely on the BLS signature.
+ */
+interface AssetUnlockPayload {
+  /**
+   * The base information about the asset unlock. This base information is the information that
+   *  should be put into a queue.
+   */
+  base: AssetUnlockBasePayload;
+  /**
+   * The request information. This should be added to the unlock transaction as it is being sent
+   *  to be signed.
+   */
+  request_info: AssetUnlockRequestInfo;
+  /** The threshold signature. This should be returned by the consensus engine. */
+  quorum_sig: BLSSignature;
+}
+/** @ignore */
+const AssetUnlockPayload : BinCodeable<AssetUnlockPayload> & ((data: {
+  /**
+   * The base information about the asset unlock. This base information is the information that
+   *  should be put into a queue.
+   */
+  base: AssetUnlockBasePayload,
+  /**
+   * The request information. This should be added to the unlock transaction as it is being sent
+   *  to be signed.
+   */
+  request_info: AssetUnlockRequestInfo,
+  /** The threshold signature. This should be returned by the consensus engine. */
+  quorum_sig: BLSSignature,
+}) => AssetUnlockPayload);
+
+/**
+ * An asset unlock request info
+ *  This is the information about the signing quorum
+ *  The request height should be the height at which the specified quorum is active on core.
+ */
+interface AssetUnlockRequestInfo {
+  /**
+   * The core request height of the transaction. This should match a period where the quorum_hash
+   *  is still active
+   */
+  request_height: number;
+  /** The quorum hash. This is the block hash when the quorum was created. */
+  quorum_hash: QuorumHash;
+}
+/** @ignore */
+const AssetUnlockRequestInfo : BinCodeable<AssetUnlockRequestInfo> & ((data: {
+  /**
+   * The core request height of the transaction. This should match a period where the quorum_hash
+   *  is still active
+   */
+  request_height: number,
+  /** The quorum hash. This is the block hash when the quorum was created. */
+  quorum_hash: QuorumHash,
+}) => AssetUnlockRequestInfo);
+
+/**
+ * A BLS Public key is 48 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+interface BLSPublicKey {
+  [0]: FixedBytes<48>;
+}
+/** @ignore */
+const BLSPublicKey : BinCodeable<BLSPublicKey> & ((
+    f0: FixedBytes<48>,
+) => BLSPublicKey);
+
+/**
+ * A BLS Signature is 96 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+interface BLSSignature {
+  [0]: FixedBytes<96>;
+}
+/** @ignore */
+const BLSSignature : BinCodeable<BLSSignature> & ((
+    f0: FixedBytes<96>,
+) => BLSSignature);
+
 interface BinaryData {
   [0]: Uint8Array;
 }
@@ -63,6 +173,15 @@ interface BinaryData {
 const BinaryData : BinCodeable<BinaryData> & ((
     f0: Uint8Array,
 ) => BinaryData);
+
+/** A dash block hash. */
+interface BlockHash {
+  [0]: Hash;
+}
+/** @ignore */
+const BlockHash : BinCodeable<BlockHash> & ((
+    f0: Hash,
+) => BlockHash);
 
 /**
  * Instant Asset Lock Proof is a part of Identity Create and Identity Topup
@@ -83,6 +202,30 @@ const ChainAssetLockProof : BinCodeable<ChainAssetLockProof> & ((data: {
   /** A reference to Asset Lock Special Transaction ID and output index in the payload */
   out_point: OutPoint,
 }) => ChainAssetLockProof);
+
+/**
+ * A Coinbase payload. This is contained as the payload of a coinbase special transaction.
+ *  The Coinbase payload is described in DIP4.
+ */
+interface CoinbasePayload {
+  version: number;
+  height: number;
+  merkle_root_masternode_list: MerkleRootMasternodeList;
+  merkle_root_quorums: MerkleRootQuorums;
+  best_cl_height?: number;
+  best_cl_signature?: BLSSignature;
+  asset_locked_amount?: bigint;
+}
+/** @ignore */
+const CoinbasePayload : BinCodeable<CoinbasePayload> & ((data: {
+  version: number,
+  height: number,
+  merkle_root_masternode_list: MerkleRootMasternodeList,
+  merkle_root_quorums: MerkleRootQuorums,
+  best_cl_height?: number,
+  best_cl_signature?: BLSSignature,
+  asset_locked_amount?: bigint,
+}) => CoinbasePayload);
 
 interface ContestedDocumentResourceVotePoll {
   contract_id: Identifier;
@@ -1325,6 +1468,15 @@ const IdentityUpdateTransitionV0 : BinCodeable<IdentityUpdateTransitionV0> & ((d
   signature: BinaryData,
 }) => IdentityUpdateTransitionV0);
 
+/** A hash of all transaction inputs */
+interface InputsHash {
+  [0]: Hash;
+}
+/** @ignore */
+const InputsHash : BinCodeable<InputsHash> & ((
+    f0: Hash,
+) => InputsHash);
+
 export type InstantAssetLockProof = RawInstantLockProof;
 
 export type KeyID = number;
@@ -1364,6 +1516,58 @@ namespace KeyType {
   const ECDSA_HASH160: () => KeyType;
   const BIP13_SCRIPT_HASH: () => KeyType;
   const EDDSA_25519_HASH160: () => KeyType;
+}
+
+/** @ignore */
+export abstract class LLMQType {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: LLMQType): void;
+  /** @ignore */
+  static decode(bc: BinCode): LLMQType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof LLMQType.variants;
+  /** @ignore */
+  static variants: {
+    LlmqtypeUnknown: typeof LLMQType.LlmqtypeUnknown,
+    Llmqtype50_60: typeof LLMQType.Llmqtype50_60,
+    Llmqtype400_60: typeof LLMQType.Llmqtype400_60,
+    Llmqtype400_85: typeof LLMQType.Llmqtype400_85,
+    Llmqtype100_67: typeof LLMQType.Llmqtype100_67,
+    Llmqtype60_75: typeof LLMQType.Llmqtype60_75,
+    Llmqtype25_67: typeof LLMQType.Llmqtype25_67,
+    LlmqtypeTest: typeof LLMQType.LlmqtypeTest,
+    LlmqtypeDevnet: typeof LLMQType.LlmqtypeDevnet,
+    LlmqtypeTestV17: typeof LLMQType.LlmqtypeTestV17,
+    LlmqtypeTestDIP0024: typeof LLMQType.LlmqtypeTestDIP0024,
+    LlmqtypeTestInstantSend: typeof LLMQType.LlmqtypeTestInstantSend,
+    LlmqtypeDevnetDIP0024: typeof LLMQType.LlmqtypeDevnetDIP0024,
+    LlmqtypeTestnetPlatform: typeof LLMQType.LlmqtypeTestnetPlatform,
+    LlmqtypeDevnetPlatform: typeof LLMQType.LlmqtypeDevnetPlatform,
+  };
+}
+namespace LLMQType {
+  const LlmqtypeUnknown: () => LLMQType;
+  const Llmqtype50_60: () => LLMQType;
+  const Llmqtype400_60: () => LLMQType;
+  const Llmqtype400_85: () => LLMQType;
+  const Llmqtype100_67: () => LLMQType;
+  const Llmqtype60_75: () => LLMQType;
+  const Llmqtype25_67: () => LLMQType;
+  const LlmqtypeTest: () => LLMQType;
+  const LlmqtypeDevnet: () => LLMQType;
+  const LlmqtypeTestV17: () => LLMQType;
+  const LlmqtypeTestDIP0024: () => LLMQType;
+  const LlmqtypeTestInstantSend: () => LLMQType;
+  const LlmqtypeDevnetDIP0024: () => LLMQType;
+  const LlmqtypeTestnetPlatform: () => LLMQType;
+  const LlmqtypeDevnetPlatform: () => LLMQType;
 }
 
 /** platform_version_path_bounds "dpp.state_transition_serialization_versions.masternode_vote_state_transition" */
@@ -1418,6 +1622,32 @@ const MasternodeVoteTransitionV0 : BinCodeable<MasternodeVoteTransitionV0> & ((d
   signature: BinaryData,
 }) => MasternodeVoteTransitionV0);
 
+/**
+ * Dash Additions
+ * 
+ *  The merkle root of the masternode list
+ * hash_newtype forward
+ */
+interface MerkleRootMasternodeList {
+  [0]: Hash;
+}
+/** @ignore */
+const MerkleRootMasternodeList : BinCodeable<MerkleRootMasternodeList> & ((
+    f0: Hash,
+) => MerkleRootMasternodeList);
+
+/**
+ * The merkle root of the quorums
+ * hash_newtype forward
+ */
+interface MerkleRootQuorums {
+  [0]: Hash;
+}
+/** @ignore */
+const MerkleRootQuorums : BinCodeable<MerkleRootQuorums> & ((
+    f0: Hash,
+) => MerkleRootQuorums);
+
 /** A reference to a transaction output. */
 interface OutPoint {
   /** The referenced transaction's txid. */
@@ -1462,6 +1692,165 @@ namespace Pooling {
   const IfAvailable: () => Pooling;
   const Standard: () => Pooling;
 }
+
+/** @ignore */
+export abstract class ProviderMasternodeType {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: ProviderMasternodeType): void;
+  /** @ignore */
+  static decode(bc: BinCode): ProviderMasternodeType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof ProviderMasternodeType.variants;
+  /** @ignore */
+  static variants: {
+    Regular: typeof ProviderMasternodeType.Regular,
+    HighPerformance: typeof ProviderMasternodeType.HighPerformance,
+  };
+}
+namespace ProviderMasternodeType {
+  const Regular: () => ProviderMasternodeType;
+  const HighPerformance: () => ProviderMasternodeType;
+}
+
+/**
+ * A Provider Registration Payload used in a Provider Registration Special Transaction.
+ *  This is used to register a Masternode on the network.
+ *  The current version is 0.
+ *  Interesting Fields:
+ *  *Provider type refers to the type of Masternode. Currently only valid value is 0.
+ *  *Provider mode refers to the mode of the Masternode. Currently only valid value is 0.
+ *  *The collateral outpoint links to a transaction with a 1000 Dash unspent (at registration)
+ *  outpoint.
+ *  *The operator reward defines the ratio when divided by 10000 of the amount going to the operator.
+ *  The max value for the operator reward is 10000.
+ *  *The script payout is the script to which one wants to have the masternode pay out.
+ *  *The inputs hash is used to guarantee the uniqueness of the payload sig.
+ */
+interface ProviderRegistrationPayload {
+  version: number;
+  masternode_type: ProviderMasternodeType;
+  masternode_mode: number;
+  collateral_outpoint: OutPoint;
+  service_address: SocketAddr;
+  owner_key_hash: PubkeyHash;
+  operator_public_key: BLSPublicKey;
+  voting_key_hash: PubkeyHash;
+  operator_reward: number;
+  script_payout: ScriptBuf;
+  inputs_hash: InputsHash;
+  signature: Uint8Array;
+  platform_node_id?: PubkeyHash;
+  platform_p2p_port?: number;
+  platform_http_port?: number;
+}
+/** @ignore */
+const ProviderRegistrationPayload : BinCodeable<ProviderRegistrationPayload> & ((data: {
+  version: number,
+  masternode_type: ProviderMasternodeType,
+  masternode_mode: number,
+  collateral_outpoint: OutPoint,
+  service_address: SocketAddr,
+  owner_key_hash: PubkeyHash,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  operator_reward: number,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  signature: Uint8Array,
+  platform_node_id?: PubkeyHash,
+  platform_p2p_port?: number,
+  platform_http_port?: number,
+}) => ProviderRegistrationPayload);
+
+/**
+ * A Provider Update Registrar Payload used in a Provider Update Registrar Special Transaction.
+ *  This is used to update the base aspects a Masternode on the network.
+ *  It must be signed by the owner's key that was set at registration.
+ */
+interface ProviderUpdateRegistrarPayload {
+  version: number;
+  pro_tx_hash: Txid;
+  provider_mode: number;
+  operator_public_key: BLSPublicKey;
+  voting_key_hash: PubkeyHash;
+  script_payout: ScriptBuf;
+  inputs_hash: InputsHash;
+  payload_sig: Uint8Array;
+}
+/** @ignore */
+const ProviderUpdateRegistrarPayload : BinCodeable<ProviderUpdateRegistrarPayload> & ((data: {
+  version: number,
+  pro_tx_hash: Txid,
+  provider_mode: number,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: Uint8Array,
+}) => ProviderUpdateRegistrarPayload);
+
+/**
+ * A Provider Update Revocation Payload used in a Provider Update Revocation Special Transaction.
+ *  This is used to signal and stop a Masternode from the operator.
+ *  It must be signed by the operator's key that was set at registration or registrar update.
+ */
+interface ProviderUpdateRevocationPayload {
+  version: number;
+  pro_tx_hash: Txid;
+  reason: number;
+  inputs_hash: InputsHash;
+  payload_sig: BLSSignature;
+}
+/** @ignore */
+const ProviderUpdateRevocationPayload : BinCodeable<ProviderUpdateRevocationPayload> & ((data: {
+  version: number,
+  pro_tx_hash: Txid,
+  reason: number,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+}) => ProviderUpdateRevocationPayload);
+
+/**
+ * A Provider Update Service Payload used in a Provider Update Service Special Transaction.
+ *  This is used to update the operational aspects a Masternode on the network.
+ *  It must be signed by the operator's key that was set either at registration or by the last
+ *  registrar update of the masternode.
+ */
+interface ProviderUpdateServicePayload {
+  version: number;
+  pro_tx_hash: Txid;
+  ip_address: bigint;
+  port: number;
+  script_payout: ScriptBuf;
+  inputs_hash: InputsHash;
+  payload_sig: BLSSignature;
+}
+/** @ignore */
+const ProviderUpdateServicePayload : BinCodeable<ProviderUpdateServicePayload> & ((data: {
+  version: number,
+  pro_tx_hash: Txid,
+  ip_address: bigint,
+  port: number,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+}) => ProviderUpdateServicePayload);
+
+/** A hash of a public key. */
+interface PubkeyHash {
+  [0]: Hash;
+}
+/** @ignore */
+const PubkeyHash : BinCodeable<PubkeyHash> & ((
+    f0: Hash,
+) => PubkeyHash);
 
 /** repr u8 */
 /** @ignore */
@@ -1509,6 +1898,66 @@ namespace Purpose {
   /** this key is used to prove ownership of a masternode or evonode */
   const OWNER: () => Purpose;
 }
+
+/**
+ * A Quorum Commitment Payload used in a Quorum Commitment Special Transaction.
+ *  This is used in the mining phase as described in DIP 6:
+ *  [dip-0006.md#7-mining-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#7-mining-phase).
+ * 
+ *  Miners take the best final commitment for a DKG session and mine it into a block.
+ */
+interface QuorumCommitmentPayload {
+  version: number;
+  height: number;
+  finalization_commitment: QuorumEntry;
+}
+/** @ignore */
+const QuorumCommitmentPayload : BinCodeable<QuorumCommitmentPayload> & ((data: {
+  version: number,
+  height: number,
+  finalization_commitment: QuorumEntry,
+}) => QuorumCommitmentPayload);
+
+/**
+ * A Quorum Finalization Commitment. It is described in the finalization section of DIP6:
+ *  [dip-0006.md#6-finalization-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#6-finalization-phase)
+ */
+interface QuorumEntry {
+  version: number;
+  llmq_type: LLMQType;
+  quorum_hash: QuorumHash;
+  quorum_index?: number;
+  signers: boolean[];
+  valid_members: boolean[];
+  quorum_public_key: BLSPublicKey;
+  quorum_vvec_hash: QuorumVVecHash;
+  threshold_sig: BLSSignature;
+  all_commitment_aggregated_signature: BLSSignature;
+}
+/** @ignore */
+const QuorumEntry : BinCodeable<QuorumEntry> & ((data: {
+  version: number,
+  llmq_type: LLMQType,
+  quorum_hash: QuorumHash,
+  quorum_index?: number,
+  signers: boolean[],
+  valid_members: boolean[],
+  quorum_public_key: BLSPublicKey,
+  quorum_vvec_hash: QuorumVVecHash,
+  threshold_sig: BLSSignature,
+  all_commitment_aggregated_signature: BLSSignature,
+}) => QuorumEntry);
+
+export type QuorumHash = BlockHash;
+
+/** A hash of a quorum verification vector */
+interface QuorumVVecHash {
+  [0]: Hash;
+}
+/** @ignore */
+const QuorumVVecHash : BinCodeable<QuorumVVecHash> & ((
+    f0: Hash,
+) => QuorumVVecHash);
 
 /**
  * A representation of a dynamic value that can handled dynamically
@@ -2050,6 +2499,177 @@ namespace StorageKeyRequirements {
 }
 
 export type TimestampMillis = bigint;
+
+/**
+ * An enum wrapper around various special transaction payloads.
+ *  Special transactions are defined in DIP 2.
+ */
+/** @ignore */
+export abstract class TransactionPayload {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TransactionPayload): void;
+  /** @ignore */
+  static decode(bc: BinCode): TransactionPayload;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TransactionPayload.variants;
+  /** @ignore */
+  static variants: {
+    ProviderRegistrationPayloadType: typeof TransactionPayload.ProviderRegistrationPayloadType,
+    ProviderUpdateServicePayloadType: typeof TransactionPayload.ProviderUpdateServicePayloadType,
+    ProviderUpdateRegistrarPayloadType: typeof TransactionPayload.ProviderUpdateRegistrarPayloadType,
+    ProviderUpdateRevocationPayloadType: typeof TransactionPayload.ProviderUpdateRevocationPayloadType,
+    CoinbasePayloadType: typeof TransactionPayload.CoinbasePayloadType,
+    QuorumCommitmentPayloadType: typeof TransactionPayload.QuorumCommitmentPayloadType,
+    AssetLockPayloadType: typeof TransactionPayload.AssetLockPayloadType,
+    AssetUnlockPayloadType: typeof TransactionPayload.AssetUnlockPayloadType,
+  };
+}
+namespace TransactionPayload {
+  /**
+   * A wrapper for a Masternode Registration payload
+   * 
+   * @function
+   */
+  interface ProviderRegistrationPayloadType extends TransactionPayload {
+    [0]: ProviderRegistrationPayload;
+  }
+  /** @ignore */
+  const ProviderRegistrationPayloadType: (f0: ProviderRegistrationPayload) => TransactionPayload.ProviderRegistrationPayloadType;
+  /**
+   * A wrapper for a Masternode Update Service payload
+   * 
+   * @function
+   */
+  interface ProviderUpdateServicePayloadType extends TransactionPayload {
+    [0]: ProviderUpdateServicePayload;
+  }
+  /** @ignore */
+  const ProviderUpdateServicePayloadType: (f0: ProviderUpdateServicePayload) => TransactionPayload.ProviderUpdateServicePayloadType;
+  /**
+   * A wrapper for a Masternode Update Registrar payload
+   * 
+   * @function
+   */
+  interface ProviderUpdateRegistrarPayloadType extends TransactionPayload {
+    [0]: ProviderUpdateRegistrarPayload;
+  }
+  /** @ignore */
+  const ProviderUpdateRegistrarPayloadType: (f0: ProviderUpdateRegistrarPayload) => TransactionPayload.ProviderUpdateRegistrarPayloadType;
+  /**
+   * A wrapper for a Masternode Update Revocation payload
+   * 
+   * @function
+   */
+  interface ProviderUpdateRevocationPayloadType extends TransactionPayload {
+    [0]: ProviderUpdateRevocationPayload;
+  }
+  /** @ignore */
+  const ProviderUpdateRevocationPayloadType: (f0: ProviderUpdateRevocationPayload) => TransactionPayload.ProviderUpdateRevocationPayloadType;
+  /**
+   * A wrapper for a Coinbase payload
+   * 
+   * @function
+   */
+  interface CoinbasePayloadType extends TransactionPayload {
+    [0]: CoinbasePayload;
+  }
+  /** @ignore */
+  const CoinbasePayloadType: (f0: CoinbasePayload) => TransactionPayload.CoinbasePayloadType;
+  /**
+   * A wrapper for a Quorum Commitment payload
+   * 
+   * @function
+   */
+  interface QuorumCommitmentPayloadType extends TransactionPayload {
+    [0]: QuorumCommitmentPayload;
+  }
+  /** @ignore */
+  const QuorumCommitmentPayloadType: (f0: QuorumCommitmentPayload) => TransactionPayload.QuorumCommitmentPayloadType;
+  /**
+   * A wrapper for an Asset Lock payload
+   * 
+   * @function
+   */
+  interface AssetLockPayloadType extends TransactionPayload {
+    [0]: AssetLockPayload;
+  }
+  /** @ignore */
+  const AssetLockPayloadType: (f0: AssetLockPayload) => TransactionPayload.AssetLockPayloadType;
+  /**
+   * A wrapper for an Asset Unlock payload
+   * 
+   * @function
+   */
+  interface AssetUnlockPayloadType extends TransactionPayload {
+    [0]: AssetUnlockPayload;
+  }
+  /** @ignore */
+  const AssetUnlockPayloadType: (f0: AssetUnlockPayload) => TransactionPayload.AssetUnlockPayloadType;
+}
+
+/**
+ * The transaction type. Special transactions were introduced in DIP2.
+ *  Compared to Bitcoin the version field is split into two 16 bit integers.
+ *  The first part for the version and the second part for the transaction
+ *  type.
+ * 
+ * repr u16
+ */
+/** @ignore */
+export abstract class TransactionType {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TransactionType): void;
+  /** @ignore */
+  static decode(bc: BinCode): TransactionType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TransactionType.variants;
+  /** @ignore */
+  static variants: {
+    Classic: typeof TransactionType.Classic,
+    ProviderRegistration: typeof TransactionType.ProviderRegistration,
+    ProviderUpdateService: typeof TransactionType.ProviderUpdateService,
+    ProviderUpdateRegistrar: typeof TransactionType.ProviderUpdateRegistrar,
+    ProviderUpdateRevocation: typeof TransactionType.ProviderUpdateRevocation,
+    Coinbase: typeof TransactionType.Coinbase,
+    QuorumCommitment: typeof TransactionType.QuorumCommitment,
+    AssetLock: typeof TransactionType.AssetLock,
+    AssetUnlock: typeof TransactionType.AssetUnlock,
+  };
+}
+namespace TransactionType {
+  /** A Classic transaction */
+  const Classic: () => TransactionType;
+  /** A Masternode Registration Transaction */
+  const ProviderRegistration: () => TransactionType;
+  /** A Masternode Update Service Transaction, used by the operator to signal changes to service */
+  const ProviderUpdateService: () => TransactionType;
+  /** A Masternode Update Registrar Transaction, used by the owner to signal base changes */
+  const ProviderUpdateRegistrar: () => TransactionType;
+  /** A Masternode Update Revocation Transaction, used by the operator to signal termination of service */
+  const ProviderUpdateRevocation: () => TransactionType;
+  /** A Coinbase Transaction, contained as the first transaction in each block */
+  const Coinbase: () => TransactionType;
+  /** A Quorum Commitment Transaction, used to save quorum information to the state */
+  const QuorumCommitment: () => TransactionType;
+  /** An Asset Lock Transaction, used to transfer credits to Dash Platform, by locking them until withdrawals occur */
+  const AssetLock: () => TransactionType;
+  /** An Asset Unlock Transaction, used to withdraw credits from Dash Platform, by unlocking them */
+  const AssetUnlock: () => TransactionType;
+}
 
 /** A transaction output, which defines new coins to be created from old ones. */
 interface TxOut {

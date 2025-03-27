@@ -30,8 +30,7 @@ const SUB_FEATURE_TOPUP = "2'"; // DIP13
  * @param {import('dashhd').HDWallet} walletKey
  * @param {String} path
  */
-//@ts-expect-error - monkey-patch
-DashHd.deriveIdentAuthWalletPath = async function (walletKey, path) {
+export async function deriveIdentAuthWalletPath(walletKey, path) {
   let hdpath = _parseIdentityWallet(path);
   let identAuthKey = await _deriveIdentAuthPath(walletKey, hdpath);
 
@@ -43,8 +42,7 @@ DashHd.deriveIdentAuthWalletPath = async function (walletKey, path) {
  * @param {import('dashhd').HDWallet} walletKey
  * @param {String} path
  */
-//@ts-expect-error - monkey-patch
-DashHd.deriveIdentAuthKeyPath = async function (walletKey, path) {
+export async function deriveIdentAuthKeyPath(walletKey, path) {
   const INDEX_AUTH_IDENTITY_KEY = 7;
 
   let hdpath = _parseIdentityWallet(path);
@@ -53,7 +51,7 @@ DashHd.deriveIdentAuthKeyPath = async function (walletKey, path) {
     hdpath.paths[INDEX_AUTH_IDENTITY_KEY].endsWith("'");
   if (!hasAuthKey) {
     throw new Error(
-      `an auth wallet key path must be in the form \`m/9'/<coin-type>/5'/0'/<key-type>/<identity-index>/<key-index>' where the key index must have a trailing apostrophe`,
+      `an auth wallet key path must be in the form \`m/9'/<coin-type>/5'/0'/<key-type>/<identity-index>/<key-index>'\` where the key index must have a trailing apostrophe`,
     );
   }
 
@@ -123,8 +121,7 @@ async function _deriveIdentAuthPath(walletKey, hdpath) {
  * @param {import('dashhd').HDWallet} walletKey
  * @param {String} path
  */
-//@ts-expect-error - monkey-patch
-DashHd.deriveIdentRegFundKeyPath = async function (walletKey, path) {
+export async function deriveIdentRegFundKeyPath(walletKey, path) {
   const INDEX_REG_FUND_KEY = 5;
 
   let hdpath = _parseIdentityWallet(path);
@@ -152,8 +149,7 @@ DashHd.deriveIdentRegFundKeyPath = async function (walletKey, path) {
  * @param {import('dashhd').HDWallet} walletKey
  * @param {String} path
  */
-//@ts-expect-error - monkey-patch
-DashHd.deriveIdentTopupKeyPath = async function (walletKey, path) {
+export async function deriveIdentTopupKeyPath(walletKey, path) {
   const INDEX_TOPUP_KEY = 5;
 
   let hdpath = _parseIdentityWallet(path);
@@ -203,12 +199,12 @@ function _parseIdentityWallet(path) {
   return { path, paths, m, purpose, coinType, feature, subFeature };
 }
 
-export default DashHd;
-//@ts-expect-error - monkey patch
-export let deriveIdentTopupKeyPath = DashHd.deriveIdentTopupKeyPath;
-//@ts-expect-error - monkey patch
-export let deriveIdentRegFundKeyPath = DashHd.deriveIdentRegFundKeyPath;
-//@ts-expect-error - monkey patch
-export let deriveIdentAuthKeyPath = DashHd.deriveIdentAuthKeyPath;
-//@ts-expect-error - monkey patch
-export let deriveIdentAuthWalletPath = DashHd.deriveIdentAuthWalletPath;
+// export default DashHd;
+// //@ts-expect-error - monkey patch
+// DashHd.deriveIdentTopupKeyPath = deriveIdentTopupKeyPath;
+// //@ts-expect-error - monkey patch
+// DashHd.deriveIdentRegFundKeyPath = deriveIdentRegFundKeyPath;
+// //@ts-expect-error - monkey patch
+// DashHd.deriveIdentAuthKeyPath = deriveIdentAuthKeyPath;
+// //@ts-expect-error - monkey patch
+// DashHd.deriveIdentAuthWalletPath = deriveIdentAuthWalletPath;

@@ -10,8 +10,46 @@ export const Hash = Bytes; //FixedBytes(32)
 /** @type {*} */
 export const Value = Lazy("Value", () => REAL_Value);
 
+// !ENCODE
+/**
+ * An Asset Unlock Base payload. This is the base payload of the Asset Unlock. In order to make
+ *  it a full payload the request info should be added.
+ */
+export const AssetUnlockBasePayload = Struct("AssetUnlockBasePayload", {
+  /** The payload protocol version, is currently expected to be 0. */
+  version: Uint8,
+  /** The index of the unlock transaction. It gets bumped on each transaction */
+  index: VarUint,
+  /** The fee used in Duffs (Satoshis) */
+  fee: VarUint,
+});
+
+// !ENCODE
+/**
+ * A BLS Public key is 48 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+export const BLSPublicKey = StructTuple("BLSPublicKey",
+  FixedBytes(48),
+);
+
+// !ENCODE
+/**
+ * A BLS Signature is 96 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+export const BLSSignature = StructTuple("BLSSignature",
+  FixedBytes(96),
+);
+
 export const BinaryData = StructTuple("BinaryData",
   Bytes,
+);
+
+// !ENCODE
+/** A dash block hash. */
+export const BlockHash = StructTuple("BlockHash",
+  Hash,
 );
 
 export const Credits = VarUint
@@ -28,6 +66,12 @@ export const IdentifierBytes32 = StructTuple("IdentifierBytes32",
 
 export const IdentityNonce = VarUint
 
+// !ENCODE
+/** A hash of all transaction inputs */
+export const InputsHash = StructTuple("InputsHash",
+  Hash,
+);
+
 export const KeyID = VarUint
 
 /**
@@ -43,6 +87,45 @@ export const KeyType = Enum("KeyType", /** @type {const} */ ({
   EDDSA_25519_HASH160: [],
 }))
 
+// !ENCODE
+export const LLMQType = Enum("LLMQType", /** @type {const} */ ({
+  LlmqtypeUnknown: [],
+  Llmqtype50_60: [],
+  Llmqtype400_60: [],
+  Llmqtype400_85: [],
+  Llmqtype100_67: [],
+  Llmqtype60_75: [],
+  Llmqtype25_67: [],
+  LlmqtypeTest: VariantDiscriminant([], 100),
+  LlmqtypeDevnet: VariantDiscriminant([], 101),
+  LlmqtypeTestV17: VariantDiscriminant([], 102),
+  LlmqtypeTestDIP0024: VariantDiscriminant([], 103),
+  LlmqtypeTestInstantSend: VariantDiscriminant([], 104),
+  LlmqtypeDevnetDIP0024: VariantDiscriminant([], 105),
+  LlmqtypeTestnetPlatform: VariantDiscriminant([], 106),
+  LlmqtypeDevnetPlatform: VariantDiscriminant([], 107),
+}))
+
+// !ENCODE
+/**
+ * Dash Additions
+ * 
+ *  The merkle root of the masternode list
+ * hash_newtype forward
+ */
+export const MerkleRootMasternodeList = StructTuple("MerkleRootMasternodeList",
+  Hash,
+);
+
+// !ENCODE
+/**
+ * The merkle root of the quorums
+ * hash_newtype forward
+ */
+export const MerkleRootQuorums = StructTuple("MerkleRootQuorums",
+  Hash,
+);
+
 /** repr u8 */
 export const Pooling = Enum("Pooling", /** @type {const} */ ({
   /** default */
@@ -50,6 +133,18 @@ export const Pooling = Enum("Pooling", /** @type {const} */ ({
   IfAvailable: [],
   Standard: [],
 }))
+
+// !ENCODE
+export const ProviderMasternodeType = Enum("ProviderMasternodeType", /** @type {const} */ ({
+  Regular: [],
+  HighPerformance: [],
+}))
+
+// !ENCODE
+/** A hash of a public key. */
+export const PubkeyHash = StructTuple("PubkeyHash",
+  Hash,
+);
 
 /** repr u8 */
 export const Purpose = Enum("Purpose", /** @type {const} */ ({
@@ -71,6 +166,14 @@ export const Purpose = Enum("Purpose", /** @type {const} */ ({
   /** this key is used to prove ownership of a masternode or evonode */
   OWNER: [],
 }))
+
+export const QuorumHash = BlockHash
+
+// !ENCODE
+/** A hash of a quorum verification vector */
+export const QuorumVVecHash = StructTuple("QuorumVVecHash",
+  Hash,
+);
 
 // !ENCODE
 /** "Raw" instant lock for serialization */
@@ -120,6 +223,36 @@ export const StorageKeyRequirements = Enum("StorageKeyRequirements", /** @type {
 export const TimestampMillis = VarUint
 
 // !ENCODE
+/**
+ * The transaction type. Special transactions were introduced in DIP2.
+ *  Compared to Bitcoin the version field is split into two 16 bit integers.
+ *  The first part for the version and the second part for the transaction
+ *  type.
+ * 
+ * repr u16
+ */
+export const TransactionType = Enum("TransactionType", /** @type {const} */ ({
+  /** A Classic transaction */
+  Classic: [],
+  /** A Masternode Registration Transaction */
+  ProviderRegistration: [],
+  /** A Masternode Update Service Transaction, used by the operator to signal changes to service */
+  ProviderUpdateService: [],
+  /** A Masternode Update Registrar Transaction, used by the owner to signal base changes */
+  ProviderUpdateRegistrar: [],
+  /** A Masternode Update Revocation Transaction, used by the operator to signal termination of service */
+  ProviderUpdateRevocation: [],
+  /** A Coinbase Transaction, contained as the first transaction in each block */
+  Coinbase: [],
+  /** A Quorum Commitment Transaction, used to save quorum information to the state */
+  QuorumCommitment: [],
+  /** An Asset Lock Transaction, used to transfer credits to Dash Platform, by locking them until withdrawals occur */
+  AssetLock: VariantDiscriminant([], 8),
+  /** An Asset Unlock Transaction, used to withdraw credits from Dash Platform, by unlocking them */
+  AssetUnlock: VariantDiscriminant([], 9),
+}))
+
+// !ENCODE
 /** A transaction output, which defines new coins to be created from old ones. */
 export const TxOut = Struct("TxOut", {
   /** The value of the output, in satoshis. */
@@ -150,6 +283,37 @@ export const ValueMap = Vec(Tuple(Value, Value))
 export const AssetLockPayload = Struct("AssetLockPayload", {
   version: Uint8,
   credit_outputs: Vec(TxOut),
+});
+
+// !ENCODE
+/**
+ * An asset unlock request info
+ *  This is the information about the signing quorum
+ *  The request height should be the height at which the specified quorum is active on core.
+ */
+export const AssetUnlockRequestInfo = Struct("AssetUnlockRequestInfo", {
+  /**
+   * The core request height of the transaction. This should match a period where the quorum_hash
+   *  is still active
+   */
+  request_height: VarUint,
+  /** The quorum hash. This is the block hash when the quorum was created. */
+  quorum_hash: QuorumHash,
+});
+
+// !ENCODE
+/**
+ * A Coinbase payload. This is contained as the payload of a coinbase special transaction.
+ *  The Coinbase payload is described in DIP4.
+ */
+export const CoinbasePayload = Struct("CoinbasePayload", {
+  version: VarUint,
+  height: VarUint,
+  merkle_root_masternode_list: MerkleRootMasternodeList,
+  merkle_root_quorums: MerkleRootQuorums,
+  best_cl_height: Option(VarUint),
+  best_cl_signature: Option(BLSSignature),
+  asset_locked_amount: Option(VarUint),
 });
 
 export const DashcoreScript = ScriptBuf
@@ -215,6 +379,105 @@ export const OutPoint = Struct("OutPoint", {
   txid: Txid,
   /** The index of the referenced output in its transaction's vout. */
   vout: VarUint,
+});
+
+// !ENCODE
+/**
+ * A Provider Registration Payload used in a Provider Registration Special Transaction.
+ *  This is used to register a Masternode on the network.
+ *  The current version is 0.
+ *  Interesting Fields:
+ *  *Provider type refers to the type of Masternode. Currently only valid value is 0.
+ *  *Provider mode refers to the mode of the Masternode. Currently only valid value is 0.
+ *  *The collateral outpoint links to a transaction with a 1000 Dash unspent (at registration)
+ *  outpoint.
+ *  *The operator reward defines the ratio when divided by 10000 of the amount going to the operator.
+ *  The max value for the operator reward is 10000.
+ *  *The script payout is the script to which one wants to have the masternode pay out.
+ *  *The inputs hash is used to guarantee the uniqueness of the payload sig.
+ */
+export const ProviderRegistrationPayload = Struct("ProviderRegistrationPayload", {
+  version: VarUint,
+  masternode_type: ProviderMasternodeType,
+  masternode_mode: VarUint,
+  collateral_outpoint: OutPoint,
+  service_address: SocketAddr,
+  owner_key_hash: PubkeyHash,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  operator_reward: VarUint,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  signature: Bytes,
+  platform_node_id: Option(PubkeyHash),
+  platform_p2p_port: Option(VarUint),
+  platform_http_port: Option(VarUint),
+});
+
+// !ENCODE
+/**
+ * A Provider Update Registrar Payload used in a Provider Update Registrar Special Transaction.
+ *  This is used to update the base aspects a Masternode on the network.
+ *  It must be signed by the owner's key that was set at registration.
+ */
+export const ProviderUpdateRegistrarPayload = Struct("ProviderUpdateRegistrarPayload", {
+  version: VarUint,
+  pro_tx_hash: Txid,
+  provider_mode: VarUint,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: Bytes,
+});
+
+// !ENCODE
+/**
+ * A Provider Update Revocation Payload used in a Provider Update Revocation Special Transaction.
+ *  This is used to signal and stop a Masternode from the operator.
+ *  It must be signed by the operator's key that was set at registration or registrar update.
+ */
+export const ProviderUpdateRevocationPayload = Struct("ProviderUpdateRevocationPayload", {
+  version: VarUint,
+  pro_tx_hash: Txid,
+  reason: VarUint,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+});
+
+// !ENCODE
+/**
+ * A Provider Update Service Payload used in a Provider Update Service Special Transaction.
+ *  This is used to update the operational aspects a Masternode on the network.
+ *  It must be signed by the operator's key that was set either at registration or by the last
+ *  registrar update of the masternode.
+ */
+export const ProviderUpdateServicePayload = Struct("ProviderUpdateServicePayload", {
+  version: VarUint,
+  pro_tx_hash: Txid,
+  ip_address: VarUint,
+  port: VarUint,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+});
+
+// !ENCODE
+/**
+ * A Quorum Finalization Commitment. It is described in the finalization section of DIP6:
+ *  [dip-0006.md#6-finalization-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#6-finalization-phase)
+ */
+export const QuorumEntry = Struct("QuorumEntry", {
+  version: VarUint,
+  llmq_type: LLMQType,
+  quorum_hash: QuorumHash,
+  quorum_index: Option(VarInt),
+  signers: Vec(Bool),
+  valid_members: Vec(Bool),
+  quorum_public_key: BLSPublicKey,
+  quorum_vvec_hash: QuorumVVecHash,
+  threshold_sig: BLSSignature,
+  all_commitment_aggregated_signature: BLSSignature,
 });
 
 /**
@@ -290,6 +553,31 @@ export const ResourceVoteChoice = Enum("ResourceVoteChoice", /** @type {const} *
   Abstain: [],
   Lock: [],
 }))
+
+// !ENCODE
+/**
+ * A Credit Withdrawal payload. This is contained as the payload of a credit withdrawal special
+ *  transaction.
+ *  The Credit Withdrawal Special transaction and this payload is described in the Asset Lock DIP2X
+ *  (todo:update this).
+ *  The Credit Withdrawal Payload is signed by a quorum.
+ * 
+ *  Transaction using it have no inputs. Hence the proof of validity lies solely on the BLS signature.
+ */
+export const AssetUnlockPayload = Struct("AssetUnlockPayload", {
+  /**
+   * The base information about the asset unlock. This base information is the information that
+   *  should be put into a queue.
+   */
+  base: AssetUnlockBasePayload,
+  /**
+   * The request information. This should be added to the unlock transaction as it is being sent
+   *  to be signed.
+   */
+  request_info: AssetUnlockRequestInfo,
+  /** The threshold signature. This should be returned by the consensus engine. */
+  quorum_sig: BLSSignature,
+});
 
 // !ENCODE
 /**
@@ -426,6 +714,44 @@ export const IdentityPublicKeyV0 = Struct("IdentityPublicKeyV0", {
   data: BinaryData,
   disabled_at: Option(TimestampMillis),
 });
+
+// !ENCODE
+/**
+ * A Quorum Commitment Payload used in a Quorum Commitment Special Transaction.
+ *  This is used in the mining phase as described in DIP 6:
+ *  [dip-0006.md#7-mining-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#7-mining-phase).
+ * 
+ *  Miners take the best final commitment for a DKG session and mine it into a block.
+ */
+export const QuorumCommitmentPayload = Struct("QuorumCommitmentPayload", {
+  version: VarUint,
+  height: VarUint,
+  finalization_commitment: QuorumEntry,
+});
+
+// !ENCODE
+/**
+ * An enum wrapper around various special transaction payloads.
+ *  Special transactions are defined in DIP 2.
+ */
+export const TransactionPayload = Enum("TransactionPayload", /** @type {const} */ ({
+  /** A wrapper for a Masternode Registration payload */
+  ProviderRegistrationPayloadType: [ProviderRegistrationPayload],
+  /** A wrapper for a Masternode Update Service payload */
+  ProviderUpdateServicePayloadType: [ProviderUpdateServicePayload],
+  /** A wrapper for a Masternode Update Registrar payload */
+  ProviderUpdateRegistrarPayloadType: [ProviderUpdateRegistrarPayload],
+  /** A wrapper for a Masternode Update Revocation payload */
+  ProviderUpdateRevocationPayloadType: [ProviderUpdateRevocationPayload],
+  /** A wrapper for a Coinbase payload */
+  CoinbasePayloadType: [CoinbasePayload],
+  /** A wrapper for a Quorum Commitment payload */
+  QuorumCommitmentPayloadType: [QuorumCommitmentPayload],
+  /** A wrapper for an Asset Lock payload */
+  AssetLockPayloadType: [AssetLockPayload],
+  /** A wrapper for an Asset Unlock payload */
+  AssetUnlockPayloadType: [AssetUnlockPayload],
+}))
 
 /**
  * platform_serialize unversioned
@@ -719,12 +1045,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: AssetLockTransactionIsNotFoundError
 // NOT NEEDED: AssetLockValue
 // NOT NEEDED: AssetLockValueV0
-// NOT NEEDED: AssetUnlockBasePayload
 // NOT NEEDED: AssetUnlockBaseTransactionInfo
-// NOT NEEDED: AssetUnlockPayload
-// NOT NEEDED: AssetUnlockRequestInfo
-// NOT NEEDED: BLSPublicKey
-// NOT NEEDED: BLSSignature
 // NOT NEEDED: BalanceChange
 // NOT NEEDED: BalanceChangeForIdentity
 // NOT NEEDED: BalanceIsNotEnoughError
@@ -740,7 +1061,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: BlockFilter
 // NOT NEEDED: BlockFilterReader
 // NOT NEEDED: BlockFilterWriter
-// NOT NEEDED: DUPLICATE_BlockHash
 // NOT NEEDED: BlockHeight
 // NOT NEEDED: BlockInfo
 // NOT NEEDED: BlockTransactions
@@ -772,7 +1092,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ClassifyContext
 // NOT NEEDED: ClientDataRetrievalError
 // NOT NEEDED: CmpctBlock
-// NOT NEEDED: CoinbasePayload
 // NOT NEEDED: CommandString
 // NOT NEEDED: CommandStringError
 // NOT NEEDED: CommonCache
@@ -1017,7 +1336,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: IndexType
 // NOT NEEDED: Input
 // NOT NEEDED: InputWeightPrediction
-// NOT NEEDED: InputsHash
 // NOT NEEDED: DUPLICATE_InstantLock
 // NOT NEEDED: Instruction
 // NOT NEEDED: InstructionIndices
@@ -1091,7 +1409,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: LLMQQuarterReconstructionType
 // NOT NEEDED: LLMQQuarterType
 // NOT NEEDED: LLMQQuarterUsageType
-// NOT NEEDED: LLMQType
 // NOT NEEDED: LeafNode
 // NOT NEEDED: LeafNodes
 // NOT NEEDED: LeafVersion
@@ -1119,8 +1436,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: MergeIdentityNonceResult
 // NOT NEEDED: MerkleBlock
 // NOT NEEDED: MerkleBlockError
-// NOT NEEDED: MerkleRootMasternodeList
-// NOT NEEDED: MerkleRootQuorums
 // NOT NEEDED: MessageSignature
 // NOT NEEDED: MessageSignatureError
 // NOT NEEDED: MessageVerificationError
@@ -1189,16 +1504,10 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ProtocolVersion
 // NOT NEEDED: ProtocolVersionParsingError
 // NOT NEEDED: ProtocolVersionVoteCount
-// NOT NEEDED: ProviderMasternodeType
-// NOT NEEDED: ProviderRegistrationPayload
-// NOT NEEDED: ProviderUpdateRegistrarPayload
-// NOT NEEDED: ProviderUpdateRevocationPayload
-// NOT NEEDED: ProviderUpdateServicePayload
 // NOT NEEDED: Psbt
 // NOT NEEDED: PsbtHash
 // NOT NEEDED: PsbtParseError
 // NOT NEEDED: PsbtSighashType
-// NOT NEEDED: PubkeyHash
 // NOT NEEDED: PublicKey
 // NOT NEEDED: PublicKeyIsDisabledError
 // NOT NEEDED: PublicKeyMismatchError
@@ -1213,16 +1522,12 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: QualifiedQuorumEntry
 // NOT NEEDED: QuorumCLSigObject
 // NOT NEEDED: QuorumCommitmentHash
-// NOT NEEDED: QuorumCommitmentPayload
-// NOT NEEDED: QuorumEntry
 // NOT NEEDED: QuorumEntryHash
-// NOT NEEDED: QuorumHash
 // NOT NEEDED: QuorumModifierHash
 // NOT NEEDED: QuorumOrderingHash
 // NOT NEEDED: QuorumSigningRequestId
 // NOT NEEDED: QuorumSigningSignId
 // NOT NEEDED: QuorumSnapshot
-// NOT NEEDED: QuorumVVecHash
 // NOT NEEDED: QuorumValidationError
 // NOT NEEDED: RandomDocumentTypeParameters
 // NOT NEEDED: RawAssetLockProof
@@ -1315,8 +1620,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: TooManyMasterPublicKeyError
 // NOT NEEDED: TotalCreditsBalance
 // NOT NEEDED: TradeMode
-// NOT NEEDED: TransactionPayload
-// NOT NEEDED: TransactionType
 // NOT NEEDED: Transferable
 // NOT NEEDED: TransitionFingerprint
 // NOT NEEDED: TryFromError

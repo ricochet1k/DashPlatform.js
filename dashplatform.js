@@ -17,8 +17,8 @@ export function packAssetLock({ version = 1, creditOutputs }) {
     for (let creditOutput of creditOutputs) {
       //@ts-ignore - TODO check type of TxOutput
       let script = creditOutput.script;
-      let satsHexLE = DashTx.utils.toUint64LE(creditOutput.satoshis);
       if (!script) {
+        let satsHexLE = DashTx.utils.toUint64LE(creditOutput.satoshis);
         script = `${satsHexLE}1976a914${creditOutput.pubKeyHash}88ac`;
       }
       let assetLock = `${script}`;

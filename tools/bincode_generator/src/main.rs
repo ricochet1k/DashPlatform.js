@@ -67,7 +67,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut all_items = collector.all_items;
 
     all_items.get_mut("StateTransition").unwrap().needed = true;
-    all_items.get_mut("AssetLockPayload").unwrap().needed = true;
+    all_items.get_mut("TransactionType").unwrap().needed = true;
+    all_items.get_mut("TransactionPayload").unwrap().needed = true;
     all_items.get_mut("IdentityPublicKey").unwrap().needed = true;
 
     // Transaction is replaced by a custom implementation in bincode_support.ts

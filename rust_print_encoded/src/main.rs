@@ -1,5 +1,14 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    num::ParseIntError,
+    str::FromStr,
+};
 
+use dashcore::{
+    PubkeyHash, PublicKey, Script, ScriptBuf, TxIn, TxOut, Witness,
+    consensus::{Decodable, Encodable},
+    transaction::special_transaction::{TransactionPayload, asset_lock::AssetLockPayload},
+};
 use dpp::{
     bincode,
     dashcore::{
@@ -39,6 +48,7 @@ use dpp::{
     },
     identity::{
         KeyID, KeyType, PartialIdentity, Purpose, SecurityLevel,
+        core_script::CoreScript,
         identity_public_key::v0::IdentityPublicKeyV0,
         state_transition::asset_lock_proof::{InstantAssetLockProof, chain::ChainAssetLockProof},
     },
@@ -421,8 +431,110 @@ fn main() {
                 .unwrap()
         )
     );
+
+    let pubkeyhash =
+        PublicKey::from_str("02b1f2f08d44538b32938a0ad232c8217f8a328e0df115067ee6e5f48c50286c49")
+            .unwrap()
+            .pubkey_hash();
+
+    let asset_lock_payload = AssetLockPayload {
+        version: 1,
+        credit_outputs: vec![TxOut {
+            value: 100000000,
+            script_pubkey: ScriptBuf::new_p2pkh(&pubkeyhash),
+        }],
+    };
+
+    let tx = Transaction {
+        version: 3,
+        lock_time: 0,
+        input: vec![TxIn {
+            previous_output: OutPoint {
+                txid: Txid::from_hex(
+                    "10dfb70f669d7c067001ffae6f03edb7d6ed04476dbd9b02ff372c698815f4de",
+                )
+                .unwrap(),
+                vout: 0,
+            },
+            script_sig: ScriptBuf::from_hex("").unwrap(),
+            sequence: 0,
+            witness: Witness::default(),
+        }],
+        output: vec![TxOut {
+            value: 100000000,
+            script_pubkey: ScriptBuf::new_op_return(&[]),
+        }],
+        special_transaction_payload: Some(TransactionPayload::AssetLockPayloadType(
+            asset_lock_payload.clone(),
+        )),
+    };
+    {
+        let mut encoded = Vec::new();
+        pubkeyhash.consensus_encode(&mut encoded).unwrap();
+        println!("encoded pubkeyhash: {}", to_hex(&encoded));
+    }
+    {
+        let mut encoded = Vec::new();
+        tx.input.consensus_encode(&mut encoded).unwrap();
+        println!("encoded tx inputs: {}", to_hex(&encoded));
+    }
+    {
+        let mut encoded = Vec::new();
+        tx.output.consensus_encode(&mut encoded).unwrap();
+        println!("encoded tx outputs: {}", to_hex(&encoded));
+    }
+    {
+        let mut encoded = Vec::new();
+        tx.special_transaction_payload
+            .as_ref()
+            .unwrap()
+            .consensus_encode(&mut encoded)
+            .unwrap();
+
+        let mut encoded_again = Vec::new();
+        encoded.consensus_encode(&mut encoded_again).unwrap();
+        println!("encoded tx payload: {}", to_hex(&encoded_again));
+    }
+    let mut tx_encoded = Vec::new();
+    tx.consensus_encode(&mut tx_encoded).unwrap();
+    println!("encoded tx: {}", to_hex(&tx_encoded));
+
+    /*
+    encoded pubkeyhash: 82ca6828fa0341ad712ee5fda71daf9ec67e430a
+    encoded tx inputs: 01def41588692c37ff029bbd6d4704edd6b7ed036faeff0170067c9d660fb7df10000000000000000000
+    encoded tx outputs: 0100e1f50500000000026a00
+    encoded tx payload: 24010100e1f505000000001976a91482ca6828fa0341ad712ee5fda71daf9ec67e430a88ac
+    encoded tx: 0300080001def41588692c37ff029bbd6d4704edd6b7ed036faeff0170067c9d660fb7df100000000000000000000100e1f50500000000026a000000000024010100e1f505000000001976a91482ca6828fa0341ad712ee5fda71daf9ec67e430a88ac
+    */
+
+    /*
+    assetInfo.publicKey 02b1f2f08d44538b32938a0ad232c8217f8a328e0df115067ee6e5f48c50286c49
+    pubkeyhash 82ca6828fa0341ad712ee5fda71daf9ec67e430a
+    p2pkh script 76a91482ca6828fa0341ad712ee5fda71daf9ec67e430a88ac
+    assetLockScript       010100e1f505000000001976a91482ca6828fa0341ad712ee5fda71daf9ec67e430a88ac
+    assetLockPayloadBytes 0101fc05f5e1001976a91482ca6828fa0341ad712ee5fda71daf9ec67e430a88ac
+
+    Transaction Proof Hex:
+    0300080001def41588692c37ff029bbd6d4704edd6b7ed036faeff0170067c9d660fb7df100000000000000000000100e1f50500000000026a0000000000210101fc05f5e1001976a91482ca6828fa0341ad712ee5fda71daf9ec67e430a88ac
+    */
+
+    let signed_tx_bytes = from_hex(
+        "0300080001def41588692c37ff029bbd6d4704edd6b7ed036faeff0170067c9d660fb7df10000000006b483045022100c29115f386139b54a8786c2ca2585841b7c88daebab6898943354de2c3164bc00220447285ba52077cf67f711a4c9f9f27230e943ea71ad004adbba9abe6d35fc4cb8121034b5d935eca4909b986637dc655422b255c803817124b16b5159577cc12474572ffffffff0100e1f50500000000026a00000000002e0101fc05f5e1002676a92102b1f2f08d44538b32938a0ad232c8217f8a328e0df115067ee6e5f48c50286c4988ac"
+    ).unwrap();
+
+    let mut cursor = std::io::Cursor::new(&signed_tx_bytes);
+    let tx = Transaction::consensus_decode(&mut cursor).unwrap();
+
+    println!("tx: {:#?}", tx);
 }
 
 fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+fn from_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
+        .collect()
 }
