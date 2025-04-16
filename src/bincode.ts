@@ -60,11 +60,11 @@ export function decode<T>(_type: BinCodeable<T>, value: ArrayBuffer, options = {
  * It also holds the BinCodeOptions passed to encode/decode.
  */
 export class BinCode {
-  dataview: DataView<ArrayBufferLike>
+  dataview: DataView<ArrayBuffer>
   idx: number
   options: BinCodeOptions
 
-  constructor(dataview: DataView, idx: number = 0, options: BinCodeOptions = {}) {
+  constructor(dataview: DataView<ArrayBuffer>, idx: number = 0, options: BinCodeOptions = {}) {
     this.dataview = dataview;
     this.idx = idx;
     this.options = options;

@@ -1,16 +1,14 @@
 
 // import DashKeys from "dashkeys";
-import * as DashTx from "dashtx/dashtx.js";
+import * as DashTx from "dashtx";
 
-import * as Bincode from "./bincode.ts";
+import * as Bincode from "./src/bincode.ts";
 import * as DashBincode from "./1.8.1/generated_bincode.js";
-import * as KeyUtils from "./key-utils.js";
+import * as KeyUtils from "./src/key-utils.js";
 import baseX from "base-x";
 
 const BASE58 = `123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz`;
 let base58 = baseX(BASE58);
-
-let Thingy = {};
 
 /**
  * @typedef AssetLockChainProof
@@ -26,8 +24,7 @@ let Thingy = {};
  * @param {import('dashhd').HDWallet} otherKey
  * @param {String} identityIdHex
  * @param {String} txidHex
- * @param {String} [txlocksigHex]
- * @param {import('dashtx').TxInfo} [txCore]
+ * @param {DashBincode.AssetLockProof} [assetProof]
  */
 export async function createIdentityFromAssetLock(
   assetKey,
@@ -35,19 +32,10 @@ export async function createIdentityFromAssetLock(
   otherKey,
   identityIdHex,
   txidHex,
-  txlocksigHex,
-  txCore,
+  assetLockProof,
 ) {
   // const INSTANT_ALP = 0;
   // const CHAIN_ALP = 1;
-
-  /** @type {DashBincode.AssetLockProof} */
-  let assetLockProof;
-  if (txlocksigHex) {
-    assetLockProof = await makeAssetLockInstantProof(txlocksigHex);
-  } else {
-    assetLockProof = await makeAssetLockChainProof(txidHex, txCore);
-  }
 
   if (!masterKey.privateKey) {
     throw new Error("'masterKey' is missing 'privateKey'");
@@ -170,70 +158,6 @@ export async function createIdentityFromAssetLock(
     `https://testnet.platform-explorer.com/transaction/${transitionHashHex}`,
   );
 };
-
-/** @param {HexString} txlocksigHex */
-async function makeAssetLockInstantProof(txlocksigHex) {
-  {
-    let len = txlocksigHex.length / 2;
-    console.log();
-    console.log(`Tx Lock Sig Hex (${len}):`);
-    console.log(txlocksigHex);
-  }
-
-  let vout = -1;
-  let instantLockTxHex = "";
-  let instantLockSigHex = "";
-  {
-    let txlocksig = DashTx.parseUnknown(txlocksigHex);
-    vout = 0;
-    //vout = txlocksig.extraPayload.outputs.findIndex(function (output) {
-    //  //@ts-expect-error
-    //  return output.script === "6a00";
-    //});
-    // console.log(txlocksig.extraPayload.outputs);
-    //@ts-expect-error
-    instantLockSigHex = txlocksig.sigHashTypeHex;
-    let isLen = instantLockSigHex.length / 2;
-    let len = txlocksigHex.length / 2;
-    len -= isLen;
-    instantLockTxHex = txlocksigHex.slice(0, len * 2);
-    console.log();
-    console.log(`Tx Hex (${len})`);
-    console.log(instantLockTxHex);
-    console.log();
-    console.log(`Tx Lock Sig Instant Lock Hex (${isLen})`);
-    //@ts-expect-error
-    console.log(txlocksig.sigHashTypeHex);
-  }
-
-  let assetLockInstantProof = DashBincode.RawInstantLockProof({
-    instant_lock: DashBincode.BinaryData(DashTx.utils.hexToBytes(instantLockSigHex)),
-    transaction: DashBincode.BinaryData(DashTx.utils.hexToBytes(instantLockTxHex)), // TODO this may need the proof, not the signed tx
-    output_index: vout,
-  });
-  return DashBincode.AssetLockProof.Instant(assetLockInstantProof);
-}
-
-/**
- * @param {HexString} txidHex
- * @param {any} txInfo - TODO CoreTx
- */
-async function makeAssetLockChainProof(txidHex, txInfo) {
-  //@ts-expect-error
-  let vout = txInfo.vout.findIndex(voutInfo =>
-     voutInfo.scriptPubKey?.hex === "6a00" // TODO match the burn
-  );
-
-  let assetLockChainProof = DashBincode.ChainAssetLockProof({
-    core_chain_locked_height: txInfo.height,
-    out_point: {
-      txid: DashBincode.Txid(DashTx.utils.hexToBytes(txidHex)),
-      vout: vout,
-    },
-  });
-
-  return DashBincode.AssetLockProof.Chain(assetLockChainProof);
-}
 
 /**
  * @param {Required<Pick<import('dashhd').HDXKey, "privateKey"|"publicKey">>} masterKey

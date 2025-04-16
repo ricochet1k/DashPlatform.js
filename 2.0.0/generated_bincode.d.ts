@@ -1,5 +1,5 @@
-import { BinCode, BinCodeable, VARIANTS } from "../bincode.ts";
-import { Option, FixedBytes, Hash, SocketAddr, Transaction } from "../bincode_types.ts";
+import { BinCode, BinCodeable, VARIANTS } from "../src/bincode.ts";
+import { Option, FixedBytes, Hash, SocketAddr, Transaction } from "../src/bincode_types.ts";
 declare module "./generated_bincode.js" {
 
 /**

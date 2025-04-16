@@ -5,6 +5,7 @@
   "main": "dashplatform.js",
   "type": "module",
   "scripts": {
+    "gen-proto": "npx protoc --ts_opt optimize_code_size --ts_out src/generated/ --proto_path ../platform/packages/dapi-grpc/protos core/v0/core.proto platform/v0/platform.proto && replace-in-files --regex='import (.*?) from \"((\\.\\.?\\/)+[^.]*?)\";' --replacement='import $1 from \"$2.ts\";' './src/generated/**/*.ts'",
     "test": "vitest",
     "jshint": "npx -p jshint@2.x -- jshint -c ./.jshintrc ./*.js",
     "lint": "npm run jshint && npm run tsc",
@@ -16,15 +17,19 @@
     "prepublish": "npm run reexport-types"
   },
   "keywords": [],
-  "author": "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
+  "authors": [
+    "AJ ONeal <aj@therootcompany.com> (https://therootcompany.com/)",
+    "Matt Peterson <ricochet1k@gmail.com>"
+  ],
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
-    "@dashevo/dapi-client": "^1.1.1",
-    "@dashevo/dapi-grpc": "^1.1.1",
-    "@dashevo/wasm-dpp": "^1.1.1",
     "@dashincubator/secp256k1": "^1.7.1-5",
+    "@grpc/grpc-js": "^1.13.2",
     "@noble/secp256k1": "^2.2.3",
+    "@protobuf-ts/grpcweb-transport": "^2.9.6",
+    "@protobuf-ts/runtime-rpc": "^2.9.6",
     "base-x": "^5.0.1",
+    "bloom-filter": "^0.2.0",
     "cbor-web": "^9.0.2",
     "dashhd": "^3.3.3",
     "dashkeys": "^1.1.5",
@@ -36,6 +41,12 @@
     "ripemd160": "^2.0.2"
   },
   "devDependencies": {
-    "vitest": "^2.0.5"
+    "@protobuf-ts/plugin": "^2.9.6",
+    "@types/bloom-filter": "^0.2.4",
+    "replace-in-files-cli": "^3.0.0",
+    "tsc-esm-fix": "^3.1.2",
+    "typescript": "^5.x",
+    "vite": "^6.2.5",
+    "vitest": "^3.1.1"
   }
 }

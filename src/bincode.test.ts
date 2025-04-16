@@ -9,12 +9,12 @@ import {
   String,
   Struct,
 } from "./bincode.ts"
-import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, StateTransition, IdentityPublicKeyV0, KeyType, Purpose, SecurityLevel, Identifier, IdentifierBytes32, IdentityPublicKey, OutPoint } from "./2.0.0/generated_bincode"
-import { toJsonCamelCase } from "./dash_bincode"
+import { BinaryData, DataContractCreateTransition, DataContractInSerializationFormat, StateTransition, IdentityPublicKeyV0, KeyType, Purpose, SecurityLevel, Identifier, IdentifierBytes32, IdentityPublicKey, OutPoint } from "../2.0.0/generated_bincode.js"
+import { toJsonCamelCase } from "./dash_bincode.js"
 
 import * as secp from "@noble/secp256k1"
-import * as KeyUtils from "./key-utils"
-import { doubleSha256 } from "../DashTx.js/dashtx.js"
+import * as KeyUtils from "./key-utils.js"
+import { doubleSha256 } from "../../DashTx.js/dashtx.js"
 import { signTransitionWithRawKey } from "./sign.ts"
 
 const Enum1 = Enum("Enum1", {

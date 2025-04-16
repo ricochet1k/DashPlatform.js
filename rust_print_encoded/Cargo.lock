@@ -535,7 +535,7 @@ dependencies = [
 
 [[package]]
 name = "dashcore"
-version = "0.38.0"
+version = "0.39.1"
 dependencies = [
  "anyhow",
  "base64-compat",
@@ -560,7 +560,7 @@ dependencies = [
 
 [[package]]
 name = "dashcore-private"
-version = "0.38.0"
+version = "0.39.1"
 
 [[package]]
 name = "dashcore-rpc"
@@ -591,7 +591,7 @@ dependencies = [
 
 [[package]]
 name = "dashcore_hashes"
-version = "0.38.0"
+version = "0.39.1"
 dependencies = [
  "bincode",
  "dashcore-private",

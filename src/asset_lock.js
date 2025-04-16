@@ -1,10 +1,11 @@
 import DashHd from "dashhd"
 import * as DashHdUtils from "./dashhd-utils.js"
+import * as DashBincode from "../1.8.1/generated_bincode.js";
 import DashKeys from "dashkeys"
-import * as DashTx from "dashtx/dashtx.js"
+import * as DashTx from "dashtx"
 import * as DashPlatform from "./dashplatform.js"
 import * as KeyUtils from "./key-utils.js"
-import { COIN_TYPE, L1_VERSION_PLATFORM, rpcAuthUrl, TYPE_ASSET_LOCK, VERSION_ASSET_LOCK, zmqAuthUrl } from "./constants.js"
+import { COIN_TYPE, L1_VERSION_PLATFORM, rpcAuthUrl, TYPE_ASSET_LOCK, VERSION_ASSET_LOCK, VERSIONS_TESTNET, zmqAuthUrl } from "./constants.js"
 import { promptQr } from "./cli.js"
 import EventSourcePackage from "launchdarkly-eventsource"
 
@@ -82,6 +83,9 @@ export async function createPlatformAssetLock(
     })
     let totalUses = fundingDeltas.length + memDeltas.length
     if (totalUses >= 2) {
+      // TODO: Check for asset lock transactions that don't have an identity from them yet
+      // getTransactionJson()
+      
       throw new Error(`funding key has been used 2+ times`)
     }
   }
@@ -202,12 +206,6 @@ export async function createPlatformAssetLock(
   let txSigned = await dashTx.hashAndSignAll(txDraft)
   console.log(txSigned.transaction)
 
-  // process.exit(1);
-  console.log()
-  console.log(
-    `IMPORTANT: before broadcast, listen to 'rawtxlocksig' on https://tzmq.digitalcash.dev`,
-  )
-
   console.log()
   console.log(`Funding Outpoint Info (BE, internal)`)
   let outpoint = await getFundingOutPoint(txSigned.transaction, vout)
@@ -220,20 +218,22 @@ export async function createPlatformAssetLock(
   )
   console.log("DEBUG send result (txidHex) (LE, for RPC)", txidHex)
 
+  /** @type {DashBincode.AssetLockProof} */
   let assetProof
   {
     // TODO: These are commented out to help debugging the ChainProof version
-    // let assetInstantEvent = startEventSource(
-    //   zmqAuthUrl,
-    //   "rawtxlocksig",
-    //   createCheckDataIsProof(txSigned),
-    // );
+    let assetInstantEvent = startEventSource(
+      zmqAuthUrl,
+      "rawtxlocksig",
+      createCheckDataIsProof(txSigned),
+    );
     let assetChainPoll = pollAssetLockChainProof(txidHex)
     assetProof = await Promise.race([
-      // assetInstantEvent.promise,
+      assetInstantEvent.promise,
       assetChainPoll.promise,
     ])
-    // assetInstantEvent.source.close();
+    console.error('assetProof', assetProof);
+    assetInstantEvent.source.close();
     assetChainPoll.source.close()
   }
 
@@ -309,19 +309,23 @@ function createIdentityId(fundingOutPointHex) {
 
 /**
  * @param {import('dashtx').TxInfoSigned} txProofSigned
- * @returns {CheckData}
+ * @returns {CheckData<{raw: string}>}
  */
 function createCheckDataIsProof(txProofSigned) {
   /**
-   * @param {Object.<String, any>} txlocksig
+   * @param {unknown} txlocksig
+   * @returns {txlocksig is {raw: string}}
    */
-  async function checkDataIsProof(txlocksig) {
-    if (!txlocksig?.raw) {
+  function checkDataIsProof(txlocksig) {
+    // @ts-expect-error
+    const raw = txlocksig?.raw
+    console.log("checkDataIsProof", txlocksig, raw, 'startsWith?', txProofSigned.transaction.slice(0, 16))
+    if (typeof raw !== 'string') {
       console.warn(`unknown data:`, txlocksig)
       return false
     }
 
-    return txlocksig.raw.startsWith(txProofSigned.transaction)
+    return raw.startsWith(txProofSigned.transaction)
   }
 
   return checkDataIsProof
@@ -342,24 +346,43 @@ function pollAssetLockChainProof(txidHex) {
     timeoutToken = token
   }
 
-  let promise = new Promise(async function (resolve) {
+  /**
+   * @type {Promise<DashBincode.AssetLockProof>} 
+   */
+  let promise = new Promise(async function (resolve, reject) {
+    let timeout = 1000;
     for (; ;) {
-      console.log("Fetch (rawtransaction): sleeping for 15s...")
-      await sleep(15000, setTimeoutToken)
+      console.log(`pollAssetLockChainProof: sleeping for ${(timeout/1000)|0}s...`)
+      await sleep(timeout, setTimeoutToken)
+      timeout = Math.min(15000, timeout*2); // exponential backoff.
 
       if (!isActive) {
-        resolve(null)
+        reject("cancelled")
         return
       }
-      // TODO DashTx.TxCoreInfo
       let txCore = await getTransactionJson(txidHex)
-      if (txCore) {
-        resolve({
-          source: "rawtransaction",
-          data: txCore,
-        })
-        return
-      }
+      if (!txCore) continue;
+
+      const txInfo = txCore
+      let vout = txInfo.vout.findIndex(voutInfo =>
+          voutInfo.scriptPubKey?.hex === "6a00" // TODO match the burn
+      );
+    
+      let assetLockChainProof = DashBincode.ChainAssetLockProof({
+        core_chain_locked_height: txInfo.height,
+        out_point: {
+          // The hex encoding of a transaction id is reversed for some unknown reason.
+          txid: DashBincode.Txid(DashTx.utils.hexToBytes(DashTx.utils.reverseHex(txidHex))),
+          vout: vout,
+        },
+      });
+    
+      console.log("assetLockChainProof", assetLockChainProof);
+    
+      const proof = DashBincode.AssetLockProof.Chain(assetLockChainProof);
+
+      resolve(proof)
+      return
     }
   })
 
@@ -375,14 +398,62 @@ function pollAssetLockChainProof(txidHex) {
     source,
   }
 }
+/**
+ * @typedef {Object} TransactionJson
+ * @property {boolean?} in_active_chain - Whether specified block is in the active chain or not (only present with explicit "blockhash" argument)
+ * @property {string} hex - The serialized, hex-encoded data for 'txid'
+ * @property {string} txid - The transaction id (same as provided)
+ * @property {string} hash - The transaction hash (differs from txid for witness transactions)
+ * @property {number} size - The serialized transaction size
+ * @property {number} vsize - The virtual transaction size (differs from size for witness transactions)
+ * @property {number} weight - The transaction's weight (between vsize*4-3 and vsize*4)
+ * @property {number} version - The version
+ * @property {number} locktime - The lock time
+ * @property {Array<{
+ *   txid?: string,
+ *   vout?: number,
+ *   scriptSig?: { asm: string, hex: string },
+ *   sequence: number,
+ *   txinwitness?: Array<string>
+ * }>} vin - The transaction inputs
+ * @property {Array<{
+ *   value: number,
+ *   n: number,
+ *   scriptPubKey: {
+ *     asm: string,
+ *     hex: string,
+ *     reqSigs?: number,
+ *     type: string,
+ *     addresses?: Array<string>
+ *   }
+ * }>} vout - The transaction outputs
+ * @property {number?} height - If the transaction has been included in a block on the local best block chain, this is the block height where the transaction was mined. Otherwise, this is -1. Not shown for mempool transactions.
+ * @property {string?} blockhash - The block hash
+ * @property {number?} confirmations - The confirmations
+ * @property {number?} blocktime - The block time expressed in UNIX epoch time
+ * @property {number?} time - Same as "blocktime"
+ */
+
+/**
+ * @typedef {Object} TransactionMetadata
+ * @property {number} height - The block height or index
+ */
+
+
+/**
+ * @typedef {TransactionJson & TransactionMetadata} TransactionJsonMetadata
+ */
 
 /**
  * @param {import("dashkeys").HexString} txidHex
+ * @returns {Promise<TransactionJsonMetadata | null>}
  */
 async function getTransactionJson(txidHex) {
   const E_NO_TX = -5
   let getJson = true
 
+  console.log('getTransactionJson: Looking for transaction...', txidHex)
+  /** @type {TransactionJson | null} */
   let txInfo = await DashTx.utils
     .rpc(rpcAuthUrl, "getrawtransaction", txidHex, getJson)
     .catch(
@@ -395,13 +466,42 @@ async function getTransactionJson(txidHex) {
         throw err
       },
     )
-  if (!txInfo?.vout) {
+  // console.log('getTransactionJson: txInfo', txInfo)
+  if (!txInfo?.vout || txInfo?.blockhash == undefined || txInfo?.height == undefined) {
     return null
   }
 
+  // console.log('getTransactionJson: Getting block height...')
+  // /**
+  //  * @type {{
+  //  *  height: number,
+  //  * }} 
+  //  */
+  // let blockInfo = await DashTx.utils
+  //   .rpc(rpcAuthUrl, "getblock", txInfo.blockhash, "1" /* verbosity */)
+  //   .catch(
+  //     /** @param {Error & {code?: number}} err */
+  //     function (err) {
+  //       // TODO: is this the right error code for getblock?
+  //       console.error("getblock error", err.code, err);
+  //       // if (err.code === E_NO_TX) {
+  //       //   return null
+  //       // }
+  //       throw err
+  //     },
+  //   )
+
+  // return {
+  //   ...txInfo,
+  //   height: blockInfo.height,
+  // }
+  
+  // @ts-expect-error - we know height is set now
   return txInfo
 }
 
+// TODO: This sleep with setTimeoutToken is an obnoxious leaky abstraction. And is unref() really
+// the right thing to do?
 /**
  * @param {import("dashhd").Uint32} ms
  * @param {Function} setTimeoutToken
@@ -409,9 +509,9 @@ async function getTransactionJson(txidHex) {
 async function sleep(ms, setTimeoutToken) {
   return await new Promise(function (resolve) {
     let token = setTimeout(resolve, ms)
-    if (token.unref) {
-      token.unref()
-    }
+    // if (token.unref) {
+    //   token.unref()
+    // }
     if (setTimeoutToken) {
       setTimeoutToken(token)
     }
@@ -419,15 +519,17 @@ async function sleep(ms, setTimeoutToken) {
 }
 
 /**
+ * @template T
  * @callback CheckData
- * @param {String} message
- * @returns {Promise<Boolean>}
+ * @param {unknown} message
+ * @returns {message is T}
  */
 
 /**
+ * @template T
  * @param {String} url
  * @param {String} eventName
- * @param {CheckData} checkData
+ * @param {CheckData<T>} checkData
  */
 function startEventSource(url, eventName, checkData) {
   let isActive = true
@@ -438,6 +540,7 @@ function startEventSource(url, eventName, checkData) {
   let source = new EventSourceShim(url, {
     readTimeoutMillis: tickerHeartbeatTimeout,
   })
+  /** @type {Promise<DashBincode.AssetLockProof>} */
   let promise = new Promise(async function (resolve, reject) {
     let basicAuth = btoa(`api:null`)
     let resp = await fetch(zmqAuthUrl, {
@@ -465,21 +568,62 @@ function startEventSource(url, eventName, checkData) {
       }
 
       console.log(`DEBUG MessageEvent`, event)
+      /** @type {T} */
       let data = JSON.parse(event.data)
 
-      let isValidData = await checkData(data).catch(function (err) {
+      try {
+        let isValidData = checkData(data)
+        if (!isValidData) {
+          return
+        }
+      } catch(err) {
         console.error(`error checking event source data`)
         console.error(err)
         return false
-      })
-      if (!isValidData) {
-        return
       }
 
-      resolve({
-        source: "txlocksig",
-        data: data,
-      })
+      const txlocksigHex = data.raw;
+        {
+          let len = txlocksigHex.length / 2;
+          console.log();
+          console.log(`Tx Lock Sig Hex (${len}):`);
+          console.log(txlocksigHex);
+        }
+      
+        let vout = -1;
+        let instantLockTxHex = "";
+        let instantLockSigHex = "";
+        {
+          let txlocksig = DashTx.parseUnknown(txlocksigHex);
+          vout = 0;
+          //vout = txlocksig.extraPayload.outputs.findIndex(function (output) {
+          //  //@ts-expect-error
+          //  return output.script === "6a00";
+          //});
+          // console.log(txlocksig.extraPayload.outputs);
+          //@ts-expect-error
+          instantLockSigHex = txlocksig.sigHashTypeHex;
+          let isLen = instantLockSigHex.length / 2;
+          let len = txlocksigHex.length / 2;
+          len -= isLen;
+          instantLockTxHex = txlocksigHex.slice(0, len * 2);
+          console.log();
+          console.log(`Tx Hex (${len})`);
+          console.log(instantLockTxHex);
+          console.log();
+          console.log(`Tx Lock Sig Instant Lock Hex (${isLen})`);
+          //@ts-expect-error
+          console.log(txlocksig.sigHashTypeHex);
+        }
+      
+        let assetLockInstantProof = DashBincode.RawInstantLockProof({
+          instant_lock: DashBincode.BinaryData(DashTx.utils.hexToBytes(instantLockSigHex)),
+          transaction: DashBincode.BinaryData(DashTx.utils.hexToBytes(instantLockTxHex)), // TODO this may need the proof, not the signed tx
+          output_index: vout,
+        });
+        const proof = DashBincode.AssetLockProof.Instant(assetLockInstantProof);
+
+      resolve(proof)
       source.close()
     }
 

@@ -4,10 +4,10 @@ let DashPhrase = require("dashphrase");
 let DashHd = require("dashhd");
 let DashKeys = require("dashkeys");
 let DashTx = require("dashtx");
-let DashPlatform = require("./dashplatform.js");
+let DashPlatform = require("./src/dashplatform.js");
 let CBOR = require("cbor");
 
-let KeyUtils = require("./key-utils.js");
+let KeyUtils = require("./src/key-utils.js");
 
 // let DapiGrpc = require("@dashevo/dapi-grpc");
 let WasmDpp = require("@dashevo/wasm-dpp");

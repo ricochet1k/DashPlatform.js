@@ -2,9 +2,9 @@ import {
   Bool, Bytes, Enum, VariantDiscriminant, FixedBytes, Lazy, Struct, StructTuple,
   Int128, Int16, Int32, Int64, Int8, Uint128, Uint16, Uint32, Uint64, Uint8, Float64,
   VarInt, VarUint, Vec, Tuple, Map, Option, String, Nothing, Range, NotSignable,
-  SocketAddr,
-} from "../bincode.ts"
-import { Transaction } from "../bincode_types.ts";
+  SocketAddr, DISCRIMINANT, VARIANT, ENUM,
+} from "../src/bincode.js"
+import { Transaction } from "../src/bincode_types.ts";
 export const Hash = Bytes; //FixedBytes(32)
 
 /** @type {*} */

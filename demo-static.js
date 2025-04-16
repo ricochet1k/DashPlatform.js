@@ -2,15 +2,15 @@
 
 import Dotenv from "dotenv";
 import DashPhrase from "dashphrase";
-import DashHd from "./dashhd-utils.js";
+import DashHd from "./src/dashhd-utils.js";
 import DashKeys from "dashkeys";
-import * as DashTx from "dashtx/dashtx.js";
-import * as DashPlatform from "./dashplatform.js";
-import * as Bincode from "./bincode.ts";
+import * as DashTx from "dashtx";
+import * as DashPlatform from "./src/dashplatform.js";
+import * as Bincode from "./src/bincode.ts";
 import * as DashBincode from "./1.8.1/generated_bincode.js";
-import * as QRCode from "./_qr.js";
+import * as QRCode from "./src/_qr.js";
 
-import * as KeyUtils from "./key-utils.js";
+import * as KeyUtils from "./src/key-utils.js";
 
 Dotenv.config({ path: ".env" });
 

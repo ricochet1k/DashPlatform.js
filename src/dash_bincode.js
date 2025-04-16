@@ -1,5 +1,5 @@
-import { Bool, Bytes, Enum, FixedBytes, Lazy, Struct, Uint16, Uint32, Uint64, Uint8, VarUint, Vec, Option, String, NotSignable } from "./bincode"
-/** @import {BinCodeable} from './bincode' */
+import { Bool, Bytes, Enum, FixedBytes, Lazy, Struct, Uint16, Uint32, Uint64, Uint8, VarUint, Vec, Option, String, NotSignable } from "./src/bincode"
+/** @import {BinCodeable} from './src/bincode' */
 
 // export const IdentityCreateTransitionV0 = Lazy(() =>
 //     Struct("IdentityCreateTransitionV0", {

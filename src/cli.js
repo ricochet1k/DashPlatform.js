@@ -2,7 +2,7 @@ import Dotenv from "dotenv"
 import DashPhrase from "dashphrase"
 import DashHd from "dashhd"
 import * as QRCode from "./_qr.js"
-import * as DashTx from "dashtx/dashtx.js"
+import * as DashTx from "dashtx"
 import Fs from "node:fs/promises";
 
 Dotenv.config({ path: ".env" })

@@ -1,19 +1,20 @@
 import Fs from "node:fs/promises";
 
-import DashHd from "dashhd";
-import * as DashHdUtils from "./dashhd-utils.js";
-import DashKeys from "dashkeys";
-import * as DashTx from "dashtx/dashtx.js";
-import * as DashPlatform from "./dashplatform.js";
-import * as Bincode from "./bincode.ts";
+// import DashHd from "dashhd";
+// import * as DashHdUtils from "./dashhd-utils.js";
+// import DashKeys from "dashkeys";
+// import * as DashTx from "dashtx";
+// import * as DashPlatform from "./dashplatform.js";
+import * as Bincode from "./src/bincode.ts";
 import * as DashBincode from "./1.8.1/generated_bincode.js";
-import * as QRCode from "./_qr.js";
-import * as KeyUtils from "./key-utils.js";
+import * as QRCode from "./src/_qr.js";
+import * as KeyUtils from "./src/key-utils.js";
 
 import { createIdentityFromAssetLock } from "./2-create-identity-transition.js";
 
-import { loadWallet } from "./cli.js"
-import { deriveAllCreateIdentityKeys } from "./asset_lock.js"
+import { loadWallet } from "./src/cli.js"
+import { deriveAllCreateIdentityKeys } from "./src/asset_lock.js"
+import { toHex } from "./src/hex.js"
 
 async function main() {
   const walletKey = await loadWallet();
@@ -73,9 +74,23 @@ async function main() {
   const stateTransition = DashBincode.StateTransition.DocumentsBatch(
     DashBincode.DocumentsBatchTransition.V0(documentsBatch));
 
-  const signableBytes = Bincode.encode(DashBincode.StateTransition, stateTransition, {signable: true});
-  
+  {
+    const signableBytes = new Uint8Array(Bincode.encode(DashBincode.StateTransition, stateTransition, {signable: true}));
 
+    const signableHash = await KeyUtils.doubleSha256(signableBytes);
+
+    const signatureBytes = await KeyUtils.magicSign({
+      privKeyBytes: assetKey.privateKey,
+      doubleSha256Bytes: signableHash,
+    });
+
+    documentsBatch.signature[0] = signatureBytes
+  }
+
+  const signedBytes = new Uint8Array(Bincode.encode(DashBincode.StateTransition, stateTransition));
+
+  console.log("Signed")
+  console.log(toHex(signedBytes))
 }
 
 main();

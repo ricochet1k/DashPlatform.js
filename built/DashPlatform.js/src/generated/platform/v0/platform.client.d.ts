@@ -1,0 +1,470 @@
+import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
+import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
+import type { GetGroupActionSignersResponse } from "./platform.ts";
+import type { GetGroupActionSignersRequest } from "./platform.ts";
+import type { GetGroupActionsResponse } from "./platform.ts";
+import type { GetGroupActionsRequest } from "./platform.ts";
+import type { GetGroupInfosResponse } from "./platform.ts";
+import type { GetGroupInfosRequest } from "./platform.ts";
+import type { GetGroupInfoResponse } from "./platform.ts";
+import type { GetGroupInfoRequest } from "./platform.ts";
+import type { GetTokenTotalSupplyResponse } from "./platform.ts";
+import type { GetTokenTotalSupplyRequest } from "./platform.ts";
+import type { GetTokenPreProgrammedDistributionsResponse } from "./platform.ts";
+import type { GetTokenPreProgrammedDistributionsRequest } from "./platform.ts";
+import type { GetTokenStatusesResponse } from "./platform.ts";
+import type { GetTokenStatusesRequest } from "./platform.ts";
+import type { GetIdentitiesTokenInfosResponse } from "./platform.ts";
+import type { GetIdentitiesTokenInfosRequest } from "./platform.ts";
+import type { GetIdentityTokenInfosResponse } from "./platform.ts";
+import type { GetIdentityTokenInfosRequest } from "./platform.ts";
+import type { GetIdentitiesTokenBalancesResponse } from "./platform.ts";
+import type { GetIdentitiesTokenBalancesRequest } from "./platform.ts";
+import type { GetIdentityTokenBalancesResponse } from "./platform.ts";
+import type { GetIdentityTokenBalancesRequest } from "./platform.ts";
+import type { GetCurrentQuorumsInfoResponse } from "./platform.ts";
+import type { GetCurrentQuorumsInfoRequest } from "./platform.ts";
+import type { GetStatusResponse } from "./platform.ts";
+import type { GetStatusRequest } from "./platform.ts";
+import type { GetPathElementsResponse } from "./platform.ts";
+import type { GetPathElementsRequest } from "./platform.ts";
+import type { GetTotalCreditsInPlatformResponse } from "./platform.ts";
+import type { GetTotalCreditsInPlatformRequest } from "./platform.ts";
+import type { GetPrefundedSpecializedBalanceResponse } from "./platform.ts";
+import type { GetPrefundedSpecializedBalanceRequest } from "./platform.ts";
+import type { GetVotePollsByEndDateResponse } from "./platform.ts";
+import type { GetVotePollsByEndDateRequest } from "./platform.ts";
+import type { GetContestedResourceIdentityVotesResponse } from "./platform.ts";
+import type { GetContestedResourceIdentityVotesRequest } from "./platform.ts";
+import type { GetContestedResourceVotersForIdentityResponse } from "./platform.ts";
+import type { GetContestedResourceVotersForIdentityRequest } from "./platform.ts";
+import type { GetContestedResourceVoteStateResponse } from "./platform.ts";
+import type { GetContestedResourceVoteStateRequest } from "./platform.ts";
+import type { GetContestedResourcesResponse } from "./platform.ts";
+import type { GetContestedResourcesRequest } from "./platform.ts";
+import type { GetEpochsInfoResponse } from "./platform.ts";
+import type { GetEpochsInfoRequest } from "./platform.ts";
+import type { GetProtocolVersionUpgradeVoteStatusResponse } from "./platform.ts";
+import type { GetProtocolVersionUpgradeVoteStatusRequest } from "./platform.ts";
+import type { GetProtocolVersionUpgradeStateResponse } from "./platform.ts";
+import type { GetProtocolVersionUpgradeStateRequest } from "./platform.ts";
+import type { GetConsensusParamsResponse } from "./platform.ts";
+import type { GetConsensusParamsRequest } from "./platform.ts";
+import type { WaitForStateTransitionResultResponse } from "./platform.ts";
+import type { WaitForStateTransitionResultRequest } from "./platform.ts";
+import type { GetIdentityByPublicKeyHashResponse } from "./platform.ts";
+import type { GetIdentityByPublicKeyHashRequest } from "./platform.ts";
+import type { GetDocumentsResponse } from "./platform.ts";
+import type { GetDocumentsRequest } from "./platform.ts";
+import type { GetDataContractsResponse } from "./platform.ts";
+import type { GetDataContractsRequest } from "./platform.ts";
+import type { GetDataContractHistoryResponse } from "./platform.ts";
+import type { GetDataContractHistoryRequest } from "./platform.ts";
+import type { GetDataContractResponse } from "./platform.ts";
+import type { GetDataContractRequest } from "./platform.ts";
+import type { GetProofsResponse } from "./platform.ts";
+import type { GetProofsRequest } from "./platform.ts";
+import type { GetEvonodesProposedEpochBlocksByRangeRequest } from "./platform.ts";
+import type { GetEvonodesProposedEpochBlocksResponse } from "./platform.ts";
+import type { GetEvonodesProposedEpochBlocksByIdsRequest } from "./platform.ts";
+import type { GetIdentityBalanceAndRevisionResponse } from "./platform.ts";
+import type { GetIdentityBalanceAndRevisionRequest } from "./platform.ts";
+import type { GetIdentitiesBalancesResponse } from "./platform.ts";
+import type { GetIdentitiesBalancesRequest } from "./platform.ts";
+import type { GetIdentityBalanceResponse } from "./platform.ts";
+import type { GetIdentityBalanceRequest } from "./platform.ts";
+import type { GetIdentityContractNonceResponse } from "./platform.ts";
+import type { GetIdentityContractNonceRequest } from "./platform.ts";
+import type { GetIdentityNonceResponse } from "./platform.ts";
+import type { GetIdentityNonceRequest } from "./platform.ts";
+import type { GetIdentitiesContractKeysResponse } from "./platform.ts";
+import type { GetIdentitiesContractKeysRequest } from "./platform.ts";
+import type { GetIdentityKeysResponse } from "./platform.ts";
+import type { GetIdentityKeysRequest } from "./platform.ts";
+import type { GetIdentityResponse } from "./platform.ts";
+import type { GetIdentityRequest } from "./platform.ts";
+import type { BroadcastStateTransitionResponse } from "./platform.ts";
+import type { BroadcastStateTransitionRequest } from "./platform.ts";
+import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
+import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
+/**
+ * @generated from protobuf service org.dash.platform.dapi.v0.Platform
+ */
+export interface IPlatformClient {
+    /**
+     * @generated from protobuf rpc: broadcastStateTransition(org.dash.platform.dapi.v0.BroadcastStateTransitionRequest) returns (org.dash.platform.dapi.v0.BroadcastStateTransitionResponse);
+     */
+    broadcastStateTransition(input: BroadcastStateTransitionRequest, options?: RpcOptions): UnaryCall<BroadcastStateTransitionRequest, BroadcastStateTransitionResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentity(org.dash.platform.dapi.v0.GetIdentityRequest) returns (org.dash.platform.dapi.v0.GetIdentityResponse);
+     */
+    getIdentity(input: GetIdentityRequest, options?: RpcOptions): UnaryCall<GetIdentityRequest, GetIdentityResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityKeys(org.dash.platform.dapi.v0.GetIdentityKeysRequest) returns (org.dash.platform.dapi.v0.GetIdentityKeysResponse);
+     */
+    getIdentityKeys(input: GetIdentityKeysRequest, options?: RpcOptions): UnaryCall<GetIdentityKeysRequest, GetIdentityKeysResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesContractKeys(org.dash.platform.dapi.v0.GetIdentitiesContractKeysRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesContractKeysResponse);
+     */
+    getIdentitiesContractKeys(input: GetIdentitiesContractKeysRequest, options?: RpcOptions): UnaryCall<GetIdentitiesContractKeysRequest, GetIdentitiesContractKeysResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityNonce(org.dash.platform.dapi.v0.GetIdentityNonceRequest) returns (org.dash.platform.dapi.v0.GetIdentityNonceResponse);
+     */
+    getIdentityNonce(input: GetIdentityNonceRequest, options?: RpcOptions): UnaryCall<GetIdentityNonceRequest, GetIdentityNonceResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityContractNonce(org.dash.platform.dapi.v0.GetIdentityContractNonceRequest) returns (org.dash.platform.dapi.v0.GetIdentityContractNonceResponse);
+     */
+    getIdentityContractNonce(input: GetIdentityContractNonceRequest, options?: RpcOptions): UnaryCall<GetIdentityContractNonceRequest, GetIdentityContractNonceResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityBalance(org.dash.platform.dapi.v0.GetIdentityBalanceRequest) returns (org.dash.platform.dapi.v0.GetIdentityBalanceResponse);
+     */
+    getIdentityBalance(input: GetIdentityBalanceRequest, options?: RpcOptions): UnaryCall<GetIdentityBalanceRequest, GetIdentityBalanceResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesBalances(org.dash.platform.dapi.v0.GetIdentitiesBalancesRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesBalancesResponse);
+     */
+    getIdentitiesBalances(input: GetIdentitiesBalancesRequest, options?: RpcOptions): UnaryCall<GetIdentitiesBalancesRequest, GetIdentitiesBalancesResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityBalanceAndRevision(org.dash.platform.dapi.v0.GetIdentityBalanceAndRevisionRequest) returns (org.dash.platform.dapi.v0.GetIdentityBalanceAndRevisionResponse);
+     */
+    getIdentityBalanceAndRevision(input: GetIdentityBalanceAndRevisionRequest, options?: RpcOptions): UnaryCall<GetIdentityBalanceAndRevisionRequest, GetIdentityBalanceAndRevisionResponse>;
+    /**
+     * @generated from protobuf rpc: getEvonodesProposedEpochBlocksByIds(org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksByIdsRequest) returns (org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksResponse);
+     */
+    getEvonodesProposedEpochBlocksByIds(input: GetEvonodesProposedEpochBlocksByIdsRequest, options?: RpcOptions): UnaryCall<GetEvonodesProposedEpochBlocksByIdsRequest, GetEvonodesProposedEpochBlocksResponse>;
+    /**
+     * @generated from protobuf rpc: getEvonodesProposedEpochBlocksByRange(org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksByRangeRequest) returns (org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksResponse);
+     */
+    getEvonodesProposedEpochBlocksByRange(input: GetEvonodesProposedEpochBlocksByRangeRequest, options?: RpcOptions): UnaryCall<GetEvonodesProposedEpochBlocksByRangeRequest, GetEvonodesProposedEpochBlocksResponse>;
+    /**
+     * @generated from protobuf rpc: getProofs(org.dash.platform.dapi.v0.GetProofsRequest) returns (org.dash.platform.dapi.v0.GetProofsResponse);
+     */
+    getProofs(input: GetProofsRequest, options?: RpcOptions): UnaryCall<GetProofsRequest, GetProofsResponse>;
+    /**
+     * @generated from protobuf rpc: getDataContract(org.dash.platform.dapi.v0.GetDataContractRequest) returns (org.dash.platform.dapi.v0.GetDataContractResponse);
+     */
+    getDataContract(input: GetDataContractRequest, options?: RpcOptions): UnaryCall<GetDataContractRequest, GetDataContractResponse>;
+    /**
+     * @generated from protobuf rpc: getDataContractHistory(org.dash.platform.dapi.v0.GetDataContractHistoryRequest) returns (org.dash.platform.dapi.v0.GetDataContractHistoryResponse);
+     */
+    getDataContractHistory(input: GetDataContractHistoryRequest, options?: RpcOptions): UnaryCall<GetDataContractHistoryRequest, GetDataContractHistoryResponse>;
+    /**
+     * @generated from protobuf rpc: getDataContracts(org.dash.platform.dapi.v0.GetDataContractsRequest) returns (org.dash.platform.dapi.v0.GetDataContractsResponse);
+     */
+    getDataContracts(input: GetDataContractsRequest, options?: RpcOptions): UnaryCall<GetDataContractsRequest, GetDataContractsResponse>;
+    /**
+     * @generated from protobuf rpc: getDocuments(org.dash.platform.dapi.v0.GetDocumentsRequest) returns (org.dash.platform.dapi.v0.GetDocumentsResponse);
+     */
+    getDocuments(input: GetDocumentsRequest, options?: RpcOptions): UnaryCall<GetDocumentsRequest, GetDocumentsResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityByPublicKeyHash(org.dash.platform.dapi.v0.GetIdentityByPublicKeyHashRequest) returns (org.dash.platform.dapi.v0.GetIdentityByPublicKeyHashResponse);
+     */
+    getIdentityByPublicKeyHash(input: GetIdentityByPublicKeyHashRequest, options?: RpcOptions): UnaryCall<GetIdentityByPublicKeyHashRequest, GetIdentityByPublicKeyHashResponse>;
+    /**
+     * @generated from protobuf rpc: waitForStateTransitionResult(org.dash.platform.dapi.v0.WaitForStateTransitionResultRequest) returns (org.dash.platform.dapi.v0.WaitForStateTransitionResultResponse);
+     */
+    waitForStateTransitionResult(input: WaitForStateTransitionResultRequest, options?: RpcOptions): UnaryCall<WaitForStateTransitionResultRequest, WaitForStateTransitionResultResponse>;
+    /**
+     * @generated from protobuf rpc: getConsensusParams(org.dash.platform.dapi.v0.GetConsensusParamsRequest) returns (org.dash.platform.dapi.v0.GetConsensusParamsResponse);
+     */
+    getConsensusParams(input: GetConsensusParamsRequest, options?: RpcOptions): UnaryCall<GetConsensusParamsRequest, GetConsensusParamsResponse>;
+    /**
+     * @generated from protobuf rpc: getProtocolVersionUpgradeState(org.dash.platform.dapi.v0.GetProtocolVersionUpgradeStateRequest) returns (org.dash.platform.dapi.v0.GetProtocolVersionUpgradeStateResponse);
+     */
+    getProtocolVersionUpgradeState(input: GetProtocolVersionUpgradeStateRequest, options?: RpcOptions): UnaryCall<GetProtocolVersionUpgradeStateRequest, GetProtocolVersionUpgradeStateResponse>;
+    /**
+     * @generated from protobuf rpc: getProtocolVersionUpgradeVoteStatus(org.dash.platform.dapi.v0.GetProtocolVersionUpgradeVoteStatusRequest) returns (org.dash.platform.dapi.v0.GetProtocolVersionUpgradeVoteStatusResponse);
+     */
+    getProtocolVersionUpgradeVoteStatus(input: GetProtocolVersionUpgradeVoteStatusRequest, options?: RpcOptions): UnaryCall<GetProtocolVersionUpgradeVoteStatusRequest, GetProtocolVersionUpgradeVoteStatusResponse>;
+    /**
+     * @generated from protobuf rpc: getEpochsInfo(org.dash.platform.dapi.v0.GetEpochsInfoRequest) returns (org.dash.platform.dapi.v0.GetEpochsInfoResponse);
+     */
+    getEpochsInfo(input: GetEpochsInfoRequest, options?: RpcOptions): UnaryCall<GetEpochsInfoRequest, GetEpochsInfoResponse>;
+    /**
+     * What votes are currently happening for a specific contested index
+     *
+     * @generated from protobuf rpc: getContestedResources(org.dash.platform.dapi.v0.GetContestedResourcesRequest) returns (org.dash.platform.dapi.v0.GetContestedResourcesResponse);
+     */
+    getContestedResources(input: GetContestedResourcesRequest, options?: RpcOptions): UnaryCall<GetContestedResourcesRequest, GetContestedResourcesResponse>;
+    /**
+     * What's the state of a contested resource vote? (ie who is winning?)
+     *
+     * @generated from protobuf rpc: getContestedResourceVoteState(org.dash.platform.dapi.v0.GetContestedResourceVoteStateRequest) returns (org.dash.platform.dapi.v0.GetContestedResourceVoteStateResponse);
+     */
+    getContestedResourceVoteState(input: GetContestedResourceVoteStateRequest, options?: RpcOptions): UnaryCall<GetContestedResourceVoteStateRequest, GetContestedResourceVoteStateResponse>;
+    /**
+     * Who voted for a contested resource to go to a specific identity?
+     *
+     * @generated from protobuf rpc: getContestedResourceVotersForIdentity(org.dash.platform.dapi.v0.GetContestedResourceVotersForIdentityRequest) returns (org.dash.platform.dapi.v0.GetContestedResourceVotersForIdentityResponse);
+     */
+    getContestedResourceVotersForIdentity(input: GetContestedResourceVotersForIdentityRequest, options?: RpcOptions): UnaryCall<GetContestedResourceVotersForIdentityRequest, GetContestedResourceVotersForIdentityResponse>;
+    /**
+     * How did an identity vote?
+     *
+     * @generated from protobuf rpc: getContestedResourceIdentityVotes(org.dash.platform.dapi.v0.GetContestedResourceIdentityVotesRequest) returns (org.dash.platform.dapi.v0.GetContestedResourceIdentityVotesResponse);
+     */
+    getContestedResourceIdentityVotes(input: GetContestedResourceIdentityVotesRequest, options?: RpcOptions): UnaryCall<GetContestedResourceIdentityVotesRequest, GetContestedResourceIdentityVotesResponse>;
+    /**
+     * What vote polls will end soon?
+     *
+     * @generated from protobuf rpc: getVotePollsByEndDate(org.dash.platform.dapi.v0.GetVotePollsByEndDateRequest) returns (org.dash.platform.dapi.v0.GetVotePollsByEndDateResponse);
+     */
+    getVotePollsByEndDate(input: GetVotePollsByEndDateRequest, options?: RpcOptions): UnaryCall<GetVotePollsByEndDateRequest, GetVotePollsByEndDateResponse>;
+    /**
+     * @generated from protobuf rpc: getPrefundedSpecializedBalance(org.dash.platform.dapi.v0.GetPrefundedSpecializedBalanceRequest) returns (org.dash.platform.dapi.v0.GetPrefundedSpecializedBalanceResponse);
+     */
+    getPrefundedSpecializedBalance(input: GetPrefundedSpecializedBalanceRequest, options?: RpcOptions): UnaryCall<GetPrefundedSpecializedBalanceRequest, GetPrefundedSpecializedBalanceResponse>;
+    /**
+     * @generated from protobuf rpc: getTotalCreditsInPlatform(org.dash.platform.dapi.v0.GetTotalCreditsInPlatformRequest) returns (org.dash.platform.dapi.v0.GetTotalCreditsInPlatformResponse);
+     */
+    getTotalCreditsInPlatform(input: GetTotalCreditsInPlatformRequest, options?: RpcOptions): UnaryCall<GetTotalCreditsInPlatformRequest, GetTotalCreditsInPlatformResponse>;
+    /**
+     * @generated from protobuf rpc: getPathElements(org.dash.platform.dapi.v0.GetPathElementsRequest) returns (org.dash.platform.dapi.v0.GetPathElementsResponse);
+     */
+    getPathElements(input: GetPathElementsRequest, options?: RpcOptions): UnaryCall<GetPathElementsRequest, GetPathElementsResponse>;
+    /**
+     * @generated from protobuf rpc: getStatus(org.dash.platform.dapi.v0.GetStatusRequest) returns (org.dash.platform.dapi.v0.GetStatusResponse);
+     */
+    getStatus(input: GetStatusRequest, options?: RpcOptions): UnaryCall<GetStatusRequest, GetStatusResponse>;
+    /**
+     * @generated from protobuf rpc: getCurrentQuorumsInfo(org.dash.platform.dapi.v0.GetCurrentQuorumsInfoRequest) returns (org.dash.platform.dapi.v0.GetCurrentQuorumsInfoResponse);
+     */
+    getCurrentQuorumsInfo(input: GetCurrentQuorumsInfoRequest, options?: RpcOptions): UnaryCall<GetCurrentQuorumsInfoRequest, GetCurrentQuorumsInfoResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityTokenBalances(org.dash.platform.dapi.v0.GetIdentityTokenBalancesRequest) returns (org.dash.platform.dapi.v0.GetIdentityTokenBalancesResponse);
+     */
+    getIdentityTokenBalances(input: GetIdentityTokenBalancesRequest, options?: RpcOptions): UnaryCall<GetIdentityTokenBalancesRequest, GetIdentityTokenBalancesResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesTokenBalances(org.dash.platform.dapi.v0.GetIdentitiesTokenBalancesRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesTokenBalancesResponse);
+     */
+    getIdentitiesTokenBalances(input: GetIdentitiesTokenBalancesRequest, options?: RpcOptions): UnaryCall<GetIdentitiesTokenBalancesRequest, GetIdentitiesTokenBalancesResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityTokenInfos(org.dash.platform.dapi.v0.GetIdentityTokenInfosRequest) returns (org.dash.platform.dapi.v0.GetIdentityTokenInfosResponse);
+     */
+    getIdentityTokenInfos(input: GetIdentityTokenInfosRequest, options?: RpcOptions): UnaryCall<GetIdentityTokenInfosRequest, GetIdentityTokenInfosResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesTokenInfos(org.dash.platform.dapi.v0.GetIdentitiesTokenInfosRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesTokenInfosResponse);
+     */
+    getIdentitiesTokenInfos(input: GetIdentitiesTokenInfosRequest, options?: RpcOptions): UnaryCall<GetIdentitiesTokenInfosRequest, GetIdentitiesTokenInfosResponse>;
+    /**
+     * @generated from protobuf rpc: getTokenStatuses(org.dash.platform.dapi.v0.GetTokenStatusesRequest) returns (org.dash.platform.dapi.v0.GetTokenStatusesResponse);
+     */
+    getTokenStatuses(input: GetTokenStatusesRequest, options?: RpcOptions): UnaryCall<GetTokenStatusesRequest, GetTokenStatusesResponse>;
+    /**
+     * @generated from protobuf rpc: getTokenPreProgrammedDistributions(org.dash.platform.dapi.v0.GetTokenPreProgrammedDistributionsRequest) returns (org.dash.platform.dapi.v0.GetTokenPreProgrammedDistributionsResponse);
+     */
+    getTokenPreProgrammedDistributions(input: GetTokenPreProgrammedDistributionsRequest, options?: RpcOptions): UnaryCall<GetTokenPreProgrammedDistributionsRequest, GetTokenPreProgrammedDistributionsResponse>;
+    /**
+     * @generated from protobuf rpc: getTokenTotalSupply(org.dash.platform.dapi.v0.GetTokenTotalSupplyRequest) returns (org.dash.platform.dapi.v0.GetTokenTotalSupplyResponse);
+     */
+    getTokenTotalSupply(input: GetTokenTotalSupplyRequest, options?: RpcOptions): UnaryCall<GetTokenTotalSupplyRequest, GetTokenTotalSupplyResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupInfo(org.dash.platform.dapi.v0.GetGroupInfoRequest) returns (org.dash.platform.dapi.v0.GetGroupInfoResponse);
+     */
+    getGroupInfo(input: GetGroupInfoRequest, options?: RpcOptions): UnaryCall<GetGroupInfoRequest, GetGroupInfoResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupInfos(org.dash.platform.dapi.v0.GetGroupInfosRequest) returns (org.dash.platform.dapi.v0.GetGroupInfosResponse);
+     */
+    getGroupInfos(input: GetGroupInfosRequest, options?: RpcOptions): UnaryCall<GetGroupInfosRequest, GetGroupInfosResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupActions(org.dash.platform.dapi.v0.GetGroupActionsRequest) returns (org.dash.platform.dapi.v0.GetGroupActionsResponse);
+     */
+    getGroupActions(input: GetGroupActionsRequest, options?: RpcOptions): UnaryCall<GetGroupActionsRequest, GetGroupActionsResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupActionSigners(org.dash.platform.dapi.v0.GetGroupActionSignersRequest) returns (org.dash.platform.dapi.v0.GetGroupActionSignersResponse);
+     */
+    getGroupActionSigners(input: GetGroupActionSignersRequest, options?: RpcOptions): UnaryCall<GetGroupActionSignersRequest, GetGroupActionSignersResponse>;
+}
+/**
+ * @generated from protobuf service org.dash.platform.dapi.v0.Platform
+ */
+export declare class PlatformClient implements IPlatformClient, ServiceInfo {
+    private readonly _transport;
+    typeName: string;
+    methods: import("@protobuf-ts/runtime-rpc").MethodInfo<any, any>[];
+    options: {
+        [extensionName: string]: import("@protobuf-ts/runtime").JsonValue;
+    };
+    constructor(_transport: RpcTransport);
+    /**
+     * @generated from protobuf rpc: broadcastStateTransition(org.dash.platform.dapi.v0.BroadcastStateTransitionRequest) returns (org.dash.platform.dapi.v0.BroadcastStateTransitionResponse);
+     */
+    broadcastStateTransition(input: BroadcastStateTransitionRequest, options?: RpcOptions): UnaryCall<BroadcastStateTransitionRequest, BroadcastStateTransitionResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentity(org.dash.platform.dapi.v0.GetIdentityRequest) returns (org.dash.platform.dapi.v0.GetIdentityResponse);
+     */
+    getIdentity(input: GetIdentityRequest, options?: RpcOptions): UnaryCall<GetIdentityRequest, GetIdentityResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityKeys(org.dash.platform.dapi.v0.GetIdentityKeysRequest) returns (org.dash.platform.dapi.v0.GetIdentityKeysResponse);
+     */
+    getIdentityKeys(input: GetIdentityKeysRequest, options?: RpcOptions): UnaryCall<GetIdentityKeysRequest, GetIdentityKeysResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesContractKeys(org.dash.platform.dapi.v0.GetIdentitiesContractKeysRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesContractKeysResponse);
+     */
+    getIdentitiesContractKeys(input: GetIdentitiesContractKeysRequest, options?: RpcOptions): UnaryCall<GetIdentitiesContractKeysRequest, GetIdentitiesContractKeysResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityNonce(org.dash.platform.dapi.v0.GetIdentityNonceRequest) returns (org.dash.platform.dapi.v0.GetIdentityNonceResponse);
+     */
+    getIdentityNonce(input: GetIdentityNonceRequest, options?: RpcOptions): UnaryCall<GetIdentityNonceRequest, GetIdentityNonceResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityContractNonce(org.dash.platform.dapi.v0.GetIdentityContractNonceRequest) returns (org.dash.platform.dapi.v0.GetIdentityContractNonceResponse);
+     */
+    getIdentityContractNonce(input: GetIdentityContractNonceRequest, options?: RpcOptions): UnaryCall<GetIdentityContractNonceRequest, GetIdentityContractNonceResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityBalance(org.dash.platform.dapi.v0.GetIdentityBalanceRequest) returns (org.dash.platform.dapi.v0.GetIdentityBalanceResponse);
+     */
+    getIdentityBalance(input: GetIdentityBalanceRequest, options?: RpcOptions): UnaryCall<GetIdentityBalanceRequest, GetIdentityBalanceResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesBalances(org.dash.platform.dapi.v0.GetIdentitiesBalancesRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesBalancesResponse);
+     */
+    getIdentitiesBalances(input: GetIdentitiesBalancesRequest, options?: RpcOptions): UnaryCall<GetIdentitiesBalancesRequest, GetIdentitiesBalancesResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityBalanceAndRevision(org.dash.platform.dapi.v0.GetIdentityBalanceAndRevisionRequest) returns (org.dash.platform.dapi.v0.GetIdentityBalanceAndRevisionResponse);
+     */
+    getIdentityBalanceAndRevision(input: GetIdentityBalanceAndRevisionRequest, options?: RpcOptions): UnaryCall<GetIdentityBalanceAndRevisionRequest, GetIdentityBalanceAndRevisionResponse>;
+    /**
+     * @generated from protobuf rpc: getEvonodesProposedEpochBlocksByIds(org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksByIdsRequest) returns (org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksResponse);
+     */
+    getEvonodesProposedEpochBlocksByIds(input: GetEvonodesProposedEpochBlocksByIdsRequest, options?: RpcOptions): UnaryCall<GetEvonodesProposedEpochBlocksByIdsRequest, GetEvonodesProposedEpochBlocksResponse>;
+    /**
+     * @generated from protobuf rpc: getEvonodesProposedEpochBlocksByRange(org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksByRangeRequest) returns (org.dash.platform.dapi.v0.GetEvonodesProposedEpochBlocksResponse);
+     */
+    getEvonodesProposedEpochBlocksByRange(input: GetEvonodesProposedEpochBlocksByRangeRequest, options?: RpcOptions): UnaryCall<GetEvonodesProposedEpochBlocksByRangeRequest, GetEvonodesProposedEpochBlocksResponse>;
+    /**
+     * @generated from protobuf rpc: getProofs(org.dash.platform.dapi.v0.GetProofsRequest) returns (org.dash.platform.dapi.v0.GetProofsResponse);
+     */
+    getProofs(input: GetProofsRequest, options?: RpcOptions): UnaryCall<GetProofsRequest, GetProofsResponse>;
+    /**
+     * @generated from protobuf rpc: getDataContract(org.dash.platform.dapi.v0.GetDataContractRequest) returns (org.dash.platform.dapi.v0.GetDataContractResponse);
+     */
+    getDataContract(input: GetDataContractRequest, options?: RpcOptions): UnaryCall<GetDataContractRequest, GetDataContractResponse>;
+    /**
+     * @generated from protobuf rpc: getDataContractHistory(org.dash.platform.dapi.v0.GetDataContractHistoryRequest) returns (org.dash.platform.dapi.v0.GetDataContractHistoryResponse);
+     */
+    getDataContractHistory(input: GetDataContractHistoryRequest, options?: RpcOptions): UnaryCall<GetDataContractHistoryRequest, GetDataContractHistoryResponse>;
+    /**
+     * @generated from protobuf rpc: getDataContracts(org.dash.platform.dapi.v0.GetDataContractsRequest) returns (org.dash.platform.dapi.v0.GetDataContractsResponse);
+     */
+    getDataContracts(input: GetDataContractsRequest, options?: RpcOptions): UnaryCall<GetDataContractsRequest, GetDataContractsResponse>;
+    /**
+     * @generated from protobuf rpc: getDocuments(org.dash.platform.dapi.v0.GetDocumentsRequest) returns (org.dash.platform.dapi.v0.GetDocumentsResponse);
+     */
+    getDocuments(input: GetDocumentsRequest, options?: RpcOptions): UnaryCall<GetDocumentsRequest, GetDocumentsResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityByPublicKeyHash(org.dash.platform.dapi.v0.GetIdentityByPublicKeyHashRequest) returns (org.dash.platform.dapi.v0.GetIdentityByPublicKeyHashResponse);
+     */
+    getIdentityByPublicKeyHash(input: GetIdentityByPublicKeyHashRequest, options?: RpcOptions): UnaryCall<GetIdentityByPublicKeyHashRequest, GetIdentityByPublicKeyHashResponse>;
+    /**
+     * @generated from protobuf rpc: waitForStateTransitionResult(org.dash.platform.dapi.v0.WaitForStateTransitionResultRequest) returns (org.dash.platform.dapi.v0.WaitForStateTransitionResultResponse);
+     */
+    waitForStateTransitionResult(input: WaitForStateTransitionResultRequest, options?: RpcOptions): UnaryCall<WaitForStateTransitionResultRequest, WaitForStateTransitionResultResponse>;
+    /**
+     * @generated from protobuf rpc: getConsensusParams(org.dash.platform.dapi.v0.GetConsensusParamsRequest) returns (org.dash.platform.dapi.v0.GetConsensusParamsResponse);
+     */
+    getConsensusParams(input: GetConsensusParamsRequest, options?: RpcOptions): UnaryCall<GetConsensusParamsRequest, GetConsensusParamsResponse>;
+    /**
+     * @generated from protobuf rpc: getProtocolVersionUpgradeState(org.dash.platform.dapi.v0.GetProtocolVersionUpgradeStateRequest) returns (org.dash.platform.dapi.v0.GetProtocolVersionUpgradeStateResponse);
+     */
+    getProtocolVersionUpgradeState(input: GetProtocolVersionUpgradeStateRequest, options?: RpcOptions): UnaryCall<GetProtocolVersionUpgradeStateRequest, GetProtocolVersionUpgradeStateResponse>;
+    /**
+     * @generated from protobuf rpc: getProtocolVersionUpgradeVoteStatus(org.dash.platform.dapi.v0.GetProtocolVersionUpgradeVoteStatusRequest) returns (org.dash.platform.dapi.v0.GetProtocolVersionUpgradeVoteStatusResponse);
+     */
+    getProtocolVersionUpgradeVoteStatus(input: GetProtocolVersionUpgradeVoteStatusRequest, options?: RpcOptions): UnaryCall<GetProtocolVersionUpgradeVoteStatusRequest, GetProtocolVersionUpgradeVoteStatusResponse>;
+    /**
+     * @generated from protobuf rpc: getEpochsInfo(org.dash.platform.dapi.v0.GetEpochsInfoRequest) returns (org.dash.platform.dapi.v0.GetEpochsInfoResponse);
+     */
+    getEpochsInfo(input: GetEpochsInfoRequest, options?: RpcOptions): UnaryCall<GetEpochsInfoRequest, GetEpochsInfoResponse>;
+    /**
+     * What votes are currently happening for a specific contested index
+     *
+     * @generated from protobuf rpc: getContestedResources(org.dash.platform.dapi.v0.GetContestedResourcesRequest) returns (org.dash.platform.dapi.v0.GetContestedResourcesResponse);
+     */
+    getContestedResources(input: GetContestedResourcesRequest, options?: RpcOptions): UnaryCall<GetContestedResourcesRequest, GetContestedResourcesResponse>;
+    /**
+     * What's the state of a contested resource vote? (ie who is winning?)
+     *
+     * @generated from protobuf rpc: getContestedResourceVoteState(org.dash.platform.dapi.v0.GetContestedResourceVoteStateRequest) returns (org.dash.platform.dapi.v0.GetContestedResourceVoteStateResponse);
+     */
+    getContestedResourceVoteState(input: GetContestedResourceVoteStateRequest, options?: RpcOptions): UnaryCall<GetContestedResourceVoteStateRequest, GetContestedResourceVoteStateResponse>;
+    /**
+     * Who voted for a contested resource to go to a specific identity?
+     *
+     * @generated from protobuf rpc: getContestedResourceVotersForIdentity(org.dash.platform.dapi.v0.GetContestedResourceVotersForIdentityRequest) returns (org.dash.platform.dapi.v0.GetContestedResourceVotersForIdentityResponse);
+     */
+    getContestedResourceVotersForIdentity(input: GetContestedResourceVotersForIdentityRequest, options?: RpcOptions): UnaryCall<GetContestedResourceVotersForIdentityRequest, GetContestedResourceVotersForIdentityResponse>;
+    /**
+     * How did an identity vote?
+     *
+     * @generated from protobuf rpc: getContestedResourceIdentityVotes(org.dash.platform.dapi.v0.GetContestedResourceIdentityVotesRequest) returns (org.dash.platform.dapi.v0.GetContestedResourceIdentityVotesResponse);
+     */
+    getContestedResourceIdentityVotes(input: GetContestedResourceIdentityVotesRequest, options?: RpcOptions): UnaryCall<GetContestedResourceIdentityVotesRequest, GetContestedResourceIdentityVotesResponse>;
+    /**
+     * What vote polls will end soon?
+     *
+     * @generated from protobuf rpc: getVotePollsByEndDate(org.dash.platform.dapi.v0.GetVotePollsByEndDateRequest) returns (org.dash.platform.dapi.v0.GetVotePollsByEndDateResponse);
+     */
+    getVotePollsByEndDate(input: GetVotePollsByEndDateRequest, options?: RpcOptions): UnaryCall<GetVotePollsByEndDateRequest, GetVotePollsByEndDateResponse>;
+    /**
+     * @generated from protobuf rpc: getPrefundedSpecializedBalance(org.dash.platform.dapi.v0.GetPrefundedSpecializedBalanceRequest) returns (org.dash.platform.dapi.v0.GetPrefundedSpecializedBalanceResponse);
+     */
+    getPrefundedSpecializedBalance(input: GetPrefundedSpecializedBalanceRequest, options?: RpcOptions): UnaryCall<GetPrefundedSpecializedBalanceRequest, GetPrefundedSpecializedBalanceResponse>;
+    /**
+     * @generated from protobuf rpc: getTotalCreditsInPlatform(org.dash.platform.dapi.v0.GetTotalCreditsInPlatformRequest) returns (org.dash.platform.dapi.v0.GetTotalCreditsInPlatformResponse);
+     */
+    getTotalCreditsInPlatform(input: GetTotalCreditsInPlatformRequest, options?: RpcOptions): UnaryCall<GetTotalCreditsInPlatformRequest, GetTotalCreditsInPlatformResponse>;
+    /**
+     * @generated from protobuf rpc: getPathElements(org.dash.platform.dapi.v0.GetPathElementsRequest) returns (org.dash.platform.dapi.v0.GetPathElementsResponse);
+     */
+    getPathElements(input: GetPathElementsRequest, options?: RpcOptions): UnaryCall<GetPathElementsRequest, GetPathElementsResponse>;
+    /**
+     * @generated from protobuf rpc: getStatus(org.dash.platform.dapi.v0.GetStatusRequest) returns (org.dash.platform.dapi.v0.GetStatusResponse);
+     */
+    getStatus(input: GetStatusRequest, options?: RpcOptions): UnaryCall<GetStatusRequest, GetStatusResponse>;
+    /**
+     * @generated from protobuf rpc: getCurrentQuorumsInfo(org.dash.platform.dapi.v0.GetCurrentQuorumsInfoRequest) returns (org.dash.platform.dapi.v0.GetCurrentQuorumsInfoResponse);
+     */
+    getCurrentQuorumsInfo(input: GetCurrentQuorumsInfoRequest, options?: RpcOptions): UnaryCall<GetCurrentQuorumsInfoRequest, GetCurrentQuorumsInfoResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityTokenBalances(org.dash.platform.dapi.v0.GetIdentityTokenBalancesRequest) returns (org.dash.platform.dapi.v0.GetIdentityTokenBalancesResponse);
+     */
+    getIdentityTokenBalances(input: GetIdentityTokenBalancesRequest, options?: RpcOptions): UnaryCall<GetIdentityTokenBalancesRequest, GetIdentityTokenBalancesResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesTokenBalances(org.dash.platform.dapi.v0.GetIdentitiesTokenBalancesRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesTokenBalancesResponse);
+     */
+    getIdentitiesTokenBalances(input: GetIdentitiesTokenBalancesRequest, options?: RpcOptions): UnaryCall<GetIdentitiesTokenBalancesRequest, GetIdentitiesTokenBalancesResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentityTokenInfos(org.dash.platform.dapi.v0.GetIdentityTokenInfosRequest) returns (org.dash.platform.dapi.v0.GetIdentityTokenInfosResponse);
+     */
+    getIdentityTokenInfos(input: GetIdentityTokenInfosRequest, options?: RpcOptions): UnaryCall<GetIdentityTokenInfosRequest, GetIdentityTokenInfosResponse>;
+    /**
+     * @generated from protobuf rpc: getIdentitiesTokenInfos(org.dash.platform.dapi.v0.GetIdentitiesTokenInfosRequest) returns (org.dash.platform.dapi.v0.GetIdentitiesTokenInfosResponse);
+     */
+    getIdentitiesTokenInfos(input: GetIdentitiesTokenInfosRequest, options?: RpcOptions): UnaryCall<GetIdentitiesTokenInfosRequest, GetIdentitiesTokenInfosResponse>;
+    /**
+     * @generated from protobuf rpc: getTokenStatuses(org.dash.platform.dapi.v0.GetTokenStatusesRequest) returns (org.dash.platform.dapi.v0.GetTokenStatusesResponse);
+     */
+    getTokenStatuses(input: GetTokenStatusesRequest, options?: RpcOptions): UnaryCall<GetTokenStatusesRequest, GetTokenStatusesResponse>;
+    /**
+     * @generated from protobuf rpc: getTokenPreProgrammedDistributions(org.dash.platform.dapi.v0.GetTokenPreProgrammedDistributionsRequest) returns (org.dash.platform.dapi.v0.GetTokenPreProgrammedDistributionsResponse);
+     */
+    getTokenPreProgrammedDistributions(input: GetTokenPreProgrammedDistributionsRequest, options?: RpcOptions): UnaryCall<GetTokenPreProgrammedDistributionsRequest, GetTokenPreProgrammedDistributionsResponse>;
+    /**
+     * @generated from protobuf rpc: getTokenTotalSupply(org.dash.platform.dapi.v0.GetTokenTotalSupplyRequest) returns (org.dash.platform.dapi.v0.GetTokenTotalSupplyResponse);
+     */
+    getTokenTotalSupply(input: GetTokenTotalSupplyRequest, options?: RpcOptions): UnaryCall<GetTokenTotalSupplyRequest, GetTokenTotalSupplyResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupInfo(org.dash.platform.dapi.v0.GetGroupInfoRequest) returns (org.dash.platform.dapi.v0.GetGroupInfoResponse);
+     */
+    getGroupInfo(input: GetGroupInfoRequest, options?: RpcOptions): UnaryCall<GetGroupInfoRequest, GetGroupInfoResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupInfos(org.dash.platform.dapi.v0.GetGroupInfosRequest) returns (org.dash.platform.dapi.v0.GetGroupInfosResponse);
+     */
+    getGroupInfos(input: GetGroupInfosRequest, options?: RpcOptions): UnaryCall<GetGroupInfosRequest, GetGroupInfosResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupActions(org.dash.platform.dapi.v0.GetGroupActionsRequest) returns (org.dash.platform.dapi.v0.GetGroupActionsResponse);
+     */
+    getGroupActions(input: GetGroupActionsRequest, options?: RpcOptions): UnaryCall<GetGroupActionsRequest, GetGroupActionsResponse>;
+    /**
+     * @generated from protobuf rpc: getGroupActionSigners(org.dash.platform.dapi.v0.GetGroupActionSignersRequest) returns (org.dash.platform.dapi.v0.GetGroupActionSignersResponse);
+     */
+    getGroupActionSigners(input: GetGroupActionSignersRequest, options?: RpcOptions): UnaryCall<GetGroupActionSignersRequest, GetGroupActionSignersResponse>;
+}
