@@ -10,11 +10,11 @@ pub fn write_dts<W: std::io::Write>(
 ) -> Result<(), std::io::Error> {
     writeln!(
         f,
-        "import {{ BinCode, BinCodeable, VARIANTS }} from \"../bincode.ts\";"
+        "import {{ BinCode, BinCodeable, VARIANTS }} from \"../src/bincode.ts\";"
     )?;
     writeln!(
         f,
-        "import {{ Option, FixedBytes, Hash, SocketAddr, Transaction }} from \"../bincode_types.ts\";"
+        "import {{ Option, FixedBytes, Hash, SocketAddr, Transaction }} from \"../src/bincode_types.ts\";"
     )?;
     writeln!(f, "declare module \"./generated_bincode.js\" {{")?;
     writeln!(f)?;
@@ -73,7 +73,10 @@ impl std::fmt::Display for FmtTs<(&'_ str, &'_ syn::Item)> {
             syn::Item::Struct(item_struct) => write!(f, "{}", FmtTs((name, item_struct))),
             syn::Item::Enum(item_enum) => write!(f, "{}", FmtTs((name, item_enum))),
             syn::Item::Type(item_type) => write!(f, "{}", FmtTs((name, item_type))),
-            _ => todo!(),
+
+            // only for cyclics, not used here
+            syn::Item::Static(_item_static) => Ok(()),
+            i => todo!("item: {:?}", i),
         }
     }
 }

@@ -20,6 +20,7 @@ const AssetLockPayload : BinCodeable<AssetLockPayload> & ((data: {
   credit_outputs: TxOut[],
 }) => AssetLockPayload);
 
+/** allow clippy :: large_enum_variant */
 /** @ignore */
 export abstract class AssetLockProof {
   /** @ignore @internal */
@@ -55,6 +56,92 @@ namespace AssetLockProof {
   /** @ignore */
   const Chain: (f0: ChainAssetLockProof) => AssetLockProof.Chain;
 }
+
+/**
+ * An Asset Unlock Base payload. This is the base payload of the Asset Unlock. In order to make
+ *  it a full payload the request info should be added.
+ */
+interface AssetUnlockBasePayload {
+  /** The payload protocol version, is currently expected to be 0. */
+  version: number;
+  /** The index of the unlock transaction. It gets bumped on each transaction */
+  index: bigint;
+  /** The fee used in Duffs (Satoshis) */
+  fee: number;
+}
+/** @ignore */
+const AssetUnlockBasePayload : BinCodeable<AssetUnlockBasePayload> & ((data: {
+  /** The payload protocol version, is currently expected to be 0. */
+  version: number,
+  /** The index of the unlock transaction. It gets bumped on each transaction */
+  index: bigint,
+  /** The fee used in Duffs (Satoshis) */
+  fee: number,
+}) => AssetUnlockBasePayload);
+
+/**
+ * A Credit Withdrawal payload. This is contained as the payload of a credit withdrawal special
+ *  transaction.
+ *  The Credit Withdrawal Special transaction and this payload is described in the Asset Lock DIP2X
+ *  (todo:update this).
+ *  The Credit Withdrawal Payload is signed by a quorum.
+ * 
+ *  Transaction using it have no inputs. Hence the proof of validity lies solely on the BLS signature.
+ */
+interface AssetUnlockPayload {
+  /**
+   * The base information about the asset unlock. This base information is the information that
+   *  should be put into a queue.
+   */
+  base: AssetUnlockBasePayload;
+  /**
+   * The request information. This should be added to the unlock transaction as it is being sent
+   *  to be signed.
+   */
+  request_info: AssetUnlockRequestInfo;
+  /** The threshold signature. This should be returned by the consensus engine. */
+  quorum_sig: BLSSignature;
+}
+/** @ignore */
+const AssetUnlockPayload : BinCodeable<AssetUnlockPayload> & ((data: {
+  /**
+   * The base information about the asset unlock. This base information is the information that
+   *  should be put into a queue.
+   */
+  base: AssetUnlockBasePayload,
+  /**
+   * The request information. This should be added to the unlock transaction as it is being sent
+   *  to be signed.
+   */
+  request_info: AssetUnlockRequestInfo,
+  /** The threshold signature. This should be returned by the consensus engine. */
+  quorum_sig: BLSSignature,
+}) => AssetUnlockPayload);
+
+/**
+ * An asset unlock request info
+ *  This is the information about the signing quorum
+ *  The request height should be the height at which the specified quorum is active on core.
+ */
+interface AssetUnlockRequestInfo {
+  /**
+   * The core request height of the transaction. This should match a period where the quorum_hash
+   *  is still active
+   */
+  request_height: number;
+  /** The quorum hash. This is the block hash when the quorum was created. */
+  quorum_hash: QuorumHash;
+}
+/** @ignore */
+const AssetUnlockRequestInfo : BinCodeable<AssetUnlockRequestInfo> & ((data: {
+  /**
+   * The core request height of the transaction. This should match a period where the quorum_hash
+   *  is still active
+   */
+  request_height: number,
+  /** The quorum hash. This is the block hash when the quorum was created. */
+  quorum_hash: QuorumHash,
+}) => AssetUnlockRequestInfo);
 
 /** @ignore */
 export abstract class AuthorizedActionTakers {
@@ -98,6 +185,30 @@ namespace AuthorizedActionTakers {
   /** @ignore */
   const Group: (f0: GroupContractPosition) => AuthorizedActionTakers.Group;
 }
+
+/**
+ * A BLS Public key is 48 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+interface BLSPublicKey {
+  [0]: FixedBytes<48>;
+}
+/** @ignore */
+const BLSPublicKey : BinCodeable<BLSPublicKey> & ((
+    f0: FixedBytes<48>,
+) => BLSPublicKey);
+
+/**
+ * A BLS Signature is 96 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+interface BLSSignature {
+  [0]: FixedBytes<96>;
+}
+/** @ignore */
+const BLSSignature : BinCodeable<BLSSignature> & ((
+    f0: FixedBytes<96>,
+) => BLSSignature);
 
 /** platform_version_path_bounds "dpp.state_transition_serialization_versions.batch_state_transition" */
 /** @ignore */
@@ -220,6 +331,15 @@ const BinaryData : BinCodeable<BinaryData> & ((
     f0: Uint8Array,
 ) => BinaryData);
 
+/** A dash block hash. */
+interface BlockHash {
+  [0]: Hash;
+}
+/** @ignore */
+const BlockHash : BinCodeable<BlockHash> & ((
+    f0: Hash,
+) => BlockHash);
+
 export type BlockHeight = bigint;
 
 export type BlockHeightInterval = bigint;
@@ -298,6 +418,30 @@ const ChangeControlRulesV0 : BinCodeable<ChangeControlRulesV0> & ((data: {
   /** Can the admin action takers change themselves */
   self_changing_admin_action_takers_allowed: boolean,
 }) => ChangeControlRulesV0);
+
+/**
+ * A Coinbase payload. This is contained as the payload of a coinbase special transaction.
+ *  The Coinbase payload is described in DIP4.
+ */
+interface CoinbasePayload {
+  version: number;
+  height: number;
+  merkle_root_masternode_list: MerkleRootMasternodeList;
+  merkle_root_quorums: MerkleRootQuorums;
+  best_cl_height?: number;
+  best_cl_signature?: BLSSignature;
+  asset_locked_amount?: bigint;
+}
+/** @ignore */
+const CoinbasePayload : BinCodeable<CoinbasePayload> & ((data: {
+  version: number,
+  height: number,
+  merkle_root_masternode_list: MerkleRootMasternodeList,
+  merkle_root_quorums: MerkleRootQuorums,
+  best_cl_height?: number,
+  best_cl_signature?: BLSSignature,
+  asset_locked_amount?: bigint,
+}) => CoinbasePayload);
 
 interface ContestedDocumentResourceVotePoll {
   contract_id: Identifier;
@@ -716,6 +860,10 @@ interface DataContractInSerializationFormatV1 {
   groups: Map<GroupContractPosition, Group>;
   /** The tokens on the contract. */
   tokens: Map<TokenContractPosition, TokenConfiguration>;
+  /** The contract's keywords for searching */
+  keywords: string[];
+  /** The contract's description */
+  description?: string;
 }
 /** @ignore */
 const DataContractInSerializationFormatV1 : BinCodeable<DataContractInSerializationFormatV1> & ((data: {
@@ -747,6 +895,10 @@ const DataContractInSerializationFormatV1 : BinCodeable<DataContractInSerializat
   groups: Map<GroupContractPosition, Group>,
   /** The tokens on the contract. */
   tokens: Map<TokenContractPosition, TokenConfiguration>,
+  /** The contract's keywords for searching */
+  keywords: string[],
+  /** The contract's description */
+  description?: string,
 }) => DataContractInSerializationFormatV1);
 
 /** platform_version_path_bounds "dpp.state_transition_serialization_versions.contract_update_state_transition" */
@@ -921,11 +1073,18 @@ namespace DistributionFunction {
    *  f(x) = n * (1 - (decrease_per_interval_numerator / decrease_per_interval_denominator))^((x - s) / step_count)
    *  ```
    * 
+   *  For `x <= s`, `f(x) = n`
+   * 
    *  # Parameters
    *  - `step_count`: The number of periods between each step.
    *  - `decrease_per_interval_numerator` and `decrease_per_interval_denominator`: Define the reduction factor per step.
-   *  - `s`: Optional start period offset (e.g., start block or time). If not provided, the contract creation start is used.
-   *  - `n`: The initial token emission.
+   *  - `start_decreasing_offset`: Optional start period offset (e.g., start block or time). If not provided, the contract creation start is used.
+   *      If this is provided before this number we give out the distribution start amount every interval.
+   *  - `max_interval_count`: The maximum amount of intervals there can be. Can be up to 1024.
+   *      !!!Very important!!! -> This will default to 128 is default if not set.
+   *      This means that after 128 cycles we will be distributing trailing_distribution_interval_amount per interval.
+   *  - `distribution_start_amount`: The initial token emission.
+   *  - `trailing_distribution_interval_amount`: The token emission after all decreasing intervals.
    *  - `min_value`: Optional minimum emission value.
    * 
    *  # Use Case
@@ -942,16 +1101,20 @@ namespace DistributionFunction {
     step_count: number;
     decrease_per_interval_numerator: number;
     decrease_per_interval_denominator: number;
-    s?: bigint;
-    n: TokenAmount;
+    start_decreasing_offset?: bigint;
+    max_interval_count?: number;
+    distribution_start_amount: TokenAmount;
+    trailing_distribution_interval_amount: TokenAmount;
     min_value?: bigint;
   }
   const StepDecreasingAmount: (data: {
     step_count: number,
     decrease_per_interval_numerator: number,
     decrease_per_interval_denominator: number,
-    s?: bigint,
-    n: TokenAmount,
+    start_decreasing_offset?: bigint,
+    max_interval_count?: number,
+    distribution_start_amount: TokenAmount,
+    trailing_distribution_interval_amount: TokenAmount,
     min_value?: bigint,
   }) => DistributionFunction.StepDecreasingAmount;
   /**
@@ -961,6 +1124,8 @@ namespace DistributionFunction {
    *  - Within each step, the emission remains constant.
    *  - The keys in the `BTreeMap` represent the starting period for each interval,
    *    and the corresponding values are the fixed token amounts to emit during that interval.
+   *  - VERY IMPORTANT: the steps are the amount of intervals, not the time or the block count.
+   *    So if you have step 5 with interval 10 using blocks that's 50 blocks.
    * 
    *  # Use Case
    *  - Adjusting rewards at specific milestones or time intervals.
@@ -983,7 +1148,7 @@ namespace DistributionFunction {
    *  The emission at period `x` is given by:
    * 
    *  ```text
-   *  f(x) = (a * (x - start_moment) / d) + starting_amount
+   *  f(x) = (a * (x - start_step) / d) + starting_amount
    *  ```
    * 
    *  # Parameters
@@ -1212,7 +1377,7 @@ namespace DistributionFunction {
    *  The emission at period `x` is given by:
    * 
    *  ```text
-   *  f(x) = (a * e^(m * (x - s) / n)) / d + c
+   *  f(x) = (a * e^(m * (x - s + o) / n)) / d + b
    *  ```
    * 
    *  # Parameters
@@ -1221,7 +1386,7 @@ namespace DistributionFunction {
    *  - `d`: A divisor used to scale the exponential term.
    *  - `s`: Optional start period offset. If not set, the contract creation start is assumed.
    *  - `o`: An offset for the exp function, this is useful if s is in None.
-   *  - `c`: An offset added to the result.
+   *  - `b`: An offset added to the result.
    *  - `min_value` / `max_value`: Optional constraints on the emitted tokens.
    * 
    *  # Use Cases
@@ -1247,7 +1412,7 @@ namespace DistributionFunction {
    * 
    *  ## **Example 2: Exponential Decay (`m < 0`)**
    *  - **Use Case**: A deflationary model where emissions start high and gradually decrease to ensure scarcity.
-   *  - **Parameters**: `a = 500`, `m = -3`, `n = 100`, `d = 20`, `c = 10`
+   *  - **Parameters**: `a = 500`, `m = -3`, `n = 100`, `d = 20`, `b = 10`
    *  - **Formula**:
    *    ```text
    *    f(x) = (500 * e^(-3 * (x - s) / 100)) / 20 + 10
@@ -1263,7 +1428,7 @@ namespace DistributionFunction {
     n: bigint;
     o: bigint;
     start_moment?: bigint;
-    c: TokenAmount;
+    b: TokenAmount;
     min_value?: bigint;
     max_value?: bigint;
   }
@@ -1274,18 +1439,18 @@ namespace DistributionFunction {
     n: bigint,
     o: bigint,
     start_moment?: bigint,
-    c: TokenAmount,
+    b: TokenAmount,
     min_value?: bigint,
     max_value?: bigint,
   }) => DistributionFunction.Exponential;
   /**
-   * Emits tokens following a logarithmic function.
+   * Emits tokens following a natural logarithmic (ln) function.
    * 
    *  # Formula
    *  The emission at period `x` is computed as:
    * 
    *  ```text
-   *  f(x) = (a * log(m * (x - s + o) / n)) / d + b
+   *  f(x) = (a * ln(m * (x - s + o) / n)) / d + b
    *  ```
    * 
    *  # Parameters
@@ -1311,7 +1476,7 @@ namespace DistributionFunction {
    * 
    *  - Given the formula:
    *    ```text
-   *    f(x) = (a * log(m * (x - s + o) / n)) / d + b
+   *    f(x) = (a * ln(m * (x - s + o) / n)) / d + b
    *    ```
    * 
    *  - Let’s assume the following parameters:
@@ -1323,7 +1488,7 @@ namespace DistributionFunction {
    * 
    *  - This results in:
    *    ```text
-   *    f(x) = (100 * log(2 * (x + 1) / 1)) / 10 + 50
+   *    f(x) = (100 * ln(2 * (x + 1) / 1)) / 10 + 50
    *    ```
    * 
    *  - **Expected Behavior:**
@@ -1362,13 +1527,13 @@ namespace DistributionFunction {
     max_value?: bigint,
   }) => DistributionFunction.Logarithmic;
   /**
-   * Emits tokens following an inverted logarithmic function.
+   * Emits tokens following an inverted natural logarithmic function.
    * 
    *  # Formula
    *  The emission at period `x` is given by:
    * 
    *  ```text
-   *  f(x) = (a * log( n / (m * (x - s + o)) )) / d + b
+   *  f(x) = (a * ln( n / (m * (x - s + o)) )) / d + b
    *  ```
    * 
    *  # Parameters
@@ -1389,22 +1554,24 @@ namespace DistributionFunction {
    *    claimants receive diminishing rewards.
    * 
    *  # Example
-   *  - Suppose a system starts with **500 tokens per period** and gradually reduces over time:
-   * 
    *    ```text
-   *    f(x) = (1000 * log(5000 / (5 * (x - 1000)))) / 10 + 10
+   *    f(x) = 10000 * ln(5000 / x)
    *    ```
-   * 
-   *    Example values:
-   * 
-   *    | Period (x) | Emission (f(x)) |
-   *    |------------|----------------|
-   *    | 1000       | 500 tokens      |
-   *    | 1500       | 230 tokens      |
-   *    | 2000       | 150 tokens      |
-   *    | 5000       | 50 tokens       |
-   *    | 10,000     | 20 tokens       |
-   *    | 50,000     | 10 tokens       |
+   *  - Values: a = 10000 n = 5000 m = 1 o = 0 b = 0 d = 0
+   *            y
+   *            ↑
+   *           10000 |*
+   *            9000 | *
+   *            8000 |  *
+   *            7000 |   *
+   *            6000 |    *
+   *            5000 |     *
+   *            4000 |       *
+   *            3000 |         *
+   *            2000 |           *
+   *            1000 |              *
+   *               0 +-------------------*----------→ x
+   *                   0     2000   4000   6000   8000
    * 
    *    - The emission **starts high** and **gradually decreases**, ensuring early adopters receive
    *      more tokens while later participants still get rewards.
@@ -1455,6 +1622,7 @@ export abstract class DocumentBaseTransition {
   /** @ignore */
   static variants: {
     V0: typeof DocumentBaseTransition.V0,
+    V1: typeof DocumentBaseTransition.V1,
   };
 }
 namespace DocumentBaseTransition {
@@ -1464,6 +1632,12 @@ namespace DocumentBaseTransition {
   }
   /** @ignore */
   const V0: (f0: DocumentBaseTransitionV0) => DocumentBaseTransition.V0;
+  /** @function */
+  interface V1 extends DocumentBaseTransition {
+    [0]: DocumentBaseTransitionV1;
+  }
+  /** @ignore */
+  const V1: (f0: DocumentBaseTransitionV1) => DocumentBaseTransition.V1;
 }
 
 interface DocumentBaseTransitionV0 {
@@ -1485,6 +1659,30 @@ const DocumentBaseTransitionV0 : BinCodeable<DocumentBaseTransitionV0> & ((data:
   /** Data contract ID generated from the data contract's `owner_id` and `entropy` */
   data_contract_id: Identifier,
 }) => DocumentBaseTransitionV0);
+
+interface DocumentBaseTransitionV1 {
+  /** The document ID */
+  id: Identifier;
+  identity_contract_nonce: IdentityNonce;
+  /** Name of document type found int the data contract associated with the `data_contract_id` */
+  document_type_name: string;
+  /** Data contract ID generated from the data contract's `owner_id` and `entropy` */
+  data_contract_id: Identifier;
+  /** An optional Token Payment Info */
+  token_payment_info?: TokenPaymentInfo;
+}
+/** @ignore */
+const DocumentBaseTransitionV1 : BinCodeable<DocumentBaseTransitionV1> & ((data: {
+  /** The document ID */
+  id: Identifier,
+  identity_contract_nonce: IdentityNonce,
+  /** Name of document type found int the data contract associated with the `data_contract_id` */
+  document_type_name: string,
+  /** Data contract ID generated from the data contract's `owner_id` and `entropy` */
+  data_contract_id: Identifier,
+  /** An optional Token Payment Info */
+  token_payment_info?: TokenPaymentInfo,
+}) => DocumentBaseTransitionV1);
 
 /** @ignore */
 export abstract class DocumentCreateTransition {
@@ -1817,6 +2015,43 @@ export type EpochIndex = number;
 export type EpochInterval = number;
 
 /** @ignore */
+export abstract class GasFeesPaidBy {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: GasFeesPaidBy): void;
+  /** @ignore */
+  static decode(bc: BinCode): GasFeesPaidBy;
+  /** @ignore @internal */
+  [VARIANTS]: typeof GasFeesPaidBy.variants;
+  /** @ignore */
+  static variants: {
+    DocumentOwner: typeof GasFeesPaidBy.DocumentOwner,
+    ContractOwner: typeof GasFeesPaidBy.ContractOwner,
+    PreferContractOwner: typeof GasFeesPaidBy.PreferContractOwner,
+  };
+}
+namespace GasFeesPaidBy {
+  /**
+   * The user pays the gas fees
+   * default
+   */
+  const DocumentOwner: () => GasFeesPaidBy;
+  /** The contract owner pays the gas fees */
+  const ContractOwner: () => GasFeesPaidBy;
+  /**
+   * The user is stating his willingness to pay the gas fee if the Contract owner's balance is
+   *  insufficient.
+   */
+  const PreferContractOwner: () => GasFeesPaidBy;
+}
+
+/** @ignore */
 export abstract class Group {
   /** @ignore @internal */
   constructor();
@@ -1892,6 +2127,40 @@ interface IdentifierBytes32 {
 const IdentifierBytes32 : BinCodeable<IdentifierBytes32> & ((
     f0: FixedBytes<32>,
 ) => IdentifierBytes32);
+
+/**
+ * The identity is not stored inside of drive, because of this, the serialization is mainly for
+ *  transport, the serialization of the identity will include the version, so no passthrough or
+ *  untagged is needed here
+ */
+/** @ignore */
+export abstract class Identity {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: Identity): void;
+  /** @ignore */
+  static decode(bc: BinCode): Identity;
+  /** @ignore @internal */
+  [VARIANTS]: typeof Identity.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof Identity.V0,
+  };
+}
+namespace Identity {
+  /** @function */
+  interface V0 extends Identity {
+    [0]: IdentityV0;
+  }
+  /** @ignore */
+  const V0: (f0: IdentityV0) => Identity.V0;
+}
 
 /** platform_version_path_bounds "dpp.state_transition_serialization_versions.identity_create_state_transition" */
 /** @ignore */
@@ -2343,6 +2612,33 @@ const IdentityUpdateTransitionV0 : BinCodeable<IdentityUpdateTransitionV0> & ((d
   signature: BinaryData,
 }) => IdentityUpdateTransitionV0);
 
+/**
+ * Implement the Identity. Identity is a low-level construct that provides the foundation
+ *  for user-facing functionality on the platform
+ */
+interface IdentityV0 {
+  id: Identifier;
+  public_keys: Map<KeyID, IdentityPublicKey>;
+  balance: bigint;
+  revision: Revision;
+}
+/** @ignore */
+const IdentityV0 : BinCodeable<IdentityV0> & ((data: {
+  id: Identifier,
+  public_keys: Map<KeyID, IdentityPublicKey>,
+  balance: bigint,
+  revision: Revision,
+}) => IdentityV0);
+
+/** A hash of all transaction inputs */
+interface InputsHash {
+  [0]: Hash;
+}
+/** @ignore */
+const InputsHash : BinCodeable<InputsHash> & ((
+    f0: Hash,
+) => InputsHash);
+
 export type InstantAssetLockProof = RawInstantLockProof;
 
 export type KeyID = number;
@@ -2382,6 +2678,58 @@ namespace KeyType {
   const ECDSA_HASH160: () => KeyType;
   const BIP13_SCRIPT_HASH: () => KeyType;
   const EDDSA_25519_HASH160: () => KeyType;
+}
+
+/** @ignore */
+export abstract class LLMQType {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: LLMQType): void;
+  /** @ignore */
+  static decode(bc: BinCode): LLMQType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof LLMQType.variants;
+  /** @ignore */
+  static variants: {
+    LlmqtypeUnknown: typeof LLMQType.LlmqtypeUnknown,
+    Llmqtype50_60: typeof LLMQType.Llmqtype50_60,
+    Llmqtype400_60: typeof LLMQType.Llmqtype400_60,
+    Llmqtype400_85: typeof LLMQType.Llmqtype400_85,
+    Llmqtype100_67: typeof LLMQType.Llmqtype100_67,
+    Llmqtype60_75: typeof LLMQType.Llmqtype60_75,
+    Llmqtype25_67: typeof LLMQType.Llmqtype25_67,
+    LlmqtypeTest: typeof LLMQType.LlmqtypeTest,
+    LlmqtypeDevnet: typeof LLMQType.LlmqtypeDevnet,
+    LlmqtypeTestV17: typeof LLMQType.LlmqtypeTestV17,
+    LlmqtypeTestDIP0024: typeof LLMQType.LlmqtypeTestDIP0024,
+    LlmqtypeTestInstantSend: typeof LLMQType.LlmqtypeTestInstantSend,
+    LlmqtypeDevnetDIP0024: typeof LLMQType.LlmqtypeDevnetDIP0024,
+    LlmqtypeTestnetPlatform: typeof LLMQType.LlmqtypeTestnetPlatform,
+    LlmqtypeDevnetPlatform: typeof LLMQType.LlmqtypeDevnetPlatform,
+  };
+}
+namespace LLMQType {
+  const LlmqtypeUnknown: () => LLMQType;
+  const Llmqtype50_60: () => LLMQType;
+  const Llmqtype400_60: () => LLMQType;
+  const Llmqtype400_85: () => LLMQType;
+  const Llmqtype100_67: () => LLMQType;
+  const Llmqtype60_75: () => LLMQType;
+  const Llmqtype25_67: () => LLMQType;
+  const LlmqtypeTest: () => LLMQType;
+  const LlmqtypeDevnet: () => LLMQType;
+  const LlmqtypeTestV17: () => LLMQType;
+  const LlmqtypeTestDIP0024: () => LLMQType;
+  const LlmqtypeTestInstantSend: () => LLMQType;
+  const LlmqtypeDevnetDIP0024: () => LLMQType;
+  const LlmqtypeTestnetPlatform: () => LLMQType;
+  const LlmqtypeDevnetPlatform: () => LLMQType;
 }
 
 /** platform_version_path_bounds "dpp.state_transition_serialization_versions.masternode_vote_state_transition" */
@@ -2436,6 +2784,32 @@ const MasternodeVoteTransitionV0 : BinCodeable<MasternodeVoteTransitionV0> & ((d
   signature: BinaryData,
 }) => MasternodeVoteTransitionV0);
 
+/**
+ * Dash Additions
+ * 
+ *  The merkle root of the masternode list
+ * hash_newtype forward
+ */
+interface MerkleRootMasternodeList {
+  [0]: Hash;
+}
+/** @ignore */
+const MerkleRootMasternodeList : BinCodeable<MerkleRootMasternodeList> & ((
+    f0: Hash,
+) => MerkleRootMasternodeList);
+
+/**
+ * The merkle root of the quorums
+ * hash_newtype forward
+ */
+interface MerkleRootQuorums {
+  [0]: Hash;
+}
+/** @ignore */
+const MerkleRootQuorums : BinCodeable<MerkleRootQuorums> & ((
+    f0: Hash,
+) => MerkleRootQuorums);
+
 /** A reference to a transaction output. */
 interface OutPoint {
   /** The referenced transaction's txid. */
@@ -2483,6 +2857,165 @@ namespace Pooling {
 
 export type PrivateEncryptedNote = [RootEncryptionKeyIndex, DerivationEncryptionKeyIndex, Uint8Array];
 
+/** @ignore */
+export abstract class ProviderMasternodeType {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: ProviderMasternodeType): void;
+  /** @ignore */
+  static decode(bc: BinCode): ProviderMasternodeType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof ProviderMasternodeType.variants;
+  /** @ignore */
+  static variants: {
+    Regular: typeof ProviderMasternodeType.Regular,
+    HighPerformance: typeof ProviderMasternodeType.HighPerformance,
+  };
+}
+namespace ProviderMasternodeType {
+  const Regular: () => ProviderMasternodeType;
+  const HighPerformance: () => ProviderMasternodeType;
+}
+
+/**
+ * A Provider Registration Payload used in a Provider Registration Special Transaction.
+ *  This is used to register a Masternode on the network.
+ *  The current version is 0.
+ *  Interesting Fields:
+ *  *Provider type refers to the type of Masternode. Currently only valid value is 0.
+ *  *Provider mode refers to the mode of the Masternode. Currently only valid value is 0.
+ *  *The collateral outpoint links to a transaction with a 1000 Dash unspent (at registration)
+ *  outpoint.
+ *  *The operator reward defines the ratio when divided by 10000 of the amount going to the operator.
+ *  The max value for the operator reward is 10000.
+ *  *The script payout is the script to which one wants to have the masternode pay out.
+ *  *The inputs hash is used to guarantee the uniqueness of the payload sig.
+ */
+interface ProviderRegistrationPayload {
+  version: number;
+  masternode_type: ProviderMasternodeType;
+  masternode_mode: number;
+  collateral_outpoint: OutPoint;
+  service_address: SocketAddr;
+  owner_key_hash: PubkeyHash;
+  operator_public_key: BLSPublicKey;
+  voting_key_hash: PubkeyHash;
+  operator_reward: number;
+  script_payout: ScriptBuf;
+  inputs_hash: InputsHash;
+  signature: Uint8Array;
+  platform_node_id?: PubkeyHash;
+  platform_p2p_port?: number;
+  platform_http_port?: number;
+}
+/** @ignore */
+const ProviderRegistrationPayload : BinCodeable<ProviderRegistrationPayload> & ((data: {
+  version: number,
+  masternode_type: ProviderMasternodeType,
+  masternode_mode: number,
+  collateral_outpoint: OutPoint,
+  service_address: SocketAddr,
+  owner_key_hash: PubkeyHash,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  operator_reward: number,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  signature: Uint8Array,
+  platform_node_id?: PubkeyHash,
+  platform_p2p_port?: number,
+  platform_http_port?: number,
+}) => ProviderRegistrationPayload);
+
+/**
+ * A Provider Update Registrar Payload used in a Provider Update Registrar Special Transaction.
+ *  This is used to update the base aspects a Masternode on the network.
+ *  It must be signed by the owner's key that was set at registration.
+ */
+interface ProviderUpdateRegistrarPayload {
+  version: number;
+  pro_tx_hash: Txid;
+  provider_mode: number;
+  operator_public_key: BLSPublicKey;
+  voting_key_hash: PubkeyHash;
+  script_payout: ScriptBuf;
+  inputs_hash: InputsHash;
+  payload_sig: Uint8Array;
+}
+/** @ignore */
+const ProviderUpdateRegistrarPayload : BinCodeable<ProviderUpdateRegistrarPayload> & ((data: {
+  version: number,
+  pro_tx_hash: Txid,
+  provider_mode: number,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: Uint8Array,
+}) => ProviderUpdateRegistrarPayload);
+
+/**
+ * A Provider Update Revocation Payload used in a Provider Update Revocation Special Transaction.
+ *  This is used to signal and stop a Masternode from the operator.
+ *  It must be signed by the operator's key that was set at registration or registrar update.
+ */
+interface ProviderUpdateRevocationPayload {
+  version: number;
+  pro_tx_hash: Txid;
+  reason: number;
+  inputs_hash: InputsHash;
+  payload_sig: BLSSignature;
+}
+/** @ignore */
+const ProviderUpdateRevocationPayload : BinCodeable<ProviderUpdateRevocationPayload> & ((data: {
+  version: number,
+  pro_tx_hash: Txid,
+  reason: number,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+}) => ProviderUpdateRevocationPayload);
+
+/**
+ * A Provider Update Service Payload used in a Provider Update Service Special Transaction.
+ *  This is used to update the operational aspects a Masternode on the network.
+ *  It must be signed by the operator's key that was set either at registration or by the last
+ *  registrar update of the masternode.
+ */
+interface ProviderUpdateServicePayload {
+  version: number;
+  pro_tx_hash: Txid;
+  ip_address: bigint;
+  port: number;
+  script_payout: ScriptBuf;
+  inputs_hash: InputsHash;
+  payload_sig: BLSSignature;
+}
+/** @ignore */
+const ProviderUpdateServicePayload : BinCodeable<ProviderUpdateServicePayload> & ((data: {
+  version: number,
+  pro_tx_hash: Txid,
+  ip_address: bigint,
+  port: number,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+}) => ProviderUpdateServicePayload);
+
+/** A hash of a public key. */
+interface PubkeyHash {
+  [0]: Hash;
+}
+/** @ignore */
+const PubkeyHash : BinCodeable<PubkeyHash> & ((
+    f0: Hash,
+) => PubkeyHash);
+
 /** repr u8 */
 /** @ignore */
 export abstract class Purpose {
@@ -2520,7 +3053,10 @@ namespace Purpose {
   const ENCRYPTION: () => Purpose;
   /** this key cannot be used for signing documents */
   const DECRYPTION: () => Purpose;
-  /** this key is used to sign credit transfer and withdrawal state transitions */
+  /**
+   * this key is used to sign credit transfer and withdrawal state transitions
+   *  this key can also be used by identities for claims and transfers of tokens
+   */
   const TRANSFER: () => Purpose;
   /** this key cannot be used for signing documents */
   const SYSTEM: () => Purpose;
@@ -2529,6 +3065,66 @@ namespace Purpose {
   /** this key is used to prove ownership of a masternode or evonode */
   const OWNER: () => Purpose;
 }
+
+/**
+ * A Quorum Commitment Payload used in a Quorum Commitment Special Transaction.
+ *  This is used in the mining phase as described in DIP 6:
+ *  [dip-0006.md#7-mining-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#7-mining-phase).
+ * 
+ *  Miners take the best final commitment for a DKG session and mine it into a block.
+ */
+interface QuorumCommitmentPayload {
+  version: number;
+  height: number;
+  finalization_commitment: QuorumEntry;
+}
+/** @ignore */
+const QuorumCommitmentPayload : BinCodeable<QuorumCommitmentPayload> & ((data: {
+  version: number,
+  height: number,
+  finalization_commitment: QuorumEntry,
+}) => QuorumCommitmentPayload);
+
+/**
+ * A Quorum Finalization Commitment. It is described in the finalization section of DIP6:
+ *  [dip-0006.md#6-finalization-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#6-finalization-phase)
+ */
+interface QuorumEntry {
+  version: number;
+  llmq_type: LLMQType;
+  quorum_hash: QuorumHash;
+  quorum_index?: number;
+  signers: boolean[];
+  valid_members: boolean[];
+  quorum_public_key: BLSPublicKey;
+  quorum_vvec_hash: QuorumVVecHash;
+  threshold_sig: BLSSignature;
+  all_commitment_aggregated_signature: BLSSignature;
+}
+/** @ignore */
+const QuorumEntry : BinCodeable<QuorumEntry> & ((data: {
+  version: number,
+  llmq_type: LLMQType,
+  quorum_hash: QuorumHash,
+  quorum_index?: number,
+  signers: boolean[],
+  valid_members: boolean[],
+  quorum_public_key: BLSPublicKey,
+  quorum_vvec_hash: QuorumVVecHash,
+  threshold_sig: BLSSignature,
+  all_commitment_aggregated_signature: BLSSignature,
+}) => QuorumEntry);
+
+export type QuorumHash = BlockHash;
+
+/** A hash of a quorum verification vector */
+interface QuorumVVecHash {
+  [0]: Hash;
+}
+/** @ignore */
+const QuorumVVecHash : BinCodeable<QuorumVVecHash> & ((
+    f0: Hash,
+) => QuorumVVecHash);
 
 /**
  * A representation of a dynamic value that can handled dynamically
@@ -2979,6 +3575,7 @@ namespace RewardDistributionType {
 
 export type RootEncryptionKeyIndex = number;
 
+
 /**
  * An owned, growable script.
  * 
@@ -3425,6 +4022,9 @@ export abstract class TokenConfigurationChangeItem {
     DestroyFrozenFundsAdminGroup: typeof TokenConfigurationChangeItem.DestroyFrozenFundsAdminGroup,
     EmergencyAction: typeof TokenConfigurationChangeItem.EmergencyAction,
     EmergencyActionAdminGroup: typeof TokenConfigurationChangeItem.EmergencyActionAdminGroup,
+    MarketplaceTradeMode: typeof TokenConfigurationChangeItem.MarketplaceTradeMode,
+    MarketplaceTradeModeControlGroup: typeof TokenConfigurationChangeItem.MarketplaceTradeModeControlGroup,
+    MarketplaceTradeModeAdminGroup: typeof TokenConfigurationChangeItem.MarketplaceTradeModeAdminGroup,
     MainControlGroup: typeof TokenConfigurationChangeItem.MainControlGroup,
   };
 }
@@ -3594,6 +4194,24 @@ namespace TokenConfigurationChangeItem {
   /** @ignore */
   const EmergencyActionAdminGroup: (f0: AuthorizedActionTakers) => TokenConfigurationChangeItem.EmergencyActionAdminGroup;
   /** @function */
+  interface MarketplaceTradeMode extends TokenConfigurationChangeItem {
+    [0]: TokenTradeMode;
+  }
+  /** @ignore */
+  const MarketplaceTradeMode: (f0: TokenTradeMode) => TokenConfigurationChangeItem.MarketplaceTradeMode;
+  /** @function */
+  interface MarketplaceTradeModeControlGroup extends TokenConfigurationChangeItem {
+    [0]: AuthorizedActionTakers;
+  }
+  /** @ignore */
+  const MarketplaceTradeModeControlGroup: (f0: AuthorizedActionTakers) => TokenConfigurationChangeItem.MarketplaceTradeModeControlGroup;
+  /** @function */
+  interface MarketplaceTradeModeAdminGroup extends TokenConfigurationChangeItem {
+    [0]: AuthorizedActionTakers;
+  }
+  /** @ignore */
+  const MarketplaceTradeModeAdminGroup: (f0: AuthorizedActionTakers) => TokenConfigurationChangeItem.MarketplaceTradeModeAdminGroup;
+  /** @function */
   interface MainControlGroup extends TokenConfigurationChangeItem {
     [0]: Option<GroupContractPosition>;
   }
@@ -3601,6 +4219,16 @@ namespace TokenConfigurationChangeItem {
   const MainControlGroup: (f0: Option<GroupContractPosition>) => TokenConfigurationChangeItem.MainControlGroup;
 }
 
+/**
+ * Versioned wrapper for token display conventions.
+ * 
+ *  `TokenConfigurationConvention` provides a flexible, forward-compatible structure
+ *  for representing human-readable metadata about a token, such as localized names
+ *  and decimal formatting standards.
+ * 
+ *  This enum enables evolution of the convention schema over time without breaking
+ *  compatibility with older tokens. Each variant defines a specific format version.
+ */
 /** @ignore */
 export abstract class TokenConfigurationConvention {
   /** @ignore @internal */
@@ -3622,7 +4250,14 @@ export abstract class TokenConfigurationConvention {
   };
 }
 namespace TokenConfigurationConvention {
-  /** @function */
+  /**
+   * Version 0 of the token convention schema.
+   * 
+   *  Defines localized names (by ISO 639 language codes) and the number of decimal places
+   *  used for displaying token amounts.
+   * 
+   * @function
+   */
   interface V0 extends TokenConfigurationConvention {
     [0]: TokenConfigurationConventionV0;
   }
@@ -3630,24 +4265,63 @@ namespace TokenConfigurationConvention {
   const V0: (f0: TokenConfigurationConventionV0) => TokenConfigurationConvention.V0;
 }
 
+/**
+ * Defines display conventions for a token, including name localization and decimal precision.
+ * 
+ *  `TokenConfigurationConventionV0` provides human-readable metadata to guide client applications
+ *  in rendering token names and formatting token values. This structure is purely informative
+ *  and does not affect consensus-critical logic or supply calculations.
+ */
 interface TokenConfigurationConventionV0 {
   /**
-   * Localizations for the token name.
-   *  The key must be a ISO 639 2-chars language code
+   * A mapping of ISO 639-1 language codes (2-letter lowercase strings) to localized
+   *  token names and metadata.
+   * 
+   *  These localizations enable wallets and dApps to display token information in the
+   *  user's preferred language. At least one localization (e.g., English) is strongly recommended.
    */
   localizations: Map<string, TokenConfigurationLocalization>;
+  /**
+   * The number of decimal places used to represent the token.
+   * 
+   *  For example, a value of `8` means that one full token is represented as `10^8` base units
+   *  (similar to Bitcoin's satoshis or Dash's duffs).
+   * 
+   *  This value is used by clients to determine formatting and user interface display.
+   */
   decimals: number;
 }
 /** @ignore */
 const TokenConfigurationConventionV0 : BinCodeable<TokenConfigurationConventionV0> & ((data: {
   /**
-   * Localizations for the token name.
-   *  The key must be a ISO 639 2-chars language code
+   * A mapping of ISO 639-1 language codes (2-letter lowercase strings) to localized
+   *  token names and metadata.
+   * 
+   *  These localizations enable wallets and dApps to display token information in the
+   *  user's preferred language. At least one localization (e.g., English) is strongly recommended.
    */
   localizations: Map<string, TokenConfigurationLocalization>,
+  /**
+   * The number of decimal places used to represent the token.
+   * 
+   *  For example, a value of `8` means that one full token is represented as `10^8` base units
+   *  (similar to Bitcoin's satoshis or Dash's duffs).
+   * 
+   *  This value is used by clients to determine formatting and user interface display.
+   */
   decimals: number,
 }) => TokenConfigurationConventionV0);
 
+/**
+ * Versioned wrapper for token name localization data.
+ * 
+ *  `TokenConfigurationLocalization` allows extensibility for future schema upgrades
+ *  while preserving backward compatibility. Each variant represents a specific format
+ *  version for localization information.
+ * 
+ *  This structure is used to map language codes to localized token names in a flexible,
+ *  forward-compatible manner.
+ */
 /** @ignore */
 export abstract class TokenConfigurationLocalization {
   /** @ignore @internal */
@@ -3669,7 +4343,14 @@ export abstract class TokenConfigurationLocalization {
   };
 }
 namespace TokenConfigurationLocalization {
-  /** @function */
+  /**
+   * Version 0 of the token localization schema.
+   * 
+   *  Defines basic capitalization preference, singular form, and plural form
+   *  for displaying token names.
+   * 
+   * @function
+   */
   interface V0 extends TokenConfigurationLocalization {
     [0]: TokenConfigurationLocalizationV0;
   }
@@ -3677,74 +4358,172 @@ namespace TokenConfigurationLocalization {
   const V0: (f0: TokenConfigurationLocalizationV0) => TokenConfigurationLocalization.V0;
 }
 
+/**
+ * Defines the localized naming format for a token in a specific language.
+ * 
+ *  `TokenConfigurationLocalizationV0` enables tokens to present user-friendly names
+ *  across different locales. This information is not used for validation or consensus
+ *  but enhances UX by allowing consistent display in multilingual interfaces.
+ */
 interface TokenConfigurationLocalizationV0 {
+  /**
+   * Indicates whether the token name should be capitalized when displayed.
+   * 
+   *  This is a stylistic hint for clients (e.g., "Dash" vs. "dash") and is typically
+   *  applied to both singular and plural forms unless overridden.
+   */
   should_capitalize: boolean;
+  /**
+   * The singular form of the token name in the target language.
+   * 
+   *  Example: "Dash", "Dollar", or "Token".
+   */
   singular_form: string;
+  /**
+   * The plural form of the token name in the target language.
+   * 
+   *  Example: "Dash", "Dollars", or "Tokens".
+   */
   plural_form: string;
 }
 /** @ignore */
 const TokenConfigurationLocalizationV0 : BinCodeable<TokenConfigurationLocalizationV0> & ((data: {
+  /**
+   * Indicates whether the token name should be capitalized when displayed.
+   * 
+   *  This is a stylistic hint for clients (e.g., "Dash" vs. "dash") and is typically
+   *  applied to both singular and plural forms unless overridden.
+   */
   should_capitalize: boolean,
+  /**
+   * The singular form of the token name in the target language.
+   * 
+   *  Example: "Dash", "Dollar", or "Token".
+   */
   singular_form: string,
+  /**
+   * The plural form of the token name in the target language.
+   * 
+   *  Example: "Dash", "Dollars", or "Tokens".
+   */
   plural_form: string,
 }) => TokenConfigurationLocalizationV0);
 
+/**
+ * Defines the complete configuration for a version 0 token contract.
+ * 
+ *  `TokenConfigurationV0` encapsulates all metadata, control rules, supply settings,
+ *  and governance constraints used to initialize and manage a token instance on Platform.
+ *  This structure serves as the core representation of a token's logic, permissions,
+ *  and capabilities.
+ * 
+ *  This configuration is designed to be deterministic and versioned for compatibility
+ *  across protocol upgrades and validation environments.
+ */
 interface TokenConfigurationV0 {
+  /** Metadata conventions, including decimals and localizations. */
   conventions: TokenConfigurationConvention;
-  /** Who can change the conventions */
+  /** Change control rules governing who can modify the conventions field. */
   conventions_change_rules: ChangeControlRules;
-  /** The supply at the creation of the token */
+  /** The initial token supply minted at creation. */
   base_supply: TokenAmount;
-  /** The maximum supply the token can ever have */
-  max_supply?: TokenAmount;
-  /** The rules for keeping history. */
-  keeps_history: TokenKeepsHistoryRules;
-  /** Do we start off as paused, meaning that we can not transfer till we unpause. */
-  start_as_paused: boolean;
   /**
-   * Who can change the max supply
-   *  Even if set no one can ever change this under the base supply
+   * The maximum allowable supply of the token.
+   * 
+   *  If `None`, the supply is unbounded unless otherwise constrained by minting logic.
+   */
+  max_supply?: TokenAmount;
+  /** Configuration governing which historical actions are recorded for this token. */
+  keeps_history: TokenKeepsHistoryRules;
+  /**
+   * Indicates whether the token should start in a paused state.
+   * 
+   *  When `true`, transfers are disallowed until explicitly unpaused via an emergency action.
+   */
+  start_as_paused: boolean;
+  /** Allows minting and transferring to frozen token balances if enabled. */
+  allow_transfer_to_frozen_balance: boolean;
+  /**
+   * Change control rules for updating the `max_supply`.
+   * 
+   *  Note: The `max_supply` can never be reduced below the `base_supply`.
    */
   max_supply_change_rules: ChangeControlRules;
-  /** The distribution rules for the token */
+  /** Defines the token's distribution logic, including perpetual and pre-programmed distributions. */
   distribution_rules: TokenDistributionRules;
+  /** Defines the token's marketplace logic. */
+  marketplace_rules: TokenMarketplaceRules;
+  /** Rules controlling who is authorized to perform manual minting of tokens. */
   manual_minting_rules: ChangeControlRules;
+  /** Rules controlling who is authorized to perform manual burning of tokens. */
   manual_burning_rules: ChangeControlRules;
+  /** Rules governing who may freeze token balances. */
   freeze_rules: ChangeControlRules;
+  /** Rules governing who may unfreeze token balances. */
   unfreeze_rules: ChangeControlRules;
+  /** Rules governing who may destroy frozen funds. */
   destroy_frozen_funds_rules: ChangeControlRules;
+  /** Rules governing who may invoke emergency actions, such as pausing transfers. */
   emergency_action_rules: ChangeControlRules;
+  /** Optional reference to the group assigned as the token's main control group. */
   main_control_group?: GroupContractPosition;
+  /** Defines whether and how the main control group assignment may be modified. */
   main_control_group_can_be_modified: AuthorizedActionTakers;
+  /** Optional textual description of the token's purpose, behavior, or metadata. */
+  description?: string;
 }
 /** @ignore */
 const TokenConfigurationV0 : BinCodeable<TokenConfigurationV0> & ((data: {
+  /** Metadata conventions, including decimals and localizations. */
   conventions: TokenConfigurationConvention,
-  /** Who can change the conventions */
+  /** Change control rules governing who can modify the conventions field. */
   conventions_change_rules: ChangeControlRules,
-  /** The supply at the creation of the token */
+  /** The initial token supply minted at creation. */
   base_supply: TokenAmount,
-  /** The maximum supply the token can ever have */
-  max_supply?: TokenAmount,
-  /** The rules for keeping history. */
-  keeps_history: TokenKeepsHistoryRules,
-  /** Do we start off as paused, meaning that we can not transfer till we unpause. */
-  start_as_paused: boolean,
   /**
-   * Who can change the max supply
-   *  Even if set no one can ever change this under the base supply
+   * The maximum allowable supply of the token.
+   * 
+   *  If `None`, the supply is unbounded unless otherwise constrained by minting logic.
+   */
+  max_supply?: TokenAmount,
+  /** Configuration governing which historical actions are recorded for this token. */
+  keeps_history: TokenKeepsHistoryRules,
+  /**
+   * Indicates whether the token should start in a paused state.
+   * 
+   *  When `true`, transfers are disallowed until explicitly unpaused via an emergency action.
+   */
+  start_as_paused: boolean,
+  /** Allows minting and transferring to frozen token balances if enabled. */
+  allow_transfer_to_frozen_balance: boolean,
+  /**
+   * Change control rules for updating the `max_supply`.
+   * 
+   *  Note: The `max_supply` can never be reduced below the `base_supply`.
    */
   max_supply_change_rules: ChangeControlRules,
-  /** The distribution rules for the token */
+  /** Defines the token's distribution logic, including perpetual and pre-programmed distributions. */
   distribution_rules: TokenDistributionRules,
+  /** Defines the token's marketplace logic. */
+  marketplace_rules: TokenMarketplaceRules,
+  /** Rules controlling who is authorized to perform manual minting of tokens. */
   manual_minting_rules: ChangeControlRules,
+  /** Rules controlling who is authorized to perform manual burning of tokens. */
   manual_burning_rules: ChangeControlRules,
+  /** Rules governing who may freeze token balances. */
   freeze_rules: ChangeControlRules,
+  /** Rules governing who may unfreeze token balances. */
   unfreeze_rules: ChangeControlRules,
+  /** Rules governing who may destroy frozen funds. */
   destroy_frozen_funds_rules: ChangeControlRules,
+  /** Rules governing who may invoke emergency actions, such as pausing transfers. */
   emergency_action_rules: ChangeControlRules,
+  /** Optional reference to the group assigned as the token's main control group. */
   main_control_group?: GroupContractPosition,
+  /** Defines whether and how the main control group assignment may be modified. */
   main_control_group_can_be_modified: AuthorizedActionTakers,
+  /** Optional textual description of the token's purpose, behavior, or metadata. */
+  description?: string,
 }) => TokenConfigurationV0);
 
 export type TokenContractPosition = number;
@@ -3795,6 +4574,82 @@ const TokenDestroyFrozenFundsTransitionV0 : BinCodeable<TokenDestroyFrozenFundsT
   /** The public note */
   public_note?: string,
 }) => TokenDestroyFrozenFundsTransitionV0);
+
+/**
+ * Represents a versioned transition for direct token purchases.
+ * 
+ *  This enum allows for forward-compatible support of different versions
+ *  of the `TokenDirectPurchaseTransition` structure. Each variant corresponds
+ *  to a specific version of the transition logic and structure.
+ * 
+ *  This transition type is used when a user intends to directly purchase tokens
+ *  by specifying the desired amount and the maximum total price they are willing to pay.
+ */
+/** @ignore */
+export abstract class TokenDirectPurchaseTransition {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TokenDirectPurchaseTransition): void;
+  /** @ignore */
+  static decode(bc: BinCode): TokenDirectPurchaseTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TokenDirectPurchaseTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof TokenDirectPurchaseTransition.V0,
+  };
+}
+namespace TokenDirectPurchaseTransition {
+  /**
+   * Version 0 of the token direct purchase transition.
+   * 
+   *  This version includes the base document transition, the number of tokens
+   *  to purchase, and the maximum total price the user agrees to pay.
+   *  If the price in the contract is lower than the agreed price, the lower
+   *  price is used.
+   * 
+   * @function
+   */
+  interface V0 extends TokenDirectPurchaseTransition {
+    [0]: TokenDirectPurchaseTransitionV0;
+  }
+  /** @ignore */
+  const V0: (f0: TokenDirectPurchaseTransitionV0) => TokenDirectPurchaseTransition.V0;
+}
+
+interface TokenDirectPurchaseTransitionV0 {
+  /** Document Base Transition */
+  base: TokenBaseTransition;
+  /** How many tokens should we buy. */
+  token_count: TokenAmount;
+  /**
+   * Price that the user is willing to pay for all the tokens.
+   *  The user will pay up to this amount.
+   *  If the actual cost of the token per the contract is less than the agreed price that the user is willing to pay
+   *  Then we take the actual cost per the contract.
+   */
+  total_agreed_price: Credits;
+}
+/** @ignore */
+const TokenDirectPurchaseTransitionV0 : BinCodeable<TokenDirectPurchaseTransitionV0> & ((data: {
+  /** Document Base Transition */
+  base: TokenBaseTransition,
+  /** How many tokens should we buy. */
+  token_count: TokenAmount,
+  /**
+   * Price that the user is willing to pay for all the tokens.
+   *  The user will pay up to this amount.
+   *  If the actual cost of the token per the contract is less than the agreed price that the user is willing to pay
+   *  Then we take the actual cost per the contract.
+   */
+  total_agreed_price: Credits,
+}) => TokenDirectPurchaseTransitionV0);
 
 /** @ignore */
 export abstract class TokenDistributionRecipient {
@@ -3878,6 +4733,7 @@ interface TokenDistributionRulesV0 {
   new_tokens_destination_identity_rules: ChangeControlRules;
   minting_allow_choosing_destination: boolean;
   minting_allow_choosing_destination_rules: ChangeControlRules;
+  change_direct_purchase_pricing_rules: ChangeControlRules;
 }
 /** @ignore */
 const TokenDistributionRulesV0 : BinCodeable<TokenDistributionRulesV0> & ((data: {
@@ -3888,6 +4744,7 @@ const TokenDistributionRulesV0 : BinCodeable<TokenDistributionRulesV0> & ((data:
   new_tokens_destination_identity_rules: ChangeControlRules,
   minting_allow_choosing_destination: boolean,
   minting_allow_choosing_destination_rules: ChangeControlRules,
+  change_direct_purchase_pricing_rules: ChangeControlRules,
 }) => TokenDistributionRulesV0);
 
 /**
@@ -4091,6 +4948,10 @@ interface TokenKeepsHistoryRulesV0 {
   keeps_minting_history: boolean;
   /** Whether burning history is recorded. */
   keeps_burning_history: boolean;
+  /** Whether direct pricing history is recorded. */
+  keeps_direct_pricing_history: boolean;
+  /** Whether direct purchase history is recorded. */
+  keeps_direct_purchase_history: boolean;
 }
 /** @ignore */
 const TokenKeepsHistoryRulesV0 : BinCodeable<TokenKeepsHistoryRulesV0> & ((data: {
@@ -4102,7 +4963,50 @@ const TokenKeepsHistoryRulesV0 : BinCodeable<TokenKeepsHistoryRulesV0> & ((data:
   keeps_minting_history: boolean,
   /** Whether burning history is recorded. */
   keeps_burning_history: boolean,
+  /** Whether direct pricing history is recorded. */
+  keeps_direct_pricing_history: boolean,
+  /** Whether direct purchase history is recorded. */
+  keeps_direct_purchase_history: boolean,
 }) => TokenKeepsHistoryRulesV0);
+
+/** @ignore */
+export abstract class TokenMarketplaceRules {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TokenMarketplaceRules): void;
+  /** @ignore */
+  static decode(bc: BinCode): TokenMarketplaceRules;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TokenMarketplaceRules.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof TokenMarketplaceRules.V0,
+  };
+}
+namespace TokenMarketplaceRules {
+  /** @function */
+  interface V0 extends TokenMarketplaceRules {
+    [0]: TokenMarketplaceRulesV0;
+  }
+  /** @ignore */
+  const V0: (f0: TokenMarketplaceRulesV0) => TokenMarketplaceRules.V0;
+}
+
+interface TokenMarketplaceRulesV0 {
+  trade_mode: TokenTradeMode;
+  trade_mode_change_rules: ChangeControlRules;
+}
+/** @ignore */
+const TokenMarketplaceRulesV0 : BinCodeable<TokenMarketplaceRulesV0> & ((data: {
+  trade_mode: TokenTradeMode,
+  trade_mode_change_rules: ChangeControlRules,
+}) => TokenMarketplaceRulesV0);
 
 /** @ignore */
 export abstract class TokenMintTransition {
@@ -4160,6 +5064,91 @@ const TokenMintTransitionV0 : BinCodeable<TokenMintTransitionV0> & ((data: {
   /** The public note */
   public_note?: string,
 }) => TokenMintTransitionV0);
+
+/** @ignore */
+export abstract class TokenPaymentInfo {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TokenPaymentInfo): void;
+  /** @ignore */
+  static decode(bc: BinCode): TokenPaymentInfo;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TokenPaymentInfo.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof TokenPaymentInfo.V0,
+  };
+}
+namespace TokenPaymentInfo {
+  /** @function */
+  interface V0 extends TokenPaymentInfo {
+    [0]: TokenPaymentInfoV0;
+  }
+  /** @ignore */
+  const V0: (f0: TokenPaymentInfoV0) => TokenPaymentInfo.V0;
+}
+
+interface TokenPaymentInfoV0 {
+  /**
+   * By default, we use a token in the same contract, this field must be set if the document
+   *  requires payment using another contracts token.
+   */
+  payment_token_contract_id?: Identifier;
+  /**
+   * If we are expecting to pay with a token in a contract, which token are we expecting
+   *  to pay with?
+   *  We have this set so contract owners can't switch out to more valuable token.
+   *  For example if my Data contract
+   */
+  token_contract_position: TokenContractPosition;
+  /** Minimum token cost, this most often should not be set */
+  minimum_token_cost?: TokenAmount;
+  /**
+   * Maximum token cost, this most often should be set
+   *  If:
+   *  - a client does not have this set
+   *  - and the data contract allows the price of NFTs to be changed by the data contract's owner or allowed party.
+   *    Then:
+   *  - The user could see the cost changed on them
+   */
+  maximum_token_cost?: TokenAmount;
+  /** Who pays the gas fees, this needs to match what the contract allows */
+  gas_fees_paid_by: GasFeesPaidBy;
+}
+/** @ignore */
+const TokenPaymentInfoV0 : BinCodeable<TokenPaymentInfoV0> & ((data: {
+  /**
+   * By default, we use a token in the same contract, this field must be set if the document
+   *  requires payment using another contracts token.
+   */
+  payment_token_contract_id?: Identifier,
+  /**
+   * If we are expecting to pay with a token in a contract, which token are we expecting
+   *  to pay with?
+   *  We have this set so contract owners can't switch out to more valuable token.
+   *  For example if my Data contract
+   */
+  token_contract_position: TokenContractPosition,
+  /** Minimum token cost, this most often should not be set */
+  minimum_token_cost?: TokenAmount,
+  /**
+   * Maximum token cost, this most often should be set
+   *  If:
+   *  - a client does not have this set
+   *  - and the data contract allows the price of NFTs to be changed by the data contract's owner or allowed party.
+   *    Then:
+   *  - The user could see the cost changed on them
+   */
+  maximum_token_cost?: TokenAmount,
+  /** Who pays the gas fees, this needs to match what the contract allows */
+  gas_fees_paid_by: GasFeesPaidBy,
+}) => TokenPaymentInfoV0);
 
 /** @ignore */
 export abstract class TokenPerpetualDistribution {
@@ -4241,6 +5230,172 @@ const TokenPreProgrammedDistributionV0 : BinCodeable<TokenPreProgrammedDistribut
   distributions: Map<TimestampMillis, Map<Identifier, TokenAmount>>,
 }) => TokenPreProgrammedDistributionV0);
 
+/**
+ * Defines the pricing schedule for tokens in terms of credits.
+ * 
+ *  A pricing schedule can either be a single, flat price applied to all
+ *  token amounts, or a tiered pricing model where specific amounts
+ *  correspond to specific credit values.
+ */
+/** @ignore */
+export abstract class TokenPricingSchedule {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TokenPricingSchedule): void;
+  /** @ignore */
+  static decode(bc: BinCode): TokenPricingSchedule;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TokenPricingSchedule.variants;
+  /** @ignore */
+  static variants: {
+    SinglePrice: typeof TokenPricingSchedule.SinglePrice,
+    SetPrices: typeof TokenPricingSchedule.SetPrices,
+  };
+}
+namespace TokenPricingSchedule {
+  /**
+   * A single flat price in credits for all token amounts.
+   * 
+   *  This variant is used when the pricing does not depend on
+   *  the number of tokens being purchased or processed.
+   * 
+   * @function
+   */
+  interface SinglePrice extends TokenPricingSchedule {
+    [0]: Credits;
+  }
+  /** @ignore */
+  const SinglePrice: (f0: Credits) => TokenPricingSchedule.SinglePrice;
+  /**
+   * A tiered pricing model where specific token amounts map to credit prices.
+   * 
+   *  This allows for more complex pricing structures, such as
+   *  volume discounts or progressive pricing. The map keys
+   *  represent token amount thresholds, and the values are the
+   *  corresponding credit prices.
+   *  If the first token amount is greater than 1 this means that the user can only
+   *  purchase that amount as a minimum at a time.
+   * 
+   * @function
+   */
+  interface SetPrices extends TokenPricingSchedule {
+    [0]: Map<TokenAmount, Credits>;
+  }
+  /** @ignore */
+  const SetPrices: (f0: Map<TokenAmount, Credits>) => TokenPricingSchedule.SetPrices;
+}
+
+/**
+ * Represents a versioned transition for setting or updating the price of a token
+ *  available for direct purchase.
+ * 
+ *  This transition allows a token owner or controlling group to define or remove a pricing
+ *  schedule for direct purchases. Setting the price to `None` disables further purchases
+ *  of the token.
+ * 
+ *  This transition type supports **group actions**, meaning it can require **multi-signature
+ *  (multisig) authorization**. In such cases, multiple identities must agree and sign
+ *  the transition for it to be considered valid and executable.
+ * 
+ *  Versioning enables forward compatibility by allowing future enhancements or changes
+ *  without breaking existing clients.
+ */
+/** @ignore */
+export abstract class TokenSetPriceForDirectPurchaseTransition {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TokenSetPriceForDirectPurchaseTransition): void;
+  /** @ignore */
+  static decode(bc: BinCode): TokenSetPriceForDirectPurchaseTransition;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TokenSetPriceForDirectPurchaseTransition.variants;
+  /** @ignore */
+  static variants: {
+    V0: typeof TokenSetPriceForDirectPurchaseTransition.V0,
+  };
+}
+namespace TokenSetPriceForDirectPurchaseTransition {
+  /**
+   * Version 0 of the token set price for direct purchase transition.
+   * 
+   *  This version includes:
+   *  - A base document transition.
+   *  - An optional pricing schedule: `Some(...)` to set the token's price, or `None` to make it non-purchasable.
+   *  - An optional public note.
+   * 
+   *  Group actions with multisig are supported in this version,
+   *  enabling shared control over token pricing among multiple authorized identities.
+   * 
+   * @function
+   */
+  interface V0 extends TokenSetPriceForDirectPurchaseTransition {
+    [0]: TokenSetPriceForDirectPurchaseTransitionV0;
+  }
+  /** @ignore */
+  const V0: (f0: TokenSetPriceForDirectPurchaseTransitionV0) => TokenSetPriceForDirectPurchaseTransition.V0;
+}
+
+interface TokenSetPriceForDirectPurchaseTransitionV0 {
+  /** Document Base Transition */
+  base: TokenBaseTransition;
+  /**
+   * What should be the price for a single token
+   *  Setting this to None makes it no longer purchasable
+   */
+  price?: TokenPricingSchedule;
+  /** The public note */
+  public_note?: string;
+}
+/** @ignore */
+const TokenSetPriceForDirectPurchaseTransitionV0 : BinCodeable<TokenSetPriceForDirectPurchaseTransitionV0> & ((data: {
+  /** Document Base Transition */
+  base: TokenBaseTransition,
+  /**
+   * What should be the price for a single token
+   *  Setting this to None makes it no longer purchasable
+   */
+  price?: TokenPricingSchedule,
+  /** The public note */
+  public_note?: string,
+}) => TokenSetPriceForDirectPurchaseTransitionV0);
+
+/** @ignore */
+export abstract class TokenTradeMode {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TokenTradeMode): void;
+  /** @ignore */
+  static decode(bc: BinCode): TokenTradeMode;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TokenTradeMode.variants;
+  /** @ignore */
+  static variants: {
+    NotTradeable: typeof TokenTradeMode.NotTradeable,
+  };
+}
+namespace TokenTradeMode {
+  /** default */
+  const NotTradeable: () => TokenTradeMode;
+}
+
 /** @ignore */
 export abstract class TokenTransferTransition {
   /** @ignore @internal */
@@ -4320,6 +5475,8 @@ export abstract class TokenTransition {
     Claim: typeof TokenTransition.Claim,
     EmergencyAction: typeof TokenTransition.EmergencyAction,
     ConfigUpdate: typeof TokenTransition.ConfigUpdate,
+    DirectPurchase: typeof TokenTransition.DirectPurchase,
+    SetPriceForDirectPurchase: typeof TokenTransition.SetPriceForDirectPurchase,
   };
 }
 namespace TokenTransition {
@@ -4377,6 +5534,18 @@ namespace TokenTransition {
   }
   /** @ignore */
   const ConfigUpdate: (f0: TokenConfigUpdateTransition) => TokenTransition.ConfigUpdate;
+  /** @function */
+  interface DirectPurchase extends TokenTransition {
+    [0]: TokenDirectPurchaseTransition;
+  }
+  /** @ignore */
+  const DirectPurchase: (f0: TokenDirectPurchaseTransition) => TokenTransition.DirectPurchase;
+  /** @function */
+  interface SetPriceForDirectPurchase extends TokenTransition {
+    [0]: TokenSetPriceForDirectPurchaseTransition;
+  }
+  /** @ignore */
+  const SetPriceForDirectPurchase: (f0: TokenSetPriceForDirectPurchaseTransition) => TokenTransition.SetPriceForDirectPurchase;
 }
 
 /** @ignore */
@@ -4425,6 +5594,177 @@ const TokenUnfreezeTransitionV0 : BinCodeable<TokenUnfreezeTransitionV0> & ((dat
   /** The public note */
   public_note?: string,
 }) => TokenUnfreezeTransitionV0);
+
+/**
+ * An enum wrapper around various special transaction payloads.
+ *  Special transactions are defined in DIP 2.
+ */
+/** @ignore */
+export abstract class TransactionPayload {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TransactionPayload): void;
+  /** @ignore */
+  static decode(bc: BinCode): TransactionPayload;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TransactionPayload.variants;
+  /** @ignore */
+  static variants: {
+    ProviderRegistrationPayloadType: typeof TransactionPayload.ProviderRegistrationPayloadType,
+    ProviderUpdateServicePayloadType: typeof TransactionPayload.ProviderUpdateServicePayloadType,
+    ProviderUpdateRegistrarPayloadType: typeof TransactionPayload.ProviderUpdateRegistrarPayloadType,
+    ProviderUpdateRevocationPayloadType: typeof TransactionPayload.ProviderUpdateRevocationPayloadType,
+    CoinbasePayloadType: typeof TransactionPayload.CoinbasePayloadType,
+    QuorumCommitmentPayloadType: typeof TransactionPayload.QuorumCommitmentPayloadType,
+    AssetLockPayloadType: typeof TransactionPayload.AssetLockPayloadType,
+    AssetUnlockPayloadType: typeof TransactionPayload.AssetUnlockPayloadType,
+  };
+}
+namespace TransactionPayload {
+  /**
+   * A wrapper for a Masternode Registration payload
+   * 
+   * @function
+   */
+  interface ProviderRegistrationPayloadType extends TransactionPayload {
+    [0]: ProviderRegistrationPayload;
+  }
+  /** @ignore */
+  const ProviderRegistrationPayloadType: (f0: ProviderRegistrationPayload) => TransactionPayload.ProviderRegistrationPayloadType;
+  /**
+   * A wrapper for a Masternode Update Service payload
+   * 
+   * @function
+   */
+  interface ProviderUpdateServicePayloadType extends TransactionPayload {
+    [0]: ProviderUpdateServicePayload;
+  }
+  /** @ignore */
+  const ProviderUpdateServicePayloadType: (f0: ProviderUpdateServicePayload) => TransactionPayload.ProviderUpdateServicePayloadType;
+  /**
+   * A wrapper for a Masternode Update Registrar payload
+   * 
+   * @function
+   */
+  interface ProviderUpdateRegistrarPayloadType extends TransactionPayload {
+    [0]: ProviderUpdateRegistrarPayload;
+  }
+  /** @ignore */
+  const ProviderUpdateRegistrarPayloadType: (f0: ProviderUpdateRegistrarPayload) => TransactionPayload.ProviderUpdateRegistrarPayloadType;
+  /**
+   * A wrapper for a Masternode Update Revocation payload
+   * 
+   * @function
+   */
+  interface ProviderUpdateRevocationPayloadType extends TransactionPayload {
+    [0]: ProviderUpdateRevocationPayload;
+  }
+  /** @ignore */
+  const ProviderUpdateRevocationPayloadType: (f0: ProviderUpdateRevocationPayload) => TransactionPayload.ProviderUpdateRevocationPayloadType;
+  /**
+   * A wrapper for a Coinbase payload
+   * 
+   * @function
+   */
+  interface CoinbasePayloadType extends TransactionPayload {
+    [0]: CoinbasePayload;
+  }
+  /** @ignore */
+  const CoinbasePayloadType: (f0: CoinbasePayload) => TransactionPayload.CoinbasePayloadType;
+  /**
+   * A wrapper for a Quorum Commitment payload
+   * 
+   * @function
+   */
+  interface QuorumCommitmentPayloadType extends TransactionPayload {
+    [0]: QuorumCommitmentPayload;
+  }
+  /** @ignore */
+  const QuorumCommitmentPayloadType: (f0: QuorumCommitmentPayload) => TransactionPayload.QuorumCommitmentPayloadType;
+  /**
+   * A wrapper for an Asset Lock payload
+   * 
+   * @function
+   */
+  interface AssetLockPayloadType extends TransactionPayload {
+    [0]: AssetLockPayload;
+  }
+  /** @ignore */
+  const AssetLockPayloadType: (f0: AssetLockPayload) => TransactionPayload.AssetLockPayloadType;
+  /**
+   * A wrapper for an Asset Unlock payload
+   * 
+   * @function
+   */
+  interface AssetUnlockPayloadType extends TransactionPayload {
+    [0]: AssetUnlockPayload;
+  }
+  /** @ignore */
+  const AssetUnlockPayloadType: (f0: AssetUnlockPayload) => TransactionPayload.AssetUnlockPayloadType;
+}
+
+/**
+ * The transaction type. Special transactions were introduced in DIP2.
+ *  Compared to Bitcoin the version field is split into two 16 bit integers.
+ *  The first part for the version and the second part for the transaction
+ *  type.
+ * 
+ * repr u16
+ */
+/** @ignore */
+export abstract class TransactionType {
+  /** @ignore @internal */
+  constructor();
+  #private;
+  /** @ignore */
+  static name: string;
+  /** @ignore */
+  static isValid(v: unknown): boolean;
+  /** @ignore */
+  static encode(bc: BinCode, v: TransactionType): void;
+  /** @ignore */
+  static decode(bc: BinCode): TransactionType;
+  /** @ignore @internal */
+  [VARIANTS]: typeof TransactionType.variants;
+  /** @ignore */
+  static variants: {
+    Classic: typeof TransactionType.Classic,
+    ProviderRegistration: typeof TransactionType.ProviderRegistration,
+    ProviderUpdateService: typeof TransactionType.ProviderUpdateService,
+    ProviderUpdateRegistrar: typeof TransactionType.ProviderUpdateRegistrar,
+    ProviderUpdateRevocation: typeof TransactionType.ProviderUpdateRevocation,
+    Coinbase: typeof TransactionType.Coinbase,
+    QuorumCommitment: typeof TransactionType.QuorumCommitment,
+    AssetLock: typeof TransactionType.AssetLock,
+    AssetUnlock: typeof TransactionType.AssetUnlock,
+  };
+}
+namespace TransactionType {
+  /** A Classic transaction */
+  const Classic: () => TransactionType;
+  /** A Masternode Registration Transaction */
+  const ProviderRegistration: () => TransactionType;
+  /** A Masternode Update Service Transaction, used by the operator to signal changes to service */
+  const ProviderUpdateService: () => TransactionType;
+  /** A Masternode Update Registrar Transaction, used by the owner to signal base changes */
+  const ProviderUpdateRegistrar: () => TransactionType;
+  /** A Masternode Update Revocation Transaction, used by the operator to signal termination of service */
+  const ProviderUpdateRevocation: () => TransactionType;
+  /** A Coinbase Transaction, contained as the first transaction in each block */
+  const Coinbase: () => TransactionType;
+  /** A Quorum Commitment Transaction, used to save quorum information to the state */
+  const QuorumCommitment: () => TransactionType;
+  /** An Asset Lock Transaction, used to transfer credits to Dash Platform, by locking them until withdrawals occur */
+  const AssetLock: () => TransactionType;
+  /** An Asset Unlock Transaction, used to withdraw credits from Dash Platform, by unlocking them */
+  const AssetUnlock: () => TransactionType;
+}
 
 /** A transaction output, which defines new coins to be created from old ones. */
 interface TxOut {

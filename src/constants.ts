@@ -1,8 +1,9 @@
 
-export const rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+export const RPC_AUTH_URL = "https://api:null@trpc.digitalcash.dev";
 const zmqUuid = crypto.randomUUID();
-export const zmqAuthUrl = `https://tzmq.digitalcash.dev/api/zmq/eventsource/${zmqUuid}`;
-
+export const ZMQ_AUTH_URL = `https://tzmq.digitalcash.dev/api/zmq/eventsource/${zmqUuid}`;
+export const NODE_ADDRESS = "https://seed-2.testnet.networks.dash.org:1443"
+  
 export const L1_VERSION_PLATFORM = 3;
 // const L1_VERSION_PLATFORM = 0;
 export const TYPE_ASSET_LOCK = 8;
@@ -10,7 +11,7 @@ export const VERSION_ASSET_LOCK = 1;
 // const L2_VERSION_PLATFORM = 1; // actually constant "0" ??
 // const ST_CREATE_IDENTITY = 2;
 
-export const VERSIONS_TESTNET = ["8c", "ef"];
+export const VERSIONS_TESTNET = ["8c", "ef"] as const;
 
 export const KEY_TYPES = {
   0: "ECDSA_SECP256K1",

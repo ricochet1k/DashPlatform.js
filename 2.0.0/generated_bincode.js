@@ -3,15 +3,53 @@ import {
   Int128, Int16, Int32, Int64, Int8, Uint128, Uint16, Uint32, Uint64, Uint8, Float64,
   VarInt, VarUint, Vec, Tuple, Map, Option, String, Nothing, Range, NotSignable,
   SocketAddr,
-} from "../bincode.ts"
-import { Transaction } from "../bincode_types.ts";
+} from "../src/bincode.ts"
+import { Transaction } from "../src/bincode_types.ts";
 export const Hash = Bytes; //FixedBytes(32)
 
 /** @type {*} */
-export const Value = Lazy("Value", () => REAL_Value);
+export let Value = Lazy("Value", () => REAL_Value);
+
+// !ENCODE
+/**
+ * An Asset Unlock Base payload. This is the base payload of the Asset Unlock. In order to make
+ *  it a full payload the request info should be added.
+ */
+export const AssetUnlockBasePayload = Struct("AssetUnlockBasePayload", {
+  /** The payload protocol version, is currently expected to be 0. */
+  version: Uint8,
+  /** The index of the unlock transaction. It gets bumped on each transaction */
+  index: VarUint,
+  /** The fee used in Duffs (Satoshis) */
+  fee: VarUint,
+});
+
+// !ENCODE
+/**
+ * A BLS Public key is 48 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+export const BLSPublicKey = StructTuple("BLSPublicKey",
+  FixedBytes(48),
+);
+
+// !ENCODE
+/**
+ * A BLS Signature is 96 bytes in the scheme used for Dash Core
+ * attr since (1.48) , derive (PartialEq , Eq , Ord , PartialOrd , Hash)
+ */
+export const BLSSignature = StructTuple("BLSSignature",
+  FixedBytes(96),
+);
 
 export const BinaryData = StructTuple("BinaryData",
   Bytes,
+);
+
+// !ENCODE
+/** A dash block hash. */
+export const BlockHash = StructTuple("BlockHash",
+  Hash,
 );
 
 export const BlockHeight = VarUint
@@ -30,6 +68,21 @@ export const EpochIndex = VarUint
 
 export const EpochInterval = VarUint
 
+export const GasFeesPaidBy = Enum("GasFeesPaidBy", /** @type {const} */ ({
+  /**
+   * The user pays the gas fees
+   * default
+   */
+  DocumentOwner: [],
+  /** The contract owner pays the gas fees */
+  ContractOwner: [],
+  /**
+   * The user is stating his willingness to pay the gas fee if the Contract owner's balance is
+   *  insufficient.
+   */
+  PreferContractOwner: [],
+}))
+
 export const GroupContractPosition = VarUint
 
 export const GroupMemberPower = VarUint
@@ -43,6 +96,12 @@ export const IdentifierBytes32 = StructTuple("IdentifierBytes32",
 );
 
 export const IdentityNonce = VarUint
+
+// !ENCODE
+/** A hash of all transaction inputs */
+export const InputsHash = StructTuple("InputsHash",
+  Hash,
+);
 
 export const KeyID = VarUint
 
@@ -59,6 +118,45 @@ export const KeyType = Enum("KeyType", /** @type {const} */ ({
   EDDSA_25519_HASH160: [],
 }))
 
+// !ENCODE
+export const LLMQType = Enum("LLMQType", /** @type {const} */ ({
+  LlmqtypeUnknown: [],
+  Llmqtype50_60: [],
+  Llmqtype400_60: [],
+  Llmqtype400_85: [],
+  Llmqtype100_67: [],
+  Llmqtype60_75: [],
+  Llmqtype25_67: [],
+  LlmqtypeTest: VariantDiscriminant([], 100),
+  LlmqtypeDevnet: VariantDiscriminant([], 101),
+  LlmqtypeTestV17: VariantDiscriminant([], 102),
+  LlmqtypeTestDIP0024: VariantDiscriminant([], 103),
+  LlmqtypeTestInstantSend: VariantDiscriminant([], 104),
+  LlmqtypeDevnetDIP0024: VariantDiscriminant([], 105),
+  LlmqtypeTestnetPlatform: VariantDiscriminant([], 106),
+  LlmqtypeDevnetPlatform: VariantDiscriminant([], 107),
+}))
+
+// !ENCODE
+/**
+ * Dash Additions
+ * 
+ *  The merkle root of the masternode list
+ * hash_newtype forward
+ */
+export const MerkleRootMasternodeList = StructTuple("MerkleRootMasternodeList",
+  Hash,
+);
+
+// !ENCODE
+/**
+ * The merkle root of the quorums
+ * hash_newtype forward
+ */
+export const MerkleRootQuorums = StructTuple("MerkleRootQuorums",
+  Hash,
+);
+
 /** repr u8 */
 export const Pooling = Enum("Pooling", /** @type {const} */ ({
   /** default */
@@ -66,6 +164,18 @@ export const Pooling = Enum("Pooling", /** @type {const} */ ({
   IfAvailable: [],
   Standard: [],
 }))
+
+// !ENCODE
+export const ProviderMasternodeType = Enum("ProviderMasternodeType", /** @type {const} */ ({
+  Regular: [],
+  HighPerformance: [],
+}))
+
+// !ENCODE
+/** A hash of a public key. */
+export const PubkeyHash = StructTuple("PubkeyHash",
+  Hash,
+);
 
 /** repr u8 */
 export const Purpose = Enum("Purpose", /** @type {const} */ ({
@@ -78,7 +188,10 @@ export const Purpose = Enum("Purpose", /** @type {const} */ ({
   ENCRYPTION: [],
   /** this key cannot be used for signing documents */
   DECRYPTION: [],
-  /** this key is used to sign credit transfer and withdrawal state transitions */
+  /**
+   * this key is used to sign credit transfer and withdrawal state transitions
+   *  this key can also be used by identities for claims and transfers of tokens
+   */
   TRANSFER: [],
   /** this key cannot be used for signing documents */
   SYSTEM: [],
@@ -87,6 +200,14 @@ export const Purpose = Enum("Purpose", /** @type {const} */ ({
   /** this key is used to prove ownership of a masternode or evonode */
   OWNER: [],
 }))
+
+export const QuorumHash = BlockHash
+
+// !ENCODE
+/** A hash of a quorum verification vector */
+export const QuorumVVecHash = StructTuple("QuorumVVecHash",
+  Hash,
+);
 
 // !ENCODE
 /** "Raw" instant lock for serialization */
@@ -147,9 +268,32 @@ export const TimestampMillisInterval = VarUint
 
 export const TokenAmount = VarUint
 
+/**
+ * Defines the localized naming format for a token in a specific language.
+ * 
+ *  `TokenConfigurationLocalizationV0` enables tokens to present user-friendly names
+ *  across different locales. This information is not used for validation or consensus
+ *  but enhances UX by allowing consistent display in multilingual interfaces.
+ */
 export const TokenConfigurationLocalizationV0 = Struct("TokenConfigurationLocalizationV0", {
+  /**
+   * Indicates whether the token name should be capitalized when displayed.
+   * 
+   *  This is a stylistic hint for clients (e.g., "Dash" vs. "dash") and is typically
+   *  applied to both singular and plural forms unless overridden.
+   */
   should_capitalize: Bool,
+  /**
+   * The singular form of the token name in the target language.
+   * 
+   *  Example: "Dash", "Dollar", or "Token".
+   */
   singular_form: String,
+  /**
+   * The plural form of the token name in the target language.
+   * 
+   *  Example: "Dash", "Dollars", or "Tokens".
+   */
   plural_form: String,
 });
 
@@ -191,7 +335,74 @@ export const TokenKeepsHistoryRulesV0 = Struct("TokenKeepsHistoryRulesV0", {
   keeps_minting_history: Bool,
   /** Whether burning history is recorded. */
   keeps_burning_history: Bool,
+  /** Whether direct pricing history is recorded. */
+  keeps_direct_pricing_history: Bool,
+  /** Whether direct purchase history is recorded. */
+  keeps_direct_purchase_history: Bool,
 });
+
+/**
+ * Defines the pricing schedule for tokens in terms of credits.
+ * 
+ *  A pricing schedule can either be a single, flat price applied to all
+ *  token amounts, or a tiered pricing model where specific amounts
+ *  correspond to specific credit values.
+ */
+export const TokenPricingSchedule = Enum("TokenPricingSchedule", /** @type {const} */ ({
+  /**
+   * A single flat price in credits for all token amounts.
+   * 
+   *  This variant is used when the pricing does not depend on
+   *  the number of tokens being purchased or processed.
+   */
+  SinglePrice: [Credits],
+  /**
+   * A tiered pricing model where specific token amounts map to credit prices.
+   * 
+   *  This allows for more complex pricing structures, such as
+   *  volume discounts or progressive pricing. The map keys
+   *  represent token amount thresholds, and the values are the
+   *  corresponding credit prices.
+   *  If the first token amount is greater than 1 this means that the user can only
+   *  purchase that amount as a minimum at a time.
+   */
+  SetPrices: [Map(TokenAmount, Credits)],
+}))
+
+export const TokenTradeMode = Enum("TokenTradeMode", /** @type {const} */ ({
+  /** default */
+  NotTradeable: [],
+}))
+
+// !ENCODE
+/**
+ * The transaction type. Special transactions were introduced in DIP2.
+ *  Compared to Bitcoin the version field is split into two 16 bit integers.
+ *  The first part for the version and the second part for the transaction
+ *  type.
+ * 
+ * repr u16
+ */
+export const TransactionType = Enum("TransactionType", /** @type {const} */ ({
+  /** A Classic transaction */
+  Classic: [],
+  /** A Masternode Registration Transaction */
+  ProviderRegistration: [],
+  /** A Masternode Update Service Transaction, used by the operator to signal changes to service */
+  ProviderUpdateService: [],
+  /** A Masternode Update Registrar Transaction, used by the owner to signal base changes */
+  ProviderUpdateRegistrar: [],
+  /** A Masternode Update Revocation Transaction, used by the operator to signal termination of service */
+  ProviderUpdateRevocation: [],
+  /** A Coinbase Transaction, contained as the first transaction in each block */
+  Coinbase: [],
+  /** A Quorum Commitment Transaction, used to save quorum information to the state */
+  QuorumCommitment: [],
+  /** An Asset Lock Transaction, used to transfer credits to Dash Platform, by locking them until withdrawals occur */
+  AssetLock: VariantDiscriminant([], 8),
+  /** An Asset Unlock Transaction, used to withdraw credits from Dash Platform, by unlocking them */
+  AssetUnlock: VariantDiscriminant([], 9),
+}))
 
 // !ENCODE
 /** A transaction output, which defines new coins to be created from old ones. */
@@ -224,6 +435,37 @@ export const ValueMap = Vec(Tuple(Value, Value))
 export const AssetLockPayload = Struct("AssetLockPayload", {
   version: Uint8,
   credit_outputs: Vec(TxOut),
+});
+
+// !ENCODE
+/**
+ * An asset unlock request info
+ *  This is the information about the signing quorum
+ *  The request height should be the height at which the specified quorum is active on core.
+ */
+export const AssetUnlockRequestInfo = Struct("AssetUnlockRequestInfo", {
+  /**
+   * The core request height of the transaction. This should match a period where the quorum_hash
+   *  is still active
+   */
+  request_height: VarUint,
+  /** The quorum hash. This is the block hash when the quorum was created. */
+  quorum_hash: QuorumHash,
+});
+
+// !ENCODE
+/**
+ * A Coinbase payload. This is contained as the payload of a coinbase special transaction.
+ *  The Coinbase payload is described in DIP4.
+ */
+export const CoinbasePayload = Struct("CoinbasePayload", {
+  version: VarUint,
+  height: VarUint,
+  merkle_root_masternode_list: MerkleRootMasternodeList,
+  merkle_root_quorums: MerkleRootQuorums,
+  best_cl_height: Option(VarUint),
+  best_cl_signature: Option(BLSSignature),
+  asset_locked_amount: Option(VarUint),
 });
 
 export const DashcoreScript = ScriptBuf
@@ -384,11 +626,18 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    *  f(x) = n * (1 - (decrease_per_interval_numerator / decrease_per_interval_denominator))^((x - s) / step_count)
    *  ```
    * 
+   *  For `x <= s`, `f(x) = n`
+   * 
    *  # Parameters
    *  - `step_count`: The number of periods between each step.
    *  - `decrease_per_interval_numerator` and `decrease_per_interval_denominator`: Define the reduction factor per step.
-   *  - `s`: Optional start period offset (e.g., start block or time). If not provided, the contract creation start is used.
-   *  - `n`: The initial token emission.
+   *  - `start_decreasing_offset`: Optional start period offset (e.g., start block or time). If not provided, the contract creation start is used.
+   *      If this is provided before this number we give out the distribution start amount every interval.
+   *  - `max_interval_count`: The maximum amount of intervals there can be. Can be up to 1024.
+   *      !!!Very important!!! -> This will default to 128 is default if not set.
+   *      This means that after 128 cycles we will be distributing trailing_distribution_interval_amount per interval.
+   *  - `distribution_start_amount`: The initial token emission.
+   *  - `trailing_distribution_interval_amount`: The token emission after all decreasing intervals.
    *  - `min_value`: Optional minimum emission value.
    * 
    *  # Use Case
@@ -403,8 +652,10 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
     step_count: VarUint,
     decrease_per_interval_numerator: VarUint,
     decrease_per_interval_denominator: VarUint,
-    s: Option(VarUint),
-    n: TokenAmount,
+    start_decreasing_offset: Option(VarUint),
+    max_interval_count: Option(VarUint),
+    distribution_start_amount: TokenAmount,
+    trailing_distribution_interval_amount: TokenAmount,
     min_value: Option(VarUint),
   },
   /**
@@ -414,6 +665,8 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    *  - Within each step, the emission remains constant.
    *  - The keys in the `BTreeMap` represent the starting period for each interval,
    *    and the corresponding values are the fixed token amounts to emit during that interval.
+   *  - VERY IMPORTANT: the steps are the amount of intervals, not the time or the block count.
+   *    So if you have step 5 with interval 10 using blocks that's 50 blocks.
    * 
    *  # Use Case
    *  - Adjusting rewards at specific milestones or time intervals.
@@ -430,7 +683,7 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    *  The emission at period `x` is given by:
    * 
    *  ```text
-   *  f(x) = (a * (x - start_moment) / d) + starting_amount
+   *  f(x) = (a * (x - start_step) / d) + starting_amount
    *  ```
    * 
    *  # Parameters
@@ -636,7 +889,7 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    *  The emission at period `x` is given by:
    * 
    *  ```text
-   *  f(x) = (a * e^(m * (x - s) / n)) / d + c
+   *  f(x) = (a * e^(m * (x - s + o) / n)) / d + b
    *  ```
    * 
    *  # Parameters
@@ -645,7 +898,7 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    *  - `d`: A divisor used to scale the exponential term.
    *  - `s`: Optional start period offset. If not set, the contract creation start is assumed.
    *  - `o`: An offset for the exp function, this is useful if s is in None.
-   *  - `c`: An offset added to the result.
+   *  - `b`: An offset added to the result.
    *  - `min_value` / `max_value`: Optional constraints on the emitted tokens.
    * 
    *  # Use Cases
@@ -671,7 +924,7 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    * 
    *  ## **Example 2: Exponential Decay (`m < 0`)**
    *  - **Use Case**: A deflationary model where emissions start high and gradually decrease to ensure scarcity.
-   *  - **Parameters**: `a = 500`, `m = -3`, `n = 100`, `d = 20`, `c = 10`
+   *  - **Parameters**: `a = 500`, `m = -3`, `n = 100`, `d = 20`, `b = 10`
    *  - **Formula**:
    *    ```text
    *    f(x) = (500 * e^(-3 * (x - s) / 100)) / 20 + 10
@@ -685,18 +938,18 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
     n: VarUint,
     o: VarInt,
     start_moment: Option(VarUint),
-    c: TokenAmount,
+    b: TokenAmount,
     min_value: Option(VarUint),
     max_value: Option(VarUint),
   },
   /**
-   * Emits tokens following a logarithmic function.
+   * Emits tokens following a natural logarithmic (ln) function.
    * 
    *  # Formula
    *  The emission at period `x` is computed as:
    * 
    *  ```text
-   *  f(x) = (a * log(m * (x - s + o) / n)) / d + b
+   *  f(x) = (a * ln(m * (x - s + o) / n)) / d + b
    *  ```
    * 
    *  # Parameters
@@ -722,7 +975,7 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    * 
    *  - Given the formula:
    *    ```text
-   *    f(x) = (a * log(m * (x - s + o) / n)) / d + b
+   *    f(x) = (a * ln(m * (x - s + o) / n)) / d + b
    *    ```
    * 
    *  - Let’s assume the following parameters:
@@ -734,7 +987,7 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    * 
    *  - This results in:
    *    ```text
-   *    f(x) = (100 * log(2 * (x + 1) / 1)) / 10 + 50
+   *    f(x) = (100 * ln(2 * (x + 1) / 1)) / 10 + 50
    *    ```
    * 
    *  - **Expected Behavior:**
@@ -760,13 +1013,13 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
     max_value: Option(VarUint),
   },
   /**
-   * Emits tokens following an inverted logarithmic function.
+   * Emits tokens following an inverted natural logarithmic function.
    * 
    *  # Formula
    *  The emission at period `x` is given by:
    * 
    *  ```text
-   *  f(x) = (a * log( n / (m * (x - s + o)) )) / d + b
+   *  f(x) = (a * ln( n / (m * (x - s + o)) )) / d + b
    *  ```
    * 
    *  # Parameters
@@ -787,22 +1040,24 @@ export const DistributionFunction = Enum("DistributionFunction", /** @type {cons
    *    claimants receive diminishing rewards.
    * 
    *  # Example
-   *  - Suppose a system starts with **500 tokens per period** and gradually reduces over time:
-   * 
    *    ```text
-   *    f(x) = (1000 * log(5000 / (5 * (x - 1000)))) / 10 + 10
+   *    f(x) = 10000 * ln(5000 / x)
    *    ```
-   * 
-   *    Example values:
-   * 
-   *    | Period (x) | Emission (f(x)) |
-   *    |------------|----------------|
-   *    | 1000       | 500 tokens      |
-   *    | 1500       | 230 tokens      |
-   *    | 2000       | 150 tokens      |
-   *    | 5000       | 50 tokens       |
-   *    | 10,000     | 20 tokens       |
-   *    | 50,000     | 10 tokens       |
+   *  - Values: a = 10000 n = 5000 m = 1 o = 0 b = 0 d = 0
+   *            y
+   *            ↑
+   *           10000 |*
+   *            9000 | *
+   *            8000 |  *
+   *            7000 |   *
+   *            6000 |    *
+   *            5000 |     *
+   *            4000 |       *
+   *            3000 |         *
+   *            2000 |           *
+   *            1000 |              *
+   *               0 +-------------------*----------→ x
+   *                   0     2000   4000   6000   8000
    * 
    *    - The emission **starts high** and **gradually decreases**, ensuring early adopters receive
    *      more tokens while later participants still get rewards.
@@ -849,6 +1104,105 @@ export const OutPoint = Struct("OutPoint", {
 });
 
 export const PrivateEncryptedNote = Tuple(RootEncryptionKeyIndex, DerivationEncryptionKeyIndex, Bytes)
+
+// !ENCODE
+/**
+ * A Provider Registration Payload used in a Provider Registration Special Transaction.
+ *  This is used to register a Masternode on the network.
+ *  The current version is 0.
+ *  Interesting Fields:
+ *  *Provider type refers to the type of Masternode. Currently only valid value is 0.
+ *  *Provider mode refers to the mode of the Masternode. Currently only valid value is 0.
+ *  *The collateral outpoint links to a transaction with a 1000 Dash unspent (at registration)
+ *  outpoint.
+ *  *The operator reward defines the ratio when divided by 10000 of the amount going to the operator.
+ *  The max value for the operator reward is 10000.
+ *  *The script payout is the script to which one wants to have the masternode pay out.
+ *  *The inputs hash is used to guarantee the uniqueness of the payload sig.
+ */
+export const ProviderRegistrationPayload = Struct("ProviderRegistrationPayload", {
+  version: VarUint,
+  masternode_type: ProviderMasternodeType,
+  masternode_mode: VarUint,
+  collateral_outpoint: OutPoint,
+  service_address: SocketAddr,
+  owner_key_hash: PubkeyHash,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  operator_reward: VarUint,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  signature: Bytes,
+  platform_node_id: Option(PubkeyHash),
+  platform_p2p_port: Option(VarUint),
+  platform_http_port: Option(VarUint),
+});
+
+// !ENCODE
+/**
+ * A Provider Update Registrar Payload used in a Provider Update Registrar Special Transaction.
+ *  This is used to update the base aspects a Masternode on the network.
+ *  It must be signed by the owner's key that was set at registration.
+ */
+export const ProviderUpdateRegistrarPayload = Struct("ProviderUpdateRegistrarPayload", {
+  version: VarUint,
+  pro_tx_hash: Txid,
+  provider_mode: VarUint,
+  operator_public_key: BLSPublicKey,
+  voting_key_hash: PubkeyHash,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: Bytes,
+});
+
+// !ENCODE
+/**
+ * A Provider Update Revocation Payload used in a Provider Update Revocation Special Transaction.
+ *  This is used to signal and stop a Masternode from the operator.
+ *  It must be signed by the operator's key that was set at registration or registrar update.
+ */
+export const ProviderUpdateRevocationPayload = Struct("ProviderUpdateRevocationPayload", {
+  version: VarUint,
+  pro_tx_hash: Txid,
+  reason: VarUint,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+});
+
+// !ENCODE
+/**
+ * A Provider Update Service Payload used in a Provider Update Service Special Transaction.
+ *  This is used to update the operational aspects a Masternode on the network.
+ *  It must be signed by the operator's key that was set either at registration or by the last
+ *  registrar update of the masternode.
+ */
+export const ProviderUpdateServicePayload = Struct("ProviderUpdateServicePayload", {
+  version: VarUint,
+  pro_tx_hash: Txid,
+  ip_address: VarUint,
+  port: VarUint,
+  script_payout: ScriptBuf,
+  inputs_hash: InputsHash,
+  payload_sig: BLSSignature,
+});
+
+// !ENCODE
+/**
+ * A Quorum Finalization Commitment. It is described in the finalization section of DIP6:
+ *  [dip-0006.md#6-finalization-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#6-finalization-phase)
+ */
+export const QuorumEntry = Struct("QuorumEntry", {
+  version: VarUint,
+  llmq_type: LLMQType,
+  quorum_hash: QuorumHash,
+  quorum_index: Option(VarInt),
+  signers: Vec(Bool),
+  valid_members: Vec(Bool),
+  quorum_public_key: BLSPublicKey,
+  quorum_vvec_hash: QuorumVVecHash,
+  threshold_sig: BLSSignature,
+  all_commitment_aggregated_signature: BLSSignature,
+});
 
 /**
  * A representation of a dynamic value that can handled dynamically
@@ -958,7 +1312,25 @@ export const RewardDistributionType = Enum("RewardDistributionType", /** @type {
   },
 }))
 
+Value = REAL_Value;
+
+/**
+ * Versioned wrapper for token name localization data.
+ * 
+ *  `TokenConfigurationLocalization` allows extensibility for future schema upgrades
+ *  while preserving backward compatibility. Each variant represents a specific format
+ *  version for localization information.
+ * 
+ *  This structure is used to map language codes to localized token names in a flexible,
+ *  forward-compatible manner.
+ */
 export const TokenConfigurationLocalization = Enum("TokenConfigurationLocalization", /** @type {const} */ ({
+  /**
+   * Version 0 of the token localization schema.
+   * 
+   *  Defines basic capitalization preference, singular form, and plural form
+   *  for displaying token names.
+   */
   V0: [TokenConfigurationLocalizationV0],
 }))
 
@@ -982,6 +1354,34 @@ export const TokenKeepsHistoryRules = Enum("TokenKeepsHistoryRules", /** @type {
   V0: [TokenKeepsHistoryRulesV0],
 }))
 
+export const TokenPaymentInfoV0 = Struct("TokenPaymentInfoV0", {
+  /**
+   * By default, we use a token in the same contract, this field must be set if the document
+   *  requires payment using another contracts token.
+   */
+  payment_token_contract_id: Option(Identifier),
+  /**
+   * If we are expecting to pay with a token in a contract, which token are we expecting
+   *  to pay with?
+   *  We have this set so contract owners can't switch out to more valuable token.
+   *  For example if my Data contract
+   */
+  token_contract_position: TokenContractPosition,
+  /** Minimum token cost, this most often should not be set */
+  minimum_token_cost: Option(TokenAmount),
+  /**
+   * Maximum token cost, this most often should be set
+   *  If:
+   *  - a client does not have this set
+   *  - and the data contract allows the price of NFTs to be changed by the data contract's owner or allowed party.
+   *    Then:
+   *  - The user could see the cost changed on them
+   */
+  maximum_token_cost: Option(TokenAmount),
+  /** Who pays the gas fees, this needs to match what the contract allows */
+  gas_fees_paid_by: GasFeesPaidBy,
+});
+
 export const TokenPerpetualDistributionV0 = Struct("TokenPerpetualDistributionV0", {
   /** The distribution type that the token will use */
   distribution_type: RewardDistributionType,
@@ -991,6 +1391,31 @@ export const TokenPerpetualDistributionV0 = Struct("TokenPerpetualDistributionV0
 
 export const TokenPreProgrammedDistributionV0 = Struct("TokenPreProgrammedDistributionV0", {
   distributions: Map(TimestampMillis, Map(Identifier, TokenAmount)),
+});
+
+// !ENCODE
+/**
+ * A Credit Withdrawal payload. This is contained as the payload of a credit withdrawal special
+ *  transaction.
+ *  The Credit Withdrawal Special transaction and this payload is described in the Asset Lock DIP2X
+ *  (todo:update this).
+ *  The Credit Withdrawal Payload is signed by a quorum.
+ * 
+ *  Transaction using it have no inputs. Hence the proof of validity lies solely on the BLS signature.
+ */
+export const AssetUnlockPayload = Struct("AssetUnlockPayload", {
+  /**
+   * The base information about the asset unlock. This base information is the information that
+   *  should be put into a queue.
+   */
+  base: AssetUnlockBasePayload,
+  /**
+   * The request information. This should be added to the unlock transaction as it is being sent
+   *  to be signed.
+   */
+  request_info: AssetUnlockRequestInfo,
+  /** The threshold signature. This should be returned by the consensus engine. */
+  quorum_sig: BLSSignature,
 });
 
 export const AuthorizedActionTakers = Enum("AuthorizedActionTakers", /** @type {const} */ ({
@@ -1165,6 +1590,20 @@ export const IdentityPublicKeyV0 = Struct("IdentityPublicKeyV0", {
   disabled_at: Option(TimestampMillis),
 });
 
+// !ENCODE
+/**
+ * A Quorum Commitment Payload used in a Quorum Commitment Special Transaction.
+ *  This is used in the mining phase as described in DIP 6:
+ *  [dip-0006.md#7-mining-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#7-mining-phase).
+ * 
+ *  Miners take the best final commitment for a DKG session and mine it into a block.
+ */
+export const QuorumCommitmentPayload = Struct("QuorumCommitmentPayload", {
+  version: VarUint,
+  height: VarUint,
+  finalization_commitment: QuorumEntry,
+});
+
 export const TokenBaseTransitionV0 = Struct("TokenBaseTransitionV0", {
   identity_contract_nonce: IdentityNonce,
   /** ID of the token within the contract */
@@ -1177,14 +1616,36 @@ export const TokenBaseTransitionV0 = Struct("TokenBaseTransitionV0", {
   using_group_info: Option(GroupStateTransitionInfo),
 });
 
+/**
+ * Defines display conventions for a token, including name localization and decimal precision.
+ * 
+ *  `TokenConfigurationConventionV0` provides human-readable metadata to guide client applications
+ *  in rendering token names and formatting token values. This structure is purely informative
+ *  and does not affect consensus-critical logic or supply calculations.
+ */
 export const TokenConfigurationConventionV0 = Struct("TokenConfigurationConventionV0", {
   /**
-   * Localizations for the token name.
-   *  The key must be a ISO 639 2-chars language code
+   * A mapping of ISO 639-1 language codes (2-letter lowercase strings) to localized
+   *  token names and metadata.
+   * 
+   *  These localizations enable wallets and dApps to display token information in the
+   *  user's preferred language. At least one localization (e.g., English) is strongly recommended.
    */
   localizations: Map(String, TokenConfigurationLocalization),
-  decimals: VarUint,
+  /**
+   * The number of decimal places used to represent the token.
+   * 
+   *  For example, a value of `8` means that one full token is represented as `10^8` base units
+   *  (similar to Bitcoin's satoshis or Dash's duffs).
+   * 
+   *  This value is used by clients to determine formatting and user interface display.
+   */
+  decimals: Uint8,
 });
+
+export const TokenPaymentInfo = Enum("TokenPaymentInfo", /** @type {const} */ ({
+  V0: [TokenPaymentInfoV0],
+}))
 
 /** platform_serialize unversioned */
 export const TokenPerpetualDistribution = Enum("TokenPerpetualDistribution", /** @type {const} */ ({
@@ -1195,6 +1656,30 @@ export const TokenPreProgrammedDistribution = Enum("TokenPreProgrammedDistributi
   V0: [TokenPreProgrammedDistributionV0],
 }))
 
+// !ENCODE
+/**
+ * An enum wrapper around various special transaction payloads.
+ *  Special transactions are defined in DIP 2.
+ */
+export const TransactionPayload = Enum("TransactionPayload", /** @type {const} */ ({
+  /** A wrapper for a Masternode Registration payload */
+  ProviderRegistrationPayloadType: [ProviderRegistrationPayload],
+  /** A wrapper for a Masternode Update Service payload */
+  ProviderUpdateServicePayloadType: [ProviderUpdateServicePayload],
+  /** A wrapper for a Masternode Update Registrar payload */
+  ProviderUpdateRegistrarPayloadType: [ProviderUpdateRegistrarPayload],
+  /** A wrapper for a Masternode Update Revocation payload */
+  ProviderUpdateRevocationPayloadType: [ProviderUpdateRevocationPayload],
+  /** A wrapper for a Coinbase payload */
+  CoinbasePayloadType: [CoinbasePayload],
+  /** A wrapper for a Quorum Commitment payload */
+  QuorumCommitmentPayloadType: [QuorumCommitmentPayload],
+  /** A wrapper for an Asset Lock payload */
+  AssetLockPayloadType: [AssetLockPayload],
+  /** A wrapper for an Asset Unlock payload */
+  AssetUnlockPayloadType: [AssetUnlockPayload],
+}))
+
 /**
  * platform_serialize unversioned
  * platform_serialize limit = 100000
@@ -1203,6 +1688,7 @@ export const VotePoll = Enum("VotePoll", /** @type {const} */ ({
   ContestedDocumentResourceVotePoll: [ContestedDocumentResourceVotePoll],
 }))
 
+/** allow clippy :: large_enum_variant */
 export const AssetLockProof = Enum("AssetLockProof", /** @type {const} */ ({
   Instant: [InstantAssetLockProof],
   Chain: [ChainAssetLockProof],
@@ -1212,51 +1698,16 @@ export const ChangeControlRules = Enum("ChangeControlRules", /** @type {const} *
   V0: [ChangeControlRulesV0],
 }))
 
-export const DocumentBaseTransition = Enum("DocumentBaseTransition", /** @type {const} */ ({
-  V0: [DocumentBaseTransitionV0],
-}))
-
-export const DocumentCreateTransitionV0 = Struct("DocumentCreateTransitionV0", {
-  /** Document Base Transition */
-  base: DocumentBaseTransition,
-  /** Entropy used to create a Document ID. */
-  entropy: FixedBytes(32),
-  data: Map(String, Value),
-  /**
-   * Pre funded balance (for unique index conflict resolution voting - the identity will put money
-   *  aside that will be used by voters to vote)
-   *  This is a map of index names to the amount we want to prefund them for
-   *  Since index conflict resolution is not a common feature most often nothing should be added here.
-   */
-  prefunded_voting_balance: Option(Tuple(String, Credits)),
-});
-
-export const DocumentDeleteTransitionV0 = Struct("DocumentDeleteTransitionV0", {
-  base: DocumentBaseTransition,
-});
-
-export const DocumentPurchaseTransitionV0 = Struct("DocumentPurchaseTransitionV0", {
-  base: DocumentBaseTransition,
-  revision: Revision,
-  price: Credits,
-});
-
-export const DocumentReplaceTransitionV0 = Struct("DocumentReplaceTransitionV0", {
-  base: DocumentBaseTransition,
-  revision: Revision,
-  data: Map(String, Value),
-});
-
-export const DocumentTransferTransitionV0 = Struct("DocumentTransferTransitionV0", {
-  base: DocumentBaseTransition,
-  revision: Revision,
-  recipient_owner_id: Identifier,
-});
-
-export const DocumentUpdatePriceTransitionV0 = Struct("DocumentUpdatePriceTransitionV0", {
-  base: DocumentBaseTransition,
-  revision: Revision,
-  price: Credits,
+export const DocumentBaseTransitionV1 = Struct("DocumentBaseTransitionV1", {
+  /** The document ID */
+  id: Identifier,
+  identity_contract_nonce: IdentityNonce,
+  /** Name of document type found int the data contract associated with the `data_contract_id` */
+  document_type_name: String,
+  /** Data contract ID generated from the data contract's `owner_id` and `entropy` */
+  data_contract_id: Identifier,
+  /** An optional Token Payment Info */
+  token_payment_info: Option(TokenPaymentInfo),
 });
 
 /** platform_serialize unversioned */
@@ -1311,6 +1762,18 @@ export const IdentityUpdateTransitionV0 = Struct("IdentityUpdateTransitionV0", {
   signature: NotSignable(BinaryData),
 });
 
+// !ENCODE
+/**
+ * Implement the Identity. Identity is a low-level construct that provides the foundation
+ *  for user-facing functionality on the platform
+ */
+export const IdentityV0 = Struct("IdentityV0", {
+  id: Identifier,
+  public_keys: Map(KeyID, IdentityPublicKey),
+  balance: VarUint,
+  revision: Revision,
+});
+
 /** platform_serialize unversioned */
 export const ResourceVoteV0 = Struct("ResourceVoteV0", {
   vote_poll: VotePoll,
@@ -1339,7 +1802,23 @@ export const TokenClaimTransitionV0 = Struct("TokenClaimTransitionV0", {
   public_note: Option(String),
 });
 
+/**
+ * Versioned wrapper for token display conventions.
+ * 
+ *  `TokenConfigurationConvention` provides a flexible, forward-compatible structure
+ *  for representing human-readable metadata about a token, such as localized names
+ *  and decimal formatting standards.
+ * 
+ *  This enum enables evolution of the convention schema over time without breaking
+ *  compatibility with older tokens. Each variant defines a specific format version.
+ */
 export const TokenConfigurationConvention = Enum("TokenConfigurationConvention", /** @type {const} */ ({
+  /**
+   * Version 0 of the token convention schema.
+   * 
+   *  Defines localized names (by ISO 639 language codes) and the number of decimal places
+   *  used for displaying token amounts.
+   */
   V0: [TokenConfigurationConventionV0],
 }))
 
@@ -1352,6 +1831,20 @@ export const TokenDestroyFrozenFundsTransitionV0 = Struct("TokenDestroyFrozenFun
   public_note: Option(String),
 });
 
+export const TokenDirectPurchaseTransitionV0 = Struct("TokenDirectPurchaseTransitionV0", {
+  /** Document Base Transition */
+  base: TokenBaseTransition,
+  /** How many tokens should we buy. */
+  token_count: TokenAmount,
+  /**
+   * Price that the user is willing to pay for all the tokens.
+   *  The user will pay up to this amount.
+   *  If the actual cost of the token per the contract is less than the agreed price that the user is willing to pay
+   *  Then we take the actual cost per the contract.
+   */
+  total_agreed_price: Credits,
+});
+
 export const TokenDistributionRulesV0 = Struct("TokenDistributionRulesV0", {
   perpetual_distribution: Option(TokenPerpetualDistribution),
   perpetual_distribution_rules: ChangeControlRules,
@@ -1360,6 +1853,7 @@ export const TokenDistributionRulesV0 = Struct("TokenDistributionRulesV0", {
   new_tokens_destination_identity_rules: ChangeControlRules,
   minting_allow_choosing_destination: Bool,
   minting_allow_choosing_destination_rules: ChangeControlRules,
+  change_direct_purchase_pricing_rules: ChangeControlRules,
 });
 
 export const TokenEmergencyActionTransitionV0 = Struct("TokenEmergencyActionTransitionV0", {
@@ -1380,6 +1874,11 @@ export const TokenFreezeTransitionV0 = Struct("TokenFreezeTransitionV0", {
   public_note: Option(String),
 });
 
+export const TokenMarketplaceRulesV0 = Struct("TokenMarketplaceRulesV0", {
+  trade_mode: TokenTradeMode,
+  trade_mode_change_rules: ChangeControlRules,
+});
+
 export const TokenMintTransitionV0 = Struct("TokenMintTransitionV0", {
   /** Document Base Transition */
   base: TokenBaseTransition,
@@ -1390,6 +1889,18 @@ export const TokenMintTransitionV0 = Struct("TokenMintTransitionV0", {
   issued_to_identity_id: Option(Identifier),
   /** How much should we issue */
   amount: VarUint,
+  /** The public note */
+  public_note: Option(String),
+});
+
+export const TokenSetPriceForDirectPurchaseTransitionV0 = Struct("TokenSetPriceForDirectPurchaseTransitionV0", {
+  /** Document Base Transition */
+  base: TokenBaseTransition,
+  /**
+   * What should be the price for a single token
+   *  Setting this to None makes it no longer purchasable
+   */
+  price: Option(TokenPricingSchedule),
   /** The public note */
   public_note: Option(String),
 });
@@ -1415,28 +1926,62 @@ export const TokenUnfreezeTransitionV0 = Struct("TokenUnfreezeTransitionV0", {
   public_note: Option(String),
 });
 
-export const DocumentCreateTransition = Enum("DocumentCreateTransition", /** @type {const} */ ({
-  V0: [DocumentCreateTransitionV0],
+export const DocumentBaseTransition = Enum("DocumentBaseTransition", /** @type {const} */ ({
+  V0: [DocumentBaseTransitionV0],
+  V1: [DocumentBaseTransitionV1],
 }))
 
-export const DocumentDeleteTransition = Enum("DocumentDeleteTransition", /** @type {const} */ ({
-  V0: [DocumentDeleteTransitionV0],
-}))
+export const DocumentCreateTransitionV0 = Struct("DocumentCreateTransitionV0", {
+  /** Document Base Transition */
+  base: DocumentBaseTransition,
+  /** Entropy used to create a Document ID. */
+  entropy: FixedBytes(32),
+  data: Map(String, Value),
+  /**
+   * Pre funded balance (for unique index conflict resolution voting - the identity will put money
+   *  aside that will be used by voters to vote)
+   *  This is a map of index names to the amount we want to prefund them for
+   *  Since index conflict resolution is not a common feature most often nothing should be added here.
+   */
+  prefunded_voting_balance: Option(Tuple(String, Credits)),
+});
 
-export const DocumentPurchaseTransition = Enum("DocumentPurchaseTransition", /** @type {const} */ ({
-  V0: [DocumentPurchaseTransitionV0],
-}))
+export const DocumentDeleteTransitionV0 = Struct("DocumentDeleteTransitionV0", {
+  base: DocumentBaseTransition,
+});
 
-export const DocumentReplaceTransition = Enum("DocumentReplaceTransition", /** @type {const} */ ({
-  V0: [DocumentReplaceTransitionV0],
-}))
+export const DocumentPurchaseTransitionV0 = Struct("DocumentPurchaseTransitionV0", {
+  base: DocumentBaseTransition,
+  revision: Revision,
+  price: Credits,
+});
 
-export const DocumentTransferTransition = Enum("DocumentTransferTransition", /** @type {const} */ ({
-  V0: [DocumentTransferTransitionV0],
-}))
+export const DocumentReplaceTransitionV0 = Struct("DocumentReplaceTransitionV0", {
+  base: DocumentBaseTransition,
+  revision: Revision,
+  data: Map(String, Value),
+});
 
-export const DocumentUpdatePriceTransition = Enum("DocumentUpdatePriceTransition", /** @type {const} */ ({
-  V0: [DocumentUpdatePriceTransitionV0],
+export const DocumentTransferTransitionV0 = Struct("DocumentTransferTransitionV0", {
+  base: DocumentBaseTransition,
+  revision: Revision,
+  recipient_owner_id: Identifier,
+});
+
+export const DocumentUpdatePriceTransitionV0 = Struct("DocumentUpdatePriceTransitionV0", {
+  base: DocumentBaseTransition,
+  revision: Revision,
+  price: Credits,
+});
+
+// !ENCODE
+/**
+ * The identity is not stored inside of drive, because of this, the serialization is mainly for
+ *  transport, the serialization of the identity will include the version, so no passthrough or
+ *  untagged is needed here
+ */
+export const Identity = Enum("Identity", /** @type {const} */ ({
+  V0: [IdentityV0],
 }))
 
 export const IdentityCreateTransitionV0 = Struct("IdentityCreateTransitionV0", {
@@ -1506,11 +2051,36 @@ export const TokenConfigurationChangeItem = Enum("TokenConfigurationChangeItem",
   DestroyFrozenFundsAdminGroup: [AuthorizedActionTakers],
   EmergencyAction: [AuthorizedActionTakers],
   EmergencyActionAdminGroup: [AuthorizedActionTakers],
+  MarketplaceTradeMode: [TokenTradeMode],
+  MarketplaceTradeModeControlGroup: [AuthorizedActionTakers],
+  MarketplaceTradeModeAdminGroup: [AuthorizedActionTakers],
   MainControlGroup: [Option(GroupContractPosition)],
 }))
 
 export const TokenDestroyFrozenFundsTransition = Enum("TokenDestroyFrozenFundsTransition", /** @type {const} */ ({
   V0: [TokenDestroyFrozenFundsTransitionV0],
+}))
+
+/**
+ * Represents a versioned transition for direct token purchases.
+ * 
+ *  This enum allows for forward-compatible support of different versions
+ *  of the `TokenDirectPurchaseTransition` structure. Each variant corresponds
+ *  to a specific version of the transition logic and structure.
+ * 
+ *  This transition type is used when a user intends to directly purchase tokens
+ *  by specifying the desired amount and the maximum total price they are willing to pay.
+ */
+export const TokenDirectPurchaseTransition = Enum("TokenDirectPurchaseTransition", /** @type {const} */ ({
+  /**
+   * Version 0 of the token direct purchase transition.
+   * 
+   *  This version includes the base document transition, the number of tokens
+   *  to purchase, and the maximum total price the user agrees to pay.
+   *  If the price in the contract is lower than the agreed price, the lower
+   *  price is used.
+   */
+  V0: [TokenDirectPurchaseTransitionV0],
 }))
 
 export const TokenDistributionRules = Enum("TokenDistributionRules", /** @type {const} */ ({
@@ -1525,8 +2095,42 @@ export const TokenFreezeTransition = Enum("TokenFreezeTransition", /** @type {co
   V0: [TokenFreezeTransitionV0],
 }))
 
+export const TokenMarketplaceRules = Enum("TokenMarketplaceRules", /** @type {const} */ ({
+  V0: [TokenMarketplaceRulesV0],
+}))
+
 export const TokenMintTransition = Enum("TokenMintTransition", /** @type {const} */ ({
   V0: [TokenMintTransitionV0],
+}))
+
+/**
+ * Represents a versioned transition for setting or updating the price of a token
+ *  available for direct purchase.
+ * 
+ *  This transition allows a token owner or controlling group to define or remove a pricing
+ *  schedule for direct purchases. Setting the price to `None` disables further purchases
+ *  of the token.
+ * 
+ *  This transition type supports **group actions**, meaning it can require **multi-signature
+ *  (multisig) authorization**. In such cases, multiple identities must agree and sign
+ *  the transition for it to be considered valid and executable.
+ * 
+ *  Versioning enables forward compatibility by allowing future enhancements or changes
+ *  without breaking existing clients.
+ */
+export const TokenSetPriceForDirectPurchaseTransition = Enum("TokenSetPriceForDirectPurchaseTransition", /** @type {const} */ ({
+  /**
+   * Version 0 of the token set price for direct purchase transition.
+   * 
+   *  This version includes:
+   *  - A base document transition.
+   *  - An optional pricing schedule: `Some(...)` to set the token's price, or `None` to make it non-purchasable.
+   *  - An optional public note.
+   * 
+   *  Group actions with multisig are supported in this version,
+   *  enabling shared control over token pricing among multiple authorized identities.
+   */
+  V0: [TokenSetPriceForDirectPurchaseTransitionV0],
 }))
 
 export const TokenTransferTransition = Enum("TokenTransferTransition", /** @type {const} */ ({
@@ -1542,13 +2146,28 @@ export const Vote = Enum("Vote", /** @type {const} */ ({
   ResourceVote: [ResourceVote],
 }))
 
-export const DocumentTransition = Enum("DocumentTransition", /** @type {const} */ ({
-  Create: [DocumentCreateTransition],
-  Replace: [DocumentReplaceTransition],
-  Delete: [DocumentDeleteTransition],
-  Transfer: [DocumentTransferTransition],
-  UpdatePrice: [DocumentUpdatePriceTransition],
-  Purchase: [DocumentPurchaseTransition],
+export const DocumentCreateTransition = Enum("DocumentCreateTransition", /** @type {const} */ ({
+  V0: [DocumentCreateTransitionV0],
+}))
+
+export const DocumentDeleteTransition = Enum("DocumentDeleteTransition", /** @type {const} */ ({
+  V0: [DocumentDeleteTransitionV0],
+}))
+
+export const DocumentPurchaseTransition = Enum("DocumentPurchaseTransition", /** @type {const} */ ({
+  V0: [DocumentPurchaseTransitionV0],
+}))
+
+export const DocumentReplaceTransition = Enum("DocumentReplaceTransition", /** @type {const} */ ({
+  V0: [DocumentReplaceTransitionV0],
+}))
+
+export const DocumentTransferTransition = Enum("DocumentTransferTransition", /** @type {const} */ ({
+  V0: [DocumentTransferTransitionV0],
+}))
+
+export const DocumentUpdatePriceTransition = Enum("DocumentUpdatePriceTransition", /** @type {const} */ ({
+  V0: [DocumentUpdatePriceTransitionV0],
 }))
 
 /**
@@ -1578,42 +2197,78 @@ export const TokenConfigUpdateTransitionV0 = Struct("TokenConfigUpdateTransition
   public_note: Option(String),
 });
 
+/**
+ * Defines the complete configuration for a version 0 token contract.
+ * 
+ *  `TokenConfigurationV0` encapsulates all metadata, control rules, supply settings,
+ *  and governance constraints used to initialize and manage a token instance on Platform.
+ *  This structure serves as the core representation of a token's logic, permissions,
+ *  and capabilities.
+ * 
+ *  This configuration is designed to be deterministic and versioned for compatibility
+ *  across protocol upgrades and validation environments.
+ */
 export const TokenConfigurationV0 = Struct("TokenConfigurationV0", {
+  /** Metadata conventions, including decimals and localizations. */
   conventions: TokenConfigurationConvention,
-  /** Who can change the conventions */
+  /** Change control rules governing who can modify the conventions field. */
   conventions_change_rules: ChangeControlRules,
-  /** The supply at the creation of the token */
+  /** The initial token supply minted at creation. */
   base_supply: TokenAmount,
-  /** The maximum supply the token can ever have */
-  max_supply: Option(TokenAmount),
-  /** The rules for keeping history. */
-  keeps_history: TokenKeepsHistoryRules,
-  /** Do we start off as paused, meaning that we can not transfer till we unpause. */
-  start_as_paused: Bool,
   /**
-   * Who can change the max supply
-   *  Even if set no one can ever change this under the base supply
+   * The maximum allowable supply of the token.
+   * 
+   *  If `None`, the supply is unbounded unless otherwise constrained by minting logic.
+   */
+  max_supply: Option(TokenAmount),
+  /** Configuration governing which historical actions are recorded for this token. */
+  keeps_history: TokenKeepsHistoryRules,
+  /**
+   * Indicates whether the token should start in a paused state.
+   * 
+   *  When `true`, transfers are disallowed until explicitly unpaused via an emergency action.
+   */
+  start_as_paused: Bool,
+  /** Allows minting and transferring to frozen token balances if enabled. */
+  allow_transfer_to_frozen_balance: Bool,
+  /**
+   * Change control rules for updating the `max_supply`.
+   * 
+   *  Note: The `max_supply` can never be reduced below the `base_supply`.
    */
   max_supply_change_rules: ChangeControlRules,
-  /** The distribution rules for the token */
+  /** Defines the token's distribution logic, including perpetual and pre-programmed distributions. */
   distribution_rules: TokenDistributionRules,
+  /** Defines the token's marketplace logic. */
+  marketplace_rules: TokenMarketplaceRules,
+  /** Rules controlling who is authorized to perform manual minting of tokens. */
   manual_minting_rules: ChangeControlRules,
+  /** Rules controlling who is authorized to perform manual burning of tokens. */
   manual_burning_rules: ChangeControlRules,
+  /** Rules governing who may freeze token balances. */
   freeze_rules: ChangeControlRules,
+  /** Rules governing who may unfreeze token balances. */
   unfreeze_rules: ChangeControlRules,
+  /** Rules governing who may destroy frozen funds. */
   destroy_frozen_funds_rules: ChangeControlRules,
+  /** Rules governing who may invoke emergency actions, such as pausing transfers. */
   emergency_action_rules: ChangeControlRules,
+  /** Optional reference to the group assigned as the token's main control group. */
   main_control_group: Option(GroupContractPosition),
+  /** Defines whether and how the main control group assignment may be modified. */
   main_control_group_can_be_modified: AuthorizedActionTakers,
+  /** Optional textual description of the token's purpose, behavior, or metadata. */
+  description: Option(String),
 });
 
-export const BatchTransitionV0 = Struct("BatchTransitionV0", {
-  owner_id: Identifier,
-  transitions: Vec(DocumentTransition),
-  user_fee_increase: UserFeeIncrease,
-  signature_public_key_id: NotSignable(KeyID),
-  signature: NotSignable(BinaryData),
-});
+export const DocumentTransition = Enum("DocumentTransition", /** @type {const} */ ({
+  Create: [DocumentCreateTransition],
+  Replace: [DocumentReplaceTransition],
+  Delete: [DocumentDeleteTransition],
+  Transfer: [DocumentTransferTransition],
+  UpdatePrice: [DocumentUpdatePriceTransition],
+  Purchase: [DocumentPurchaseTransition],
+}))
 
 /**
  * platform_serialize unversioned
@@ -1641,7 +2296,17 @@ export const TokenTransition = Enum("TokenTransition", /** @type {const} */ ({
   Claim: [TokenClaimTransition],
   EmergencyAction: [TokenEmergencyActionTransition],
   ConfigUpdate: [TokenConfigUpdateTransition],
+  DirectPurchase: [TokenDirectPurchaseTransition],
+  SetPriceForDirectPurchase: [TokenSetPriceForDirectPurchaseTransition],
 }))
+
+export const BatchTransitionV0 = Struct("BatchTransitionV0", {
+  owner_id: Identifier,
+  transitions: Vec(DocumentTransition),
+  user_fee_increase: UserFeeIncrease,
+  signature_public_key_id: NotSignable(KeyID),
+  signature: NotSignable(BinaryData),
+});
 
 export const BatchedTransition = Enum("BatchedTransition", /** @type {const} */ ({
   Document: [DocumentTransition],
@@ -1677,6 +2342,10 @@ export const DataContractInSerializationFormatV1 = Struct("DataContractInSeriali
   groups: Map(GroupContractPosition, Group),
   /** The tokens on the contract. */
   tokens: Map(TokenContractPosition, TokenConfiguration),
+  /** The contract's keywords for searching */
+  keywords: Vec(String),
+  /** The contract's description */
+  description: Option(String),
 });
 
 export const BatchTransitionV1 = Struct("BatchTransitionV1", {
@@ -1770,12 +2439,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: AssetLockTransactionIsNotFoundError
 // NOT NEEDED: AssetLockValue
 // NOT NEEDED: AssetLockValueV0
-// NOT NEEDED: AssetUnlockBasePayload
 // NOT NEEDED: AssetUnlockBaseTransactionInfo
-// NOT NEEDED: AssetUnlockPayload
-// NOT NEEDED: AssetUnlockRequestInfo
-// NOT NEEDED: BLSPublicKey
-// NOT NEEDED: BLSSignature
 // NOT NEEDED: BalanceChange
 // NOT NEEDED: BalanceChangeForIdentity
 // NOT NEEDED: BalanceIsNotEnoughError
@@ -1793,7 +2457,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: BlockFilter
 // NOT NEEDED: BlockFilterReader
 // NOT NEEDED: BlockFilterWriter
-// NOT NEEDED: DUPLICATE_BlockHash
 // NOT NEEDED: BlockInfo
 // NOT NEEDED: BlockTransactions
 // NOT NEEDED: BlockTransactionsRequest
@@ -1801,6 +2464,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: BloomFlags
 // NOT NEEDED: BorrowedPair
 // NOT NEEDED: Builder
+// NOT NEEDED: BurnFromIdentifier
 // NOT NEEDED: ByteArrayKeyword
 // NOT NEEDED: ByteArrayPropertySizes
 // NOT NEEDED: Bytes
@@ -1825,7 +2489,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ClassifyContext
 // NOT NEEDED: ClientDataRetrievalError
 // NOT NEEDED: CmpctBlock
-// NOT NEEDED: CoinbasePayload
 // NOT NEEDED: CommandString
 // NOT NEEDED: CommandStringError
 // NOT NEEDED: CommonCache
@@ -1883,6 +2546,8 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DataContractInvalidIndexDefinitionUpdateError
 // NOT NEEDED: DataContractIsReadonlyError
 // NOT NEEDED: DataContractMaxDepthExceedError
+// NOT NEEDED: DataContractMismatch
+// NOT NEEDED: DataContractNotFoundError
 // NOT NEEDED: DUPLICATE_DataContractNotPresentError
 // NOT NEEDED: DataContractTokenConfigurationUpdateError
 // NOT NEEDED: DataContractUniqueIndicesChangedError
@@ -1895,6 +2560,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DataTriggerError
 // NOT NEEDED: DataTriggerExecutionError
 // NOT NEEDED: DataTriggerInvalidResultError
+// NOT NEEDED: DecimalsOverLimitError
 // NOT NEEDED: DUPLICATE_DecodeError
 // NOT NEEDED: DecodeInitError
 // NOT NEEDED: DecodeProtocolIdentity
@@ -1917,6 +2583,8 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DistributionAmount
 // NOT NEEDED: DistributionLeftovers
 // NOT NEEDED: Document
+// NOT NEEDED: DocumentActionTokenCost
+// NOT NEEDED: DocumentActionTokenEffect
 // NOT NEEDED: DocumentAlreadyPresentError
 // NOT NEEDED: DocumentBatchIterator
 // NOT NEEDED: DocumentBatchV1Iterator
@@ -1960,6 +2628,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DuplicateDocumentTransitionsWithIndicesError
 // NOT NEEDED: DuplicateIndexError
 // NOT NEEDED: DuplicateIndexNameError
+// NOT NEEDED: DuplicateKeywordsError
 // NOT NEEDED: DuplicateUniqueIndexError
 // NOT NEEDED: DuplicatedIdentityPublicKeyBasicError
 // NOT NEEDED: DuplicatedIdentityPublicKeyIdBasicError
@@ -1975,6 +2644,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: EpochIndexFeeVersionsForStorage
 // NOT NEEDED: DUPLICATE_Error
 // NOT NEEDED: ErrorTrackingWriter
+// NOT NEEDED: EvaluationStep
 // NOT NEEDED: ExpectedDocumentsData
 // NOT NEEDED: ExtendedBlockInfo
 // NOT NEEDED: ExtendedBlockInfoV0
@@ -2030,10 +2700,12 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: GroupActionStatus
 // NOT NEEDED: GroupActionV0
 // NOT NEEDED: GroupExceedsMaxMembersError
+// NOT NEEDED: GroupHasTooFewMembersError
 // NOT NEEDED: GroupMemberHasPowerOfZeroError
 // NOT NEEDED: GroupMemberHasPowerOverLimitError
 // NOT NEEDED: GroupNonUnilateralMemberPowerHasLessThanRequiredPowerError
 // NOT NEEDED: GroupPositionDoesNotExistError
+// NOT NEEDED: GroupRequiredPowerIsInvalidError
 // NOT NEEDED: GroupStateTransitionInfoStatus
 // NOT NEEDED: GroupStateTransitionResolvedInfo
 // NOT NEEDED: GroupSumPower
@@ -2048,7 +2720,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: HiddenNodes
 // NOT NEEDED: IHeader
 // NOT NEEDED: IdentitiesContractKeys
-// NOT NEEDED: Identity
 // NOT NEEDED: IdentityAlreadyExistsError
 // NOT NEEDED: IdentityAssetLockProofLockedTransactionMismatchError
 // NOT NEEDED: IdentityAssetLockStateTransitionReplayError
@@ -2074,19 +2745,23 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: IdentityDoesNotHaveEnoughTokenBalanceError
 // NOT NEEDED: IdentityFacade
 // NOT NEEDED: IdentityFactory
+// NOT NEEDED: IdentityHasNotAgreedToPayRequiredTokenAmountError
+// NOT NEEDED: IdentityInTokenConfigurationNotFoundError
 // NOT NEEDED: IdentityInsufficientBalanceError
+// NOT NEEDED: IdentityMemberOfGroupNotFoundError
 // NOT NEEDED: IdentityNotFoundError
 // NOT NEEDED: IdentityNotMemberOfGroupError
 // NOT NEEDED: IdentityNotPresentError
 // NOT NEEDED: IdentityPublicKeyAlreadyExistsForUniqueContractBoundsError
 // NOT NEEDED: IdentityPublicKeyIsDisabledError
 // NOT NEEDED: IdentityPublicKeyIsReadOnlyError
+// NOT NEEDED: IdentityToFreezeDoesNotExistError
 // NOT NEEDED: IdentityTokenAccountAlreadyFrozenError
 // NOT NEEDED: IdentityTokenAccountFrozenError
 // NOT NEEDED: IdentityTokenAccountNotFrozenError
 // NOT NEEDED: IdentityTokenInfo
 // NOT NEEDED: IdentityTokenInfoV0
-// NOT NEEDED: IdentityV0
+// NOT NEEDED: IdentityTryingToPayWithWrongTokenError
 // NOT NEEDED: IncompatibleDataContractSchemaError
 // NOT NEEDED: IncompatibleDocumentTypeSchemaError
 // NOT NEEDED: IncompatibleJsonSchemaOperation
@@ -2106,12 +2781,12 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: IndexType
 // NOT NEEDED: Input
 // NOT NEEDED: InputWeightPrediction
-// NOT NEEDED: InputsHash
 // NOT NEEDED: DUPLICATE_InstantLock
 // NOT NEEDED: Instruction
 // NOT NEEDED: InstructionIndices
 // NOT NEEDED: Instructions
 // NOT NEEDED: IntegerReplacementType
+// NOT NEEDED: IntervalEvaluationExplanation
 // NOT NEEDED: InvalidActionIdError
 // NOT NEEDED: InvalidAssetLockProofCoreChainHeightError
 // NOT NEEDED: InvalidAssetLockProofTransactionHeightError
@@ -2119,6 +2794,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: InvalidCompoundIndexError
 // NOT NEEDED: InvalidDataContractIdError
 // NOT NEEDED: InvalidDataContractVersionError
+// NOT NEEDED: InvalidDescriptionLengthError
 // NOT NEEDED: InvalidDocumentRevisionError
 // NOT NEEDED: InvalidDocumentTransitionActionError
 // NOT NEEDED: InvalidDocumentTransitionIdError
@@ -2148,6 +2824,8 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: InvalidInstantAssetLockProofError
 // NOT NEEDED: InvalidInstantAssetLockProofSignatureError
 // NOT NEEDED: InvalidJsonSchemaRefError
+// NOT NEEDED: InvalidKeywordCharacterError
+// NOT NEEDED: InvalidKeywordLengthError
 // NOT NEEDED: InvalidSignaturePublicKeyError
 // NOT NEEDED: InvalidSignaturePublicKeyPurposeError
 // NOT NEEDED: InvalidSignaturePublicKeySecurityLevelError
@@ -2159,13 +2837,20 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: InvalidTokenClaimPropertyMismatch
 // NOT NEEDED: InvalidTokenClaimWrongClaimant
 // NOT NEEDED: InvalidTokenConfigUpdateNoChangeError
+// NOT NEEDED: InvalidTokenDistributionBlockIntervalTooShortError
 // NOT NEEDED: InvalidTokenDistributionFunctionDivideByZeroError
 // NOT NEEDED: InvalidTokenDistributionFunctionIncoherenceError
 // NOT NEEDED: InvalidTokenDistributionFunctionInvalidParameterError
 // NOT NEEDED: InvalidTokenDistributionFunctionInvalidParameterTupleError
+// NOT NEEDED: InvalidTokenDistributionTimeIntervalNotMinuteAlignedError
+// NOT NEEDED: InvalidTokenDistributionTimeIntervalTooShortError
 // NOT NEEDED: InvalidTokenIdError
+// NOT NEEDED: InvalidTokenLanguageCodeError
+// NOT NEEDED: InvalidTokenNameCharacterError
+// NOT NEEDED: InvalidTokenNameLengthError
 // NOT NEEDED: InvalidTokenNoteTooBigError
 // NOT NEEDED: InvalidTokenPositionError
+// NOT NEEDED: InvalidTokenPositionStateError
 // NOT NEEDED: InvalidVectorSizeError
 // NOT NEEDED: Inventory
 // NOT NEEDED: IoWrapper
@@ -2195,7 +2880,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: LLMQQuarterReconstructionType
 // NOT NEEDED: LLMQQuarterType
 // NOT NEEDED: LLMQQuarterUsageType
-// NOT NEEDED: LLMQType
 // NOT NEEDED: LazyRegex
 // NOT NEEDED: LeafNode
 // NOT NEEDED: LeafNodes
@@ -2206,6 +2890,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: LockedVotePollCounter
 // NOT NEEDED: Lower
 // NOT NEEDED: MNSkipListMode
+// NOT NEEDED: MainGroupIsNotDefinedError
 // NOT NEEDED: MapKeySerializer
 // NOT NEEDED: MasterPublicKeyUpdateError
 // NOT NEEDED: MasternodeIncorrectVoterIdentityIdError
@@ -2213,6 +2898,8 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: MasternodeList
 // NOT NEEDED: MasternodeListBuilder
 // NOT NEEDED: MasternodeListEngine
+// NOT NEEDED: MasternodeListEngineBTreeMapBlockContainer
+// NOT NEEDED: MasternodeListEngineBlockContainer
 // NOT NEEDED: MasternodeListEntry
 // NOT NEEDED: MasternodeNotFoundError
 // NOT NEEDED: MasternodeVoteAlreadyPresentError
@@ -2224,8 +2911,6 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: MergeIdentityNonceResult
 // NOT NEEDED: MerkleBlock
 // NOT NEEDED: MerkleBlockError
-// NOT NEEDED: MerkleRootMasternodeList
-// NOT NEEDED: MerkleRootQuorums
 // NOT NEEDED: MessageSignature
 // NOT NEEDED: MessageSignatureError
 // NOT NEEDED: MessageVerificationError
@@ -2242,6 +2927,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: MissingStateTransitionTypeError
 // NOT NEEDED: MissingTransferKeyError
 // NOT NEEDED: MnListDiff
+// NOT NEEDED: ModificationOfGroupActionMainParametersNotPermittedError
 // NOT NEEDED: MoveOperation
 // NOT NEEDED: NativeBlsModule
 // NOT NEEDED: Network
@@ -2252,6 +2938,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: NewAuthorizedActionTakerIdentityDoesNotExistError
 // NOT NEEDED: NewAuthorizedActionTakerMainGroupNotSetError
 // NOT NEEDED: NewTokensDestinationIdentityDoesNotExistError
+// NOT NEEDED: NewTokensDestinationIdentityOptionRequiredError
 // NOT NEEDED: NoTransferKeyForCoreWithdrawalAvailableError
 // NOT NEEDED: NodeInfo
 // NOT NEEDED: NonConsensusError
@@ -2285,6 +2972,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: PatchOperation
 // NOT NEEDED: Payload
 // NOT NEEDED: PlatformItemKey
+// NOT NEEDED: PreProgrammedDistributionTimestampInPastError
 // NOT NEEDED: PreferredKeyPurposeForSigningWithdrawal
 // NOT NEEDED: PrefilledTransaction
 // NOT NEEDED: PrefundedSpecializedBalanceIdentifier
@@ -2301,21 +2989,16 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ProtocolVersion
 // NOT NEEDED: ProtocolVersionParsingError
 // NOT NEEDED: ProtocolVersionVoteCount
-// NOT NEEDED: ProviderMasternodeType
-// NOT NEEDED: ProviderRegistrationPayload
-// NOT NEEDED: ProviderUpdateRegistrarPayload
-// NOT NEEDED: ProviderUpdateRevocationPayload
-// NOT NEEDED: ProviderUpdateServicePayload
 // NOT NEEDED: Psbt
 // NOT NEEDED: PsbtHash
 // NOT NEEDED: PsbtParseError
 // NOT NEEDED: PsbtSighashType
-// NOT NEEDED: PubkeyHash
 // NOT NEEDED: PublicKey
 // NOT NEEDED: PublicKeyIsDisabledError
 // NOT NEEDED: PublicKeyMismatchError
 // NOT NEEDED: DUPLICATE_PublicKeySecurityLevelNotMetError
 // NOT NEEDED: PublicKeyValidationError
+// NOT NEEDED: PurchaserIdentifier
 // NOT NEEDED: PushBytes
 // NOT NEEDED: PushBytesBuf
 // NOT NEEDED: DUPLICATE_PushBytesError
@@ -2325,16 +3008,12 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: QualifiedQuorumEntry
 // NOT NEEDED: QuorumCLSigObject
 // NOT NEEDED: QuorumCommitmentHash
-// NOT NEEDED: QuorumCommitmentPayload
-// NOT NEEDED: QuorumEntry
 // NOT NEEDED: QuorumEntryHash
-// NOT NEEDED: QuorumHash
 // NOT NEEDED: QuorumModifierHash
 // NOT NEEDED: QuorumOrderingHash
 // NOT NEEDED: QuorumSigningRequestId
 // NOT NEEDED: QuorumSigningSignId
 // NOT NEEDED: QuorumSnapshot
-// NOT NEEDED: QuorumVVecHash
 // NOT NEEDED: QuorumValidationError
 // NOT NEEDED: RandomDocumentTypeParameters
 // NOT NEEDED: RawAssetLockProof
@@ -2342,12 +3021,14 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ReadBytesFromFiniteReaderOpts
 // NOT NEEDED: RecipientIdentifier
 // NOT NEEDED: RecipientIdentityDoesNotExistError
+// NOT NEEDED: RedundantDocumentPaidForByTokenWithContractId
 // NOT NEEDED: Reject
 // NOT NEEDED: RejectReason
 // NOT NEEDED: RemoveOperation
 // NOT NEEDED: ReplaceOperation
 // NOT NEEDED: ReplacementType
 // NOT NEEDED: RequiredSigners
+// NOT NEEDED: RequiredTokenPaymentInfoNotSetError
 // NOT NEEDED: RewardDistributionMoment
 // NOT NEEDED: RewardRatio
 // NOT NEEDED: SMLEntry
@@ -2405,11 +3086,13 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: SplitFeatureVersionOutcome
 // NOT NEEDED: StartAtIncluded
 // NOT NEEDED: StateError
+// NOT NEEDED: StateTransitionCreationOptions
 // NOT NEEDED: StateTransitionError
 // NOT NEEDED: StateTransitionFactory
 // NOT NEEDED: StateTransitionIsNotSignedError
 // NOT NEEDED: StateTransitionMaxSizeExceededError
 // NOT NEEDED: StateTransitionProofResult
+// NOT NEEDED: StateTransitionSigningOptions
 // NOT NEEDED: StateTransitionType
 // NOT NEEDED: StatelessJsonSchemaLazyValidator
 // NOT NEEDED: StorageAndProcessingPoolCredits
@@ -2434,8 +3117,15 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: DUPLICATE_Time
 // NOT NEEDED: TimestampIncluded
 // NOT NEEDED: TokenAlreadyPausedError
+// NOT NEEDED: TokenAmountUnderMinimumSaleAmount
+// NOT NEEDED: TokenConfigurationIdentityContext
+// NOT NEEDED: TokenConfigurationPreset
+// NOT NEEDED: TokenConfigurationPresetFeatures
+// NOT NEEDED: TokenContractInfo
+// NOT NEEDED: TokenContractInfoV0
 // NOT NEEDED: TokenCosts
 // NOT NEEDED: TokenCostsV0
+// NOT NEEDED: TokenDirectPurchaseUserPriceTooLow
 // NOT NEEDED: TokenDistributionInfo
 // NOT NEEDED: TokenDistributionKey
 // NOT NEEDED: TokenDistributionResolvedRecipient
@@ -2449,20 +3139,22 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: TokenIsPausedError
 // NOT NEEDED: TokenMintPastMaxSupplyError
 // NOT NEEDED: TokenName
+// NOT NEEDED: TokenNotForDirectSale
 // NOT NEEDED: TokenNotPausedError
+// NOT NEEDED: TokenNoteOnlyAllowedWhenProposerError
+// NOT NEEDED: TokenPaymentByBurningOnlyAllowedOnInternalTokenError
 // NOT NEEDED: TokenSettingMaxSupplyToLessThanCurrentSupplyError
 // NOT NEEDED: TokenStatus
 // NOT NEEDED: TokenStatusV0
 // NOT NEEDED: TokenTransferRecipientIdentityNotExistError
 // NOT NEEDED: TokenTransferToOurselfError
 // NOT NEEDED: TokenTransitionActionType
+// NOT NEEDED: TooManyKeywordsError
 // NOT NEEDED: TooManyMasterPublicKeyError
 // NOT NEEDED: TotalCreditsBalance
 // NOT NEEDED: TotalSingleTokenBalance
 // NOT NEEDED: TotalTokensBalance
 // NOT NEEDED: TradeMode
-// NOT NEEDED: TransactionPayload
-// NOT NEEDED: TransactionType
 // NOT NEEDED: Transferable
 // NOT NEEDED: TransitionFingerprint
 // NOT NEEDED: TryFromError
@@ -2479,7 +3171,9 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: UniqueIndicesLimitReachedError
 // NOT NEEDED: UnknownAssetLockProofTypeError
 // NOT NEEDED: UnknownChainHash
+// NOT NEEDED: UnknownDocumentActionTokenEffectError
 // NOT NEEDED: UnknownDocumentCreationRestrictionModeError
+// NOT NEEDED: UnknownGasFeesPaidByError
 // NOT NEEDED: UnknownSecurityLevelError
 // NOT NEEDED: UnknownStorageKeyRequirementsError
 // NOT NEEDED: UnknownTradeModeError
@@ -2500,6 +3194,7 @@ export const StateTransition = Enum("StateTransition", /** @type {const} */ ({
 // NOT NEEDED: ValueError
 // NOT NEEDED: ValueMapDeserializer
 // NOT NEEDED: VarInt
+// NOT NEEDED: VerifyingChainLockSignaturesType
 // NOT NEEDED: Version
 // NOT NEEDED: VersionError
 // NOT NEEDED: VersionMessage

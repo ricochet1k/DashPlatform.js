@@ -1,7 +1,7 @@
 import Fs from "node:fs/promises";
 
 // import DashHd from "dashhd";
-// import * as DashHdUtils from "./dashhd-utils.js";
+// import * as DashHdUtils from "./dashhd-utils.ts";
 // import DashKeys from "dashkeys";
 // import * as DashTx from "dashtx";
 // import * as DashPlatform from "./dashplatform.js";
@@ -12,7 +12,7 @@ import * as KeyUtils from "./src/key-utils.js";
 
 import { createIdentityFromAssetLock } from "./2-create-identity-transition.js";
 
-import { loadWallet } from "./src/cli.js"
+import { loadWallet } from "./src/cli.ts"
 import { deriveAllCreateIdentityKeys } from "./src/asset_lock.js"
 import { toHex } from "./src/hex.js"
 

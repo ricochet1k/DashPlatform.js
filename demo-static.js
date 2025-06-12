@@ -2,7 +2,7 @@
 
 import Dotenv from "dotenv";
 import DashPhrase from "dashphrase";
-import DashHd from "./src/dashhd-utils.js";
+import DashHd from "./src/dashhd-utils.ts";
 import DashKeys from "dashkeys";
 import * as DashTx from "dashtx";
 import * as DashPlatform from "./src/dashplatform.js";
@@ -14,7 +14,7 @@ import * as KeyUtils from "./src/key-utils.js";
 
 Dotenv.config({ path: ".env" });
 
-let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+let RPC_AUTH_URL = "https://api:null@trpc.digitalcash.dev";
 
 // const L1_VERSION_PLATFORM = 3;
 const L1_VERSION_PLATFORM = 0;
@@ -175,10 +175,10 @@ async function main() {
 
   let fundingAddress = await DashHd.toAddr(regFundAddress.publicKey, hdOpts);
   let [oldDeltas, newDeltas] = await Promise.all([
-    DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+    DashTx.utils.rpc(RPC_AUTH_URL, "getaddressdeltas", {
       addresses: [fundingAddress],
     }),
-    DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+    DashTx.utils.rpc(RPC_AUTH_URL, "getaddressmempool", {
       addresses: [fundingAddress],
     }),
   ]);
@@ -375,7 +375,7 @@ async function main() {
   // console.log(txSigned);
 
   // let txid = await DashTx.utils.rpc(
-  //   rpcAuthUrl,
+  //   RPC_AUTH_URL,
   //   "sendrawtransaction",
   //   txSigned.transaction,
   // );
@@ -383,7 +383,7 @@ async function main() {
   // const INSTANT_ALP = 0;
   // const CHAIN_ALP = 1;
 
-  // let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
+  // let blockchaininfo = await DashTx.utils.rpc(RPC_AUTH_URL, "getblockchaininfo");
   // let nextBlock = blockchaininfo.blocks + 1;
 
   // TODO - AJ is here

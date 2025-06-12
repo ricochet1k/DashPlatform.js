@@ -16,7 +16,7 @@ let Dpp = WasmDpp.DashPlatformProtocol;
 //@ts-ignore - sssssh, yes Base58 does exist
 let b58 = DashKeys.Base58.create();
 
-let rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+let RPC_AUTH_URL = "https://api:null@trpc.digitalcash.dev";
 
 const L1_VERSION_PLATFORM = 3;
 const TYPE_ASSET_LOCK = 8;
@@ -136,7 +136,7 @@ async function main() {
     pubKeyHash: pkh,
   });
 
-  let utxos = await DashTx.utils.rpc(rpcAuthUrl, "getaddressutxos", {
+  let utxos = await DashTx.utils.rpc(RPC_AUTH_URL, "getaddressutxos", {
     addresses: [addr],
   });
   let total = DashTx.sum(utxos);
@@ -174,7 +174,7 @@ async function main() {
   console.log(txSigned);
 
   // let txid = await DashTx.utils.rpc(
-  //   rpcAuthUrl,
+  //   RPC_AUTH_URL,
   //   "sendrawtransaction",
   //   txSigned.transaction,
   // );
@@ -182,7 +182,7 @@ async function main() {
   const INSTANT_ALP = 0;
   const CHAIN_ALP = 1;
 
-  let blockchaininfo = await DashTx.utils.rpc(rpcAuthUrl, "getblockchaininfo");
+  let blockchaininfo = await DashTx.utils.rpc(RPC_AUTH_URL, "getblockchaininfo");
   let nextBlock = blockchaininfo.blocks + 1;
 
   let fundingOutPointHex = await getFundingOutPointHex(

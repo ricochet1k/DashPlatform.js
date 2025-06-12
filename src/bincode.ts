@@ -1146,3 +1146,7 @@ export const SocketAddr = Enum("SocketAddr", {
   /** An IPv6 socket address. */
   V6: [SocketAddrV6],
 })
+
+export function typedArrayToBuffer(array: Uint8Array): ArrayBuffer {
+    return (array.buffer as ArrayBuffer).slice(array.byteOffset, array.byteLength + array.byteOffset)
+}

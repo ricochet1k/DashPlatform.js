@@ -3,6 +3,9 @@ use std::{
     fmt::Write,
 };
 
+use proc_macro2::Span;
+use syn::{Ident, parse_quote};
+
 use crate::{Item, cycle::CycleDetector, fmtdoc::FmtDoc};
 
 pub struct Fmt<T>(pub T);
@@ -25,8 +28,11 @@ pub fn write_js<W: std::io::Write>(
         "  VarInt, VarUint, Vec, Tuple, Map, Option, String, Nothing, Range, NotSignable,"
     )?;
     writeln!(f, "  SocketAddr,")?;
-    writeln!(f, "}} from \"../bincode.ts\"")?;
-    writeln!(f, "import {{ Transaction }} from \"../bincode_types.ts\";")?;
+    writeln!(f, "}} from \"../src/bincode.ts\"")?;
+    writeln!(
+        f,
+        "import {{ Transaction }} from \"../src/bincode_types.ts\";"
+    )?;
     writeln!(f, "export const Hash = Bytes; //FixedBytes(32)")?;
     writeln!(f, "")?;
 
@@ -34,14 +40,35 @@ pub fn write_js<W: std::io::Write>(
     let cyclic_items = CycleDetector::cycle_detect(&all_items);
     for name in &cyclic_items {
         eprintln!("CYCLIC: {}", name);
-        let item = all_items.remove(name).unwrap();
-        // item.needed = true;
-        all_items.insert(format!("REAL_{}", name), item);
+        let mut item = all_items.remove(name).unwrap();
+        item.needed = true;
+        let real_name = format!("REAL_{}", name);
+        all_items.insert(real_name.clone(), item);
+
+        let name_ident = Ident::new(name, Span::call_site());
+        let real_name_ident = Ident::new(&real_name, Span::call_site());
+
+        all_items.insert(
+            format!("SET_REAL_{}", name),
+            Item {
+                name: format!("SET_REAL_{}", name),
+                item: parse_quote!(
+                    static #name_ident: #real_name_ident = 0;
+                ),
+                deps: {
+                    let mut set = BTreeSet::new();
+                    set.insert(real_name.clone());
+                    set
+                },
+                needed: true,
+                is_encode: true,
+            },
+        );
 
         writeln!(f, "/** @type {{*}} */")?;
         writeln!(
             f,
-            "export const {} = Lazy(\"{}\", () => REAL_{});",
+            "export let {} = Lazy(\"{}\", () => REAL_{});",
             name, name, name
         )?;
     }
@@ -115,7 +142,11 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::Item)> {
             syn::Item::Struct(item_struct) => write!(f, "{}", Fmt((name, item_struct))),
             syn::Item::Enum(item_enum) => write!(f, "{}", Fmt((name, item_enum))),
             syn::Item::Type(item_type) => write!(f, "{}", Fmt((name, item_type))),
-            _ => todo!(),
+
+            // This one is only used by the Cyclic value resolver
+            syn::Item::Static(item_static) => write!(f, "{}", Fmt((name, item_static))),
+            // syn::Item::Verbatim(item_raw) => write!(f, "{}", Fmt((name, item_static))),
+            i => todo!("TODO: item: {:?}", i),
         }
     }
 }
@@ -294,6 +325,14 @@ impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemType)> {
         let (name, item) = self.0;
 
         writeln!(f, "export const {} = {}", name, Fmt(&*item.ty))
+    }
+}
+
+impl std::fmt::Display for Fmt<(&'_ str, &'_ syn::ItemStatic)> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (_name, item) = self.0;
+
+        writeln!(f, "{} = {};", item.ident, Fmt(&*item.ty))
     }
 }
 

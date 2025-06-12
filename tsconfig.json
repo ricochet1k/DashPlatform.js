@@ -9,15 +9,19 @@
     "allowJs": true, /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
     // "checkJs": true, /* Enable error reporting in type-checked JavaScript files. */
     "outDir": "built",   /* Specify an output folder for all emitted files. */
-    "declaration": true,
+    // "declaration": true,
     // "esModuleInterop": true, /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "forceConsistentCasingInFileNames": true, /* Ensure that casing is correct in imports. */
     "strict": true, /* Enable all strict type-checking options. */
     "noImplicitAny": true, /* Enable error reporting for expressions and declarations with an implied 'any' type. */
     "alwaysStrict": true, /* Ensure 'use strict' is always emitted. */
-    "skipLibCheck": false /* Skip type checking all .d.ts files. */
+    "skipLibCheck": false, /* Skip type checking all .d.ts files. */
+    "typeRoots": [
+      "types"
+    ]
   },
   "include": [
+    "types",
     "*.js",
     "*.ts",
     "src",

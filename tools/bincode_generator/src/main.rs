@@ -114,6 +114,33 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
     );
 
+    // IdentityV0 is written with a BTreeMap but then serialization is overridden
+    // to encode it as a Vec instead.
+    all_items.get_mut("Identity").unwrap().needed = true;
+    // all_items.insert(
+    //     "IdentityV0".to_string(),
+    //     Item {
+    //         name: "IdentityV0".to_string(),
+    //         item: parse_quote!(
+    //             pub struct IdentityV0 {
+    //                 pub id: Identifier,
+    //                 pub public_keys: Vec<IdentityPublicKey>,
+    //                 pub balance: u64,
+    //                 pub revision: Revision,
+    //             }
+    //         ),
+    //         deps: {
+    //             let mut set = BTreeSet::new();
+    //             set.insert("Identifier".to_string());
+    //             set.insert("IdentityPublicKey".to_string());
+    //             set.insert("Revision".to_string());
+    //             set
+    //         },
+    //         needed: true,
+    //         is_encode: true,
+    //     },
+    // );
+
     let mut needed = BTreeSet::new();
     for item in all_items.values() {
         if item.needed {

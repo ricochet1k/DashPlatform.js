@@ -129,5 +129,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+.DS_Store
 tools/bincode_generator/target
 rust_print_encoded/target
