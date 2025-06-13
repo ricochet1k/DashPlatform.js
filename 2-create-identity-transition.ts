@@ -5,6 +5,8 @@ import * as KeyUtils from "./src/key-utils.js";
 import base64 from "base64-js";
 import { base58 } from "./src/util/base58.ts";
 import type { HDKey } from "dashhd"
+import { connectToNode } from "./src/rpc.ts"
+import { NODE_ADDRESS } from "./src/constants.ts"
 
 export interface AssetLockChainProof {
   core_chain_locked_height: number;
@@ -41,7 +43,7 @@ export interface STKey {
   readOnly: boolean;
 }
 
-// --- Main Function ---
+const nodeRpc = connectToNode(NODE_ADDRESS);
 
 /**
  * 
@@ -87,25 +89,18 @@ export async function createIdentityFromAssetLock(
   console.log(`stKeys:`);
   console.log(stKeys);
 
-  const nullSigTransition = new Uint8Array(
+  const signableTransition = new Uint8Array(
     Bincode.encode(DashBincode.StateTransition, stateTransition, {
       signable: true,
     }),
   );
-  console.log();
-  console.log(`nullSigTransition (ready-to-sign by identity keys):`);
-  console.log("(hex)", DashTx.utils.bytesToHex(nullSigTransition));
-  console.log("(base64)", base64.fromByteArray(nullSigTransition));
 
-  const nullSigMagicHash = await KeyUtils.doubleSha256(nullSigTransition);
+  const signableTransitionHash = await KeyUtils.doubleSha256(signableTransition);
 
-  if (!assetKey.privateKey) {
-    throw new Error("'assetKey' is missing 'privateKey'");
-  }
   {
     const magicSigBytes = await KeyUtils.magicSign({
-      privKeyBytes: assetKey.privateKey,
-      doubleSha256Bytes: nullSigMagicHash,
+      privKeyBytes: assetKey.privateKey!,
+      doubleSha256Bytes: signableTransitionHash,
     });
 
     identityCreate.signature[0] = magicSigBytes;
@@ -116,7 +111,7 @@ export async function createIdentityFromAssetLock(
     const stPub = identityCreate.public_keys[i];
     const magicSigBytes = await KeyUtils.magicSign({
       privKeyBytes: key.privateKey,
-      doubleSha256Bytes: nullSigMagicHash,
+      doubleSha256Bytes: signableTransitionHash,
     });
 
     Bincode.match(stPub, {
@@ -144,25 +139,31 @@ export async function createIdentityFromAssetLock(
 
   let grpcTransition = "";
   let transitionHashHex = "";
-  {
-    const fullSigTransition = new Uint8Array(
-      Bincode.encode(DashBincode.StateTransition, stateTransition, {
-        signable: false,
-      }),
-    );
-    console.log();
-    console.log(`transition (fully signed):`);
-    console.log(DashTx.utils.bytesToHex(fullSigTransition));
-    const transitionHash = await KeyUtils.sha256(fullSigTransition);
-    transitionHashHex = DashTx.utils.bytesToHex(transitionHash);
-    grpcTransition = base64.fromByteArray(fullSigTransition);
+  
+  const fullSigTransition = new Uint8Array(
+    Bincode.encode(DashBincode.StateTransition, stateTransition, {
+      signable: false,
+    }),
+  );
+  console.log();
+  console.log(`transition (fully signed):`);
+  console.log(DashTx.utils.bytesToHex(fullSigTransition));
+  const transitionHash = await KeyUtils.sha256(fullSigTransition);
+  transitionHashHex = DashTx.utils.bytesToHex(transitionHash);
+  grpcTransition = base64.fromByteArray(fullSigTransition);
+
+
+
+  console.log("Broadcasting Identity Create Transition...")
+  try {
+    const response = await nodeRpc.platform.broadcastStateTransition({
+      stateTransition: fullSigTransition,
+    })
+    console.log('response', response);
+  } catch (e) {
+    console.error("Error: ", decodeURIComponent((e as any).message))
   }
 
-  console.log();
-  console.log();
-  console.log(`grpcurl -plaintext -d '{
-  "stateTransition": "${grpcTransition}"
-}' seed-2.testnet.networks.dash.org:1443 org.dash.platform.dapi.v0.Platform.broadcastStateTransition`);
   console.log();
   const identity = base58.encode(identityId);
   console.log(`https://testnet.platform-explorer.com/identity/${identity}`);

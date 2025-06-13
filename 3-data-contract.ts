@@ -1,13 +1,9 @@
 import Fs from "node:fs/promises";
 
-// import DashHd from "dashhd";
-import * as DashHdUtils from "./src/dashhd-utils.ts";
-// import DashKeys from "dashkeys";
-// import * as DashTx from "dashtx";
-import * as DashPlatform from "./src/dashplatform.js";
+import { doubleSha256 } from "dashtx"
+import DashKeys from "dashkeys"
 import * as Bincode from "./src/bincode.ts";
 import * as DashBincode from "./2.0.0/generated_bincode.js";
-import * as QRCode from "./src/_qr.js";
 import * as KeyUtils from "./src/key-utils.js";
 
 import { loadWallet } from "./src/cli.ts"
@@ -16,9 +12,7 @@ import { toHex } from "./src/hex.js"
 import { connectToNode } from "./src/rpc.ts"
 import { NODE_ADDRESS } from "./src/constants.ts"
 import { findExistingIdentity } from "./src/identity.ts"
-import DashKeys from "dashkeys"
 import { base58 } from "./src/util/base58.ts"
-import { doubleSha256 } from "dashtx"
 
 const nodeRpc = connectToNode(NODE_ADDRESS);
 
@@ -73,8 +67,8 @@ const identityNonceResponse = await nodeRpc.platform.getIdentityNonce({version: 
     prove: false,
   }
 }})
-console.log('identityNonceResponse', identityNonceResponse)
-console.log('identityNonceResponse', identityNonceResponse.response.version.v0.result)
+// console.log('identityNonceResponse', identityNonceResponse)
+// console.log('identityNonceResponse', identityNonceResponse.response.version.v0.result)
 
 let current_identity_nonce = 0n;
 if (identityNonceResponse.response.version.oneofKind === 'v0') {
@@ -93,7 +87,7 @@ console.log('Identity:', base58.encode(existingIdentityV0.id[0][0]))
 console.log(existingIdentityV0)
 
 const owner_id = existingIdentityId;
-const identity_nonce = current_identity_nonce + 1n; // TODO: Where is this supposed to come from??
+const identity_nonce = current_identity_nonce + 1n;
 
 // TODO: check to see if a data contract has already been created
 
@@ -175,3 +169,7 @@ try {
 } catch (e) {
   console.error("Error: ", decodeURIComponent((e as any).message))
 }
+
+console.log();
+console.log('New Contract ID:', newContractIDStr)
+console.log("https://testnet.platform-explorer.com/document/" + newContractIDStr)

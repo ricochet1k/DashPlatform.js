@@ -2,6 +2,7 @@ import Fs from "node:fs/promises";
 
 import DashHd from "dashhd";
 import * as DashHdUtils from "./src/dashhd-utils.ts";
+import * as Bincode from "./src/bincode.ts";
 import DashKeys from "dashkeys";
 import * as DashTx from "dashtx";
 import * as DashPlatform from "./src/dashplatform.js";
@@ -85,9 +86,12 @@ async function main(): Promise<void> {
 
   const pkh = await DashKeys.pubkeyToPkh(masterKey.publicKey)
   console.log('masterKey pkh', toHex(pkh))
-
-  const existingIdentityId = await findExistingIdentity(nodeRpc, pkh)
-  if (existingIdentityId) {
+  const existingIdentity = await findExistingIdentity(nodeRpc, pkh)
+  if (existingIdentity) {
+    const existingIdentityV0: DashBincode.IdentityV0 = Bincode.match(existingIdentity, {
+      V0: i => i[0]
+    });
+    const existingIdentityId = existingIdentityV0.id[0][0];
     console.log('Identity Already Created!', base58.encode(existingIdentityId))
     process.exit(1);
   }
