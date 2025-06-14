@@ -60,6 +60,7 @@ export async function deriveAllCreateIdentityKeys(
     regFundKey,
     changeKey,
     assetKey,
+
     masterKey,
     otherKey,
   }
@@ -80,7 +81,7 @@ export async function createPlatformAssetLock(
 ): Promise<{
   txidHex: string,
   identityId: Uint8Array,
-  assetProof: any // DashBincode.AssetLockProof
+  assetLockProof: any // DashBincode.AssetLockProof
 }> {
   const dashTx = DashTx.create(KeyUtils)
 
@@ -204,9 +205,6 @@ export async function createPlatformAssetLock(
     creditOutputs: [assetExtraOutput],
   })
 
-  console.log('assetLockScript      ', assetLockScript)
-  // console.log('assetLockPayloadBytes', assetLockPayloadHex);
-
   let txDraft = {
     version: L1_VERSION_PLATFORM,
     type: TYPE_ASSET_LOCK,
@@ -233,16 +231,10 @@ export async function createPlatformAssetLock(
   console.log(`Transaction Proof:`)
   console.log(txProof)
 
-  console.log()
-  const txProofHex = DashTx.serialize(txProof, null)
-  console.log(`Transaction Proof Hex:`)
-  console.log(txProofHex)
+  // console.log()
+  // const txProofHex = DashTx.serialize(txProof, null)
 
   console.log()
-  console.log(`Ready-to-Broadcast (Signed) Transaction:`)
-  console.log(
-    `('sendrawtransaction' via https://rpc.digitalcash.dev or https://trpc.digitalcash.dev)`,
-  )
   const txSigned = await dashTx.hashAndSignAll(txDraft)
   console.log(txSigned.transaction)
 
@@ -251,7 +243,7 @@ export async function createPlatformAssetLock(
   const outpoint = await getFundingOutPoint(txSigned.transaction, vout)
   console.log(outpoint)
 
-  const expectingTxid = outpoint.txid; //KeyUtils.doubleSha256(fromHex(txSigned.transaction))
+  const expectingTxid = DashTx.utils.reverseHex(outpoint.txid);
   console.log("DEBUG expecting txid", expectingTxid)
 
   const txidHex = await rpc.sendRawTransaction({
@@ -262,7 +254,7 @@ export async function createPlatformAssetLock(
     throw new Error("sendRawTransaction did not return a transaction id");
   }
 
-  let assetProof: DashBincode.AssetLockProof
+  let assetLockProof: DashBincode.AssetLockProof
   {
     // TODO: These are commented out to help debugging the ChainProof version
     const assetInstantEvent = startEventSource(
@@ -271,13 +263,17 @@ export async function createPlatformAssetLock(
       createCheckDataIsProof(txSigned),
     )
     const assetChainPoll = pollAssetLockChainProof(txidHex)
-    assetProof = await Promise.race([
+    assetLockProof = await Promise.race([
       assetInstantEvent.promise,
       assetChainPoll.promise,
     ])
-    console.error('assetProof', assetProof)
+    console.error('assetLockProof', assetLockProof)
     assetInstantEvent.source.close()
     assetChainPoll.source.close()
+  }
+  if (!assetLockProof) {
+    console.error('failed to acquire asset lock proof')
+    process.exit(3);
   }
 
   let identityId = await createIdentityId(outpoint.txid, outpoint.vout)
@@ -285,7 +281,7 @@ export async function createPlatformAssetLock(
   return {
     txidHex,
     identityId,
-    assetProof,
+    assetLockProof,
   }
 }
 
@@ -342,9 +338,9 @@ async function getFundingOutPoint(
 ): Promise<{ txid: string, vout: number }> {
   let txBytes = DashTx.utils.hexToBytes(txSignedHex)
   let txidBytes = await DashTx.doubleSha256(txBytes)
-  let txidBE = DashTx.utils.bytesToHex(txidBytes)
+  let txid = DashTx.utils.bytesToHex(txidBytes)
 
-  return { txid: txidBE, vout: outputIndex }
+  return { txid, vout: outputIndex }
 }
 
 /**
@@ -427,8 +423,11 @@ function pollAssetLockChainProof(
 
       console.log("assetLockChainProof", assetLockChainProof)
 
-      const proof = DashBincode.AssetLockProof.Chain(assetLockChainProof)
+      // found the proof, but sometimes it rejects the proof because it doesn't have concensus to that height
+      // yet, so wait a bit (TODO: make this a retry loop later, not here)
+      await sleep(1000, t => {});
 
+      const proof = DashBincode.AssetLockProof.Chain(assetLockChainProof)
       resolve(proof)
       return
     }
@@ -593,12 +592,14 @@ function startEventSource<T extends { raw: string }>(
 
   let tickerTimeoutId: NodeJS.Timeout | undefined = undefined
   function updateTickerTimeout() {
-    clearTimeout(tickerTimeoutId)
-    tickerTimeoutId = setTimeout(() => source.close(), tickerHeartbeatTimeout)
+    // clearTimeout(tickerTimeoutId)
+    // tickerTimeoutId = setTimeout(() => source.close(), tickerHeartbeatTimeout)
   }
   updateTickerTimeout()
 
   const promise: Promise<DashBincode.AssetLockProof> = (async () => {
+    // sometimes it complains that we're not a current client yet?
+    await sleep(100, t => {});
 
     const resp = await fetch(ZMQ_AUTH_URL, {
       method: "PUT",
@@ -665,7 +666,9 @@ function startEventSource<T extends { raw: string }>(
       return proof
     }
 
-    throw new Error("event source closed before found")
+    // throw new Error("event source closed before found")
+
+    console.log("event source closed before found");
 
     // if (eventName) {
     //   console.log(`EventSource: listening for ${eventName}`)

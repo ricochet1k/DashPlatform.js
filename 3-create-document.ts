@@ -25,10 +25,10 @@ const walletKey = await loadWallet();
 function printUsage() {
   console.error("");
   console.error("USAGE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index> <data-contract-id>`);
+  console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index> <data-contract-id> [<message>]`);
   console.error("");
   console.error("EXAMPLE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} 0 JEJjgpGiLqeH8yaUeAwbCzuhTeL3xBMUAvyRCiGBXkEn`);
+  console.error(`   ${process.argv[0]} ${process.argv[1]} 0 JEJjgpGiLqeH8yaUeAwbCzuhTeL3xBMUAvyRCiGBXkEn "It's working!"`);
   console.error("");
 }
 
@@ -46,6 +46,8 @@ if (dataContractIdBytes.length != 32) {
   process.exit(1);
 }
 
+const message = process.argv[4] ?? "It's working!";
+
 
 const hdOpts = { version: "testnet" } as const; // TODO
 
@@ -58,11 +60,11 @@ const {
   otherKey,
 } = await deriveAllCreateIdentityKeys(hdOpts, walletKey, identityIndex);
 
-console.log('masterKey hex', toHex(masterKey.publicKey))
-console.log('otherKey hex', toHex(otherKey.publicKey))
+// console.log('masterKey hex', toHex(masterKey.publicKey))
+// console.log('otherKey hex', toHex(otherKey.publicKey))
 
-console.log('masterKey pkh', toHex(await DashKeys.pubkeyToPkh(masterKey.publicKey)))
-console.log('otherKey pkh', toHex(await DashKeys.pubkeyToPkh(otherKey.publicKey)))
+// console.log('masterKey pkh', toHex(await DashKeys.pubkeyToPkh(masterKey.publicKey)))
+// console.log('otherKey pkh', toHex(await DashKeys.pubkeyToPkh(otherKey.publicKey)))
 
 const pkh = await DashKeys.pubkeyToPkh(masterKey.publicKey)
 const existingIdentity = await findExistingIdentity(nodeRpc, pkh)
@@ -120,7 +122,7 @@ const document_id = await KeyUtils.doubleSha256(buf)
 
 
 const data: Map<string, DashBincode.Value> = new Map();
-data.set("message", DashBincode.Value.Text("It's working!"))
+data.set("message", DashBincode.Value.Text(message))
 
 
 const documentCreate = DashBincode.DocumentCreateTransitionV0({
@@ -140,6 +142,24 @@ const documentsBatch = DashBincode.BatchTransitionV0({
   owner_id: DashBincode.Identifier(DashBincode.IdentifierBytes32(owner_id)),
   transitions: [
     DashBincode.DocumentTransition.Create(DashBincode.DocumentCreateTransition.V0(documentCreate)),
+    // DashBincode.DocumentTransition.Replace(DashBincode.DocumentReplaceTransition.V0(DashBincode.DocumentReplaceTransitionV0({
+    //   base: DashBincode.DocumentBaseTransition.V0(DashBincode.DocumentBaseTransitionV0({
+    //     id: DashBincode.Identifier(DashBincode.IdentifierBytes32(document_id)),
+    //     data_contract_id: DashBincode.Identifier(DashBincode.IdentifierBytes32(dataContractIdBytes)),
+    //     identity_contract_nonce,
+    //     document_type_name,
+    //   })),
+    //   revision: 1n,
+    //   data,
+    // }))),
+    // DashBincode.DocumentTransition.Delete(DashBincode.DocumentDeleteTransition.V0(DashBincode.DocumentDeleteTransitionV0({
+    //   base: DashBincode.DocumentBaseTransition.V0(DashBincode.DocumentBaseTransitionV0({
+    //     id: DashBincode.Identifier(DashBincode.IdentifierBytes32(document_id)),
+    //     data_contract_id: DashBincode.Identifier(DashBincode.IdentifierBytes32(dataContractIdBytes)),
+    //     identity_contract_nonce,
+    //     document_type_name,
+    //   }))
+    // }))),
   ],
   user_fee_increase: 0,
   signature_public_key_id: 1,
@@ -163,17 +183,14 @@ const stateTransition = DashBincode.StateTransition.Batch(
 }
 
 const signedBytes = new Uint8Array(Bincode.encode(DashBincode.StateTransition, stateTransition));
-
-console.log("Signed")
-console.log(toHex(signedBytes))
+const transitionHash = await KeyUtils.sha256(signedBytes);
 
 console.log("Broadcasting Batch Transition for Document Create...")
 try {
   const response = await nodeRpc.platform.broadcastStateTransition({
     stateTransition: signedBytes,
   })
-  console.log('response', response);
-  // await Fs.writeFile('data-contract-' + newContractIDStr.slice(0, 6) + '.json', JSON.stringify({id: newContractIDStr}));
+  console.log('response', response.status, response.response);
 
 } catch (e) {
   console.error("Error: ", decodeURIComponent((e as any).message))
@@ -181,3 +198,4 @@ try {
 
 console.log("Document ID:" + base58.encode(document_id))
 console.log("https://testnet.platform-explorer.com/document/" + base58.encode(document_id))
+console.log(`https://testnet.platform-explorer.com/transaction/${toHex(transitionHash)}`);

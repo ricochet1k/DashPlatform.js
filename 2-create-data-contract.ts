@@ -41,11 +41,11 @@ let {
   otherKey,
 } = await deriveAllCreateIdentityKeys(hdOpts, walletKey, identityIndex);
 
-console.log('masterKey hex', toHex(masterKey.publicKey))
-console.log('otherKey hex', toHex(otherKey.publicKey))
+// console.log('masterKey hex', toHex(masterKey.publicKey))
+// console.log('otherKey hex', toHex(otherKey.publicKey))
 
-console.log('masterKey pkh', toHex(await DashKeys.pubkeyToPkh(masterKey.publicKey)))
-console.log('otherKey pkh', toHex(await DashKeys.pubkeyToPkh(otherKey.publicKey)))
+// console.log('masterKey pkh', toHex(await DashKeys.pubkeyToPkh(masterKey.publicKey)))
+// console.log('otherKey pkh', toHex(await DashKeys.pubkeyToPkh(otherKey.publicKey)))
 
 const pkh = await DashKeys.pubkeyToPkh(masterKey.publicKey)
 const existingIdentity = await findExistingIdentity(nodeRpc, pkh)
@@ -106,8 +106,6 @@ documentSchemas.set("note", DashBincode.Value.Map([
 const newContractIdBuffer = new Uint8Array(owner_id.length + 8);
 newContractIdBuffer.set(owner_id, 0);
 new DataView(newContractIdBuffer.buffer).setBigUint64(owner_id.length, identity_nonce);
-console.log('owner_id', toHex(owner_id))
-console.log('newContractIdBuffer', toHex(newContractIdBuffer))
 const newContractID = await doubleSha256(newContractIdBuffer)
 const newContractIDStr = base58.encode(newContractID)
 console.log('newContractID', newContractIDStr)
@@ -154,16 +152,14 @@ const stateTransition = DashBincode.StateTransition.DataContractCreate(
 }
 
 const signedBytes = new Uint8Array(Bincode.encode(DashBincode.StateTransition, stateTransition));
-
-console.log("Signed")
-console.log(toHex(signedBytes))
+const transitionHash = await KeyUtils.sha256(signedBytes);
 
 console.log("Broadcasting Data Contract Create Transition...")
 try {
   const response = await nodeRpc.platform.broadcastStateTransition({
     stateTransition: signedBytes,
   })
-  console.log('response', response);
+  console.log('response', response.status, response.response);
   await Fs.writeFile('data-contract-' + newContractIDStr.slice(0, 6) + '.json', JSON.stringify({id: newContractIDStr}));
 
 } catch (e) {
@@ -172,4 +168,5 @@ try {
 
 console.log();
 console.log('New Contract ID:', newContractIDStr)
-console.log("https://testnet.platform-explorer.com/document/" + newContractIDStr)
+console.log("https://testnet.platform-explorer.com/dataContract/" + newContractIDStr)
+console.log(`https://testnet.platform-explorer.com/transaction/${toHex(transitionHash)}`);
