@@ -1,24 +1,21 @@
-import Dotenv from "dotenv";
+// import Dotenv from "dotenv";
 import DashPhrase from "dashphrase";
 import DashHd from "dashhd";
 import type { HDWallet } from "dashhd";
 import * as QRCode from "./_qr.js";
 import * as DashTx from "dashtx";
-import Fs from "node:fs/promises";
 
-Dotenv.config({ path: ".env" });
+if (typeof process === 'object') {
+  import("dotenv").then(dotenv => dotenv.default.config({ path: ".env" }));
+}
 
-export async function loadWallet(): Promise<HDWallet> {
+export async function loadWallet(walletPhrase: string, walletSalt: string): Promise<HDWallet> {
   let coinType = 5;
   let testnet = true; // TODO
   if (testnet) {
     coinType = 1;
   }
 
-  // void (await WasmDpp.default());
-
-  let walletPhrase = process.env.DASH_WALLET_PHRASE;
-  let walletSalt = process.env.DASH_WALLET_SALT ?? "";
   if (!walletPhrase) {
     console.error("");
     console.error("ERROR");
@@ -59,30 +56,30 @@ export function promptQr(fundingAddress: string, needSats: number) {
   console.error(`SOLUTION`);
   console.error(`   send ${dashAmount} to ${fundingAddress}`);
   console.error(``);
-  console.error(ascii);
+  console.error('\n'+ascii);
   console.error();
 }
 
-/**
- * Reads a hex file as text, stripping comments (anything including and after a non-hex character), removing whitespace, and joining as a single string
- */
-export async function readHex(path: string) {
-  let text = await Fs.readFile(path, "utf8");
-  let lines = text.split("\n");
-  let hexes = [];
-  for (let line of lines) {
-    line = line.replace(/\s/g, "");
-    line = line.replace(/[^0-9a-f].*/i, "");
-    hexes.push(line);
-  }
+// /**
+//  * Reads a hex file as text, stripping comments (anything including and after a non-hex character), removing whitespace, and joining as a single string
+//  */
+// export async function readHex(path: string) {
+//   let text = await Fs.readFile(path, "utf8");
+//   let lines = text.split("\n");
+//   let hexes = [];
+//   for (let line of lines) {
+//     line = line.replace(/\s/g, "");
+//     line = line.replace(/[^0-9a-f].*/i, "");
+//     hexes.push(line);
+//   }
 
-  let hex = hexes.join("");
-  return hex;
-}
+//   let hex = hexes.join("");
+//   return hex;
+// }
 
-export async function readWif(path: string) {
-  let wif = await Fs.readFile(path, "utf8");
-  wif = wif.trim();
+// export async function readWif(path: string) {
+//   let wif = await Fs.readFile(path, "utf8");
+//   wif = wif.trim();
 
-  return wif;
-}
+//   return wif;
+// }

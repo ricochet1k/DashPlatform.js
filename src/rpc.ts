@@ -14,7 +14,18 @@ export class NodeConnection {
 export function connectToNode(address: string) {
     const transport = new GrpcWebFetchTransport({
         baseUrl: address,
-        // format: 'binary',
+        // format: 'text',
+        // interceptors: [
+        //     {
+        //         interceptUnary(next, method, input, options) {
+        //             console.log("UnaryCall", method, input, options);
+        //             return next(method, input, options);
+        //         }
+        //         // interceptServerStreaming(next: NextServerStreamingFn, method: MethodInfo, input: object, options: RpcOptions): ServerStreamingCall;
+        //         // interceptClientStreaming(next: NextClientStreamingFn, method: MethodInfo, options: RpcOptions): ClientStreamingCall;
+        //         // interceptDuplex(next: NextDuplexStreamingFn, method: MethodInfo, options: RpcOptions): DuplexStreamingCall;
+        //     }
+        // ]
     })
     const core = new CoreClient(transport)
     const platform = new PlatformClient(transport)

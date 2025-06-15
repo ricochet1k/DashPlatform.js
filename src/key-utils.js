@@ -1,8 +1,5 @@
-"use strict";
-
-// @ts-expect-error no types
-import Secp256k1 from "@dashincubator/secp256k1";
-import RIPEMD160 from "ripemd160"
+import * as Secp256k1 from "@dashincubator/secp256k1";
+import ripemd160 from "ripemd160-js/ripemd160.js"
 
 /**
  * @typedef KeyInfo
@@ -73,9 +70,7 @@ export async function sha256(bytes) {
  */
 export async function pubkeyHash(bytes) {
   let firstHash = await sha256(bytes);
-  let ripemd160 = new RIPEMD160;
-  ripemd160.update( Buffer.from(firstHash));
-  return ripemd160.digest();
+  return ripemd160(firstHash);
 }
 
 /**

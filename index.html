@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<script type="module">
+    import { step1CreateIdentity } from './1-create-identity.ts'
+    import { step2CreateDataContract } from './2-create-data-contract.ts'
+    import { step3CreateDocument } from './3-create-document.ts'
+    window.step1CreateIdentity = step1CreateIdentity;
+    window.step2CreateDataContract = step2CreateDataContract;
+    window.step3CreateDocument = step3CreateDocument;
+</script>
+
+<form id="form1">
+    <div>
+        <label>Wallet Phrase</label>
+        <input id="walletPhrase"
+            value="october anxiety acquire group brass remain robust person march shallow foam direct" />
+    </div>
+    <div>
+        <label>Wallet Salt</label>
+        <input id="walletSalt" value="" />
+    </div>
+
+    <div>
+        <label>Identity Index</label>
+        <input id="identityIndex" type="number" value="24" />
+    </div>
+
+    <div>
+        <label>Data Contract ID</label>
+        <input id="dataContractId" />
+    </div>
+
+    <div>
+        <label>Document Message</label>
+        <input id="message" />
+    </div>
+</form>
+
+<button onclick="step1CreateIdentity(form1.walletPhrase.value, form1.walletSalt.value, form1.identityIndex.value|0)">Create Identity</button>
+<button onclick="step2CreateDataContract(form1.walletPhrase.value, form1.walletSalt.value, form1.identityIndex.value|0)">Create Data Contract</button>
+<button
+    onclick="step3CreateDocument(form1.walletPhrase.value, form1.walletSalt.value, form1.identityIndex.value|0, form1.dataContractId.value, form1.message.value)">Create
+    Document</button>

@@ -1,5 +1,5 @@
-export const rpcAuthUrl: "https://api:null@trpc.digitalcash.dev";
-export const zmqAuthUrl: string;
+export const RPC_AUTH_URL: "https://api:null@trpc.digitalcash.dev";
+export const ZMQ_AUTH_URL: string;
 export const L1_VERSION_PLATFORM: 3;
 export const TYPE_ASSET_LOCK: 8;
 export const VERSION_ASSET_LOCK: 1;

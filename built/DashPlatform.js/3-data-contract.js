@@ -1,7 +1,7 @@
 import * as Bincode from "./src/bincode.js";
 import * as DashBincode from "./1.8.1/generated_bincode.js";
 import * as KeyUtils from "./src/key-utils.js";
-import { loadWallet } from "./src/cli.js";
+import { loadWallet } from "./src/cli.ts";
 import { deriveAllCreateIdentityKeys } from "./src/asset_lock.js";
 import { toHex } from "./src/hex.js";
 const walletKey = await loadWallet();

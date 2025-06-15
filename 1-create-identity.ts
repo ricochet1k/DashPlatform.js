@@ -1,42 +1,24 @@
-import Fs from "node:fs/promises";
 
-import DashHd from "dashhd";
-import * as DashHdUtils from "./src/dashhd-utils.ts";
 import * as Bincode from "./src/bincode.ts";
+import * as DashBincode from "./2.0.0/generated_bincode.js"
 import DashKeys from "dashkeys";
-import * as DashTx from "dashtx";
-import * as DashPlatform from "./src/dashplatform.js";
-import * as QRCode from "./src/_qr.js";
-import * as KeyUtils from "./src/key-utils.js";
-import base64 from "base64-js";
 
+import * as KeyUtils from "./src/key-utils.js";
 import { loadWallet } from "./src/cli.ts";
 import { deriveAllCreateIdentityKeys } from "./src/asset_lock.ts";
 import { createPlatformAssetLock } from "./src/asset_lock.ts";
 import { connectToNode, TRPC } from "./src/rpc.ts"
 import { NODE_ADDRESS, RPC_AUTH_URL } from "./src/constants.ts"
-import { fromHex, toHex } from "./src/hex.js"
-import * as BinCode from "./src/bincode.ts"
-import * as DashBincode from "./2.0.0/generated_bincode.js"
+import { toHex } from "./src/hex.js"
 import { base58 } from "./src/util/base58.ts"
 import { findExistingIdentity } from "./src/identity.ts"
 
+
+export async function step1CreateIdentity(walletPhrase: string, walletSalt: string, identityIndex: number) {
 const rpc = new TRPC(RPC_AUTH_URL);
 const nodeRpc = connectToNode(NODE_ADDRESS)
 
-const walletKey = await loadWallet();
-
-const identityIndex = parseInt(process.argv[2], 10);
-if (isNaN(identityIndex)) {
-  console.error("");
-  console.error("USAGE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index>`);
-  console.error("");
-  console.error("EXAMPLE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} 0`);
-  console.error("");
-  process.exit(1);
-}
+const walletKey = await loadWallet(walletPhrase, walletSalt);
 
 const hdOpts = { version: "testnet" as const }; // TODO
 
@@ -199,3 +181,28 @@ const identity = base58.encode(identityId);
 console.log();
 console.log(`https://testnet.platform-explorer.com/identity/${identity}`);
 console.log(`https://testnet.platform-explorer.com/transaction/${toHex(transitionHash)}`);
+}
+
+if (typeof process === 'object' && process.argv[1] === import.meta.filename) {
+
+  import("dotenv").then(dotenv => {
+    dotenv.default.config({ path: ".env" });
+
+    let walletPhrase = process.env.DASH_WALLET_PHRASE!;
+    let walletSalt = process.env.DASH_WALLET_SALT ?? "";
+
+    const identityIndex = parseInt(process.argv[2], 10);
+    if (isNaN(identityIndex)) {
+      console.error("");
+      console.error("USAGE");
+      console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index>`);
+      console.error("");
+      console.error("EXAMPLE");
+      console.error(`   ${process.argv[0]} ${process.argv[1]} 0`);
+      console.error("");
+      process.exit(1);
+    }
+
+    step1CreateIdentity(walletPhrase, walletSalt, identityIndex);
+  })
+}

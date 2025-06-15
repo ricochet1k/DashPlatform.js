@@ -1,13 +1,7 @@
-import Fs from "node:fs/promises";
 
-// import DashHd from "dashhd";
-// import * as DashHdUtils from "./dashhd-utils.ts";
 import DashKeys from "dashkeys";
-// import * as DashTx from "dashtx";
-// import * as DashPlatform from "./dashplatform.js";
 import * as Bincode from "./src/bincode.ts";
 import * as DashBincode from "./2.0.0/generated_bincode.js";
-import * as QRCode from "./src/_qr.js";
 import * as KeyUtils from "./src/key-utils.js";
 import { connectToNode } from "./src/rpc.ts"
 import { NODE_ADDRESS } from "./src/constants.ts"
@@ -18,36 +12,13 @@ import { deriveAllCreateIdentityKeys } from "./src/asset_lock.ts"
 import { toHex } from "./src/hex.js"
 import { base58 } from "./src/util/base58.ts"
 
+export async function step3CreateDocument(walletPhrase: string, walletSalt: string, identityIndex: number, dataContractId: string, message: string) {
+
 const nodeRpc = connectToNode(NODE_ADDRESS);
 
-const walletKey = await loadWallet();
+const walletKey = await loadWallet(walletPhrase, walletSalt);
 
-function printUsage() {
-  console.error("");
-  console.error("USAGE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index> <data-contract-id> [<message>]`);
-  console.error("");
-  console.error("EXAMPLE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} 0 JEJjgpGiLqeH8yaUeAwbCzuhTeL3xBMUAvyRCiGBXkEn "It's working!"`);
-  console.error("");
-}
-
-const identityIndex = parseInt(process.argv[2], 10);
-if (isNaN(identityIndex)) {
-  printUsage();
-  process.exit(1);
-}
-
-const dataContractId = process.argv[3]; // "JEJjgpGiLqeH8yaUeAwbCzuhTeL3xBMUAvyRCiGBXkEn"
-console.log('dataContractId', dataContractId, dataContractId.length);
 const dataContractIdBytes = base58.decode(dataContractId);
-if (dataContractIdBytes.length != 32) {
-  printUsage();
-  process.exit(1);
-}
-
-const message = process.argv[4] ?? "It's working!";
-
 
 const hdOpts = { version: "testnet" } as const; // TODO
 
@@ -199,3 +170,41 @@ try {
 console.log("Document ID:" + base58.encode(document_id))
 console.log("https://testnet.platform-explorer.com/document/" + base58.encode(document_id))
 console.log(`https://testnet.platform-explorer.com/transaction/${toHex(transitionHash)}`);
+}
+
+if (typeof process === 'object' && process.argv[1] === import.meta.filename) {
+
+  import("dotenv").then(dotenv => {
+    dotenv.default.config({ path: ".env" });
+
+    let walletPhrase = process.env.DASH_WALLET_PHRASE!;
+    let walletSalt = process.env.DASH_WALLET_SALT ?? "";
+
+    function printUsage() {
+      console.error("");
+      console.error("USAGE");
+      console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index> <data-contract-id> [<message>]`);
+      console.error("");
+      console.error("EXAMPLE");
+      console.error(`   ${process.argv[0]} ${process.argv[1]} 0 JEJjgpGiLqeH8yaUeAwbCzuhTeL3xBMUAvyRCiGBXkEn "It's working!"`);
+      console.error("");
+    }
+
+    const identityIndex = parseInt(process.argv[2], 10);
+    if (isNaN(identityIndex)) {
+      printUsage();
+      process.exit(1);
+    }
+
+    const dataContractId = process.argv[3]; // "JEJjgpGiLqeH8yaUeAwbCzuhTeL3xBMUAvyRCiGBXkEn"
+    console.log('dataContractId', dataContractId, dataContractId.length);
+    const dataContractIdBytes = base58.decode(dataContractId);
+    if (dataContractIdBytes.length != 32) {
+      printUsage();
+      process.exit(1);
+    }
+
+    const message = process.argv[4] ?? "It's working!";
+    step3CreateDocument(walletPhrase, walletSalt, identityIndex, dataContractId, message);
+  });
+}

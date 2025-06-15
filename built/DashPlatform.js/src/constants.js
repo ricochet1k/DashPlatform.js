@@ -1,6 +1,6 @@
-export const rpcAuthUrl = "https://api:null@trpc.digitalcash.dev";
+export const RPC_AUTH_URL = "https://api:null@trpc.digitalcash.dev";
 const zmqUuid = crypto.randomUUID();
-export const zmqAuthUrl = `https://tzmq.digitalcash.dev/api/zmq/eventsource/${zmqUuid}`;
+export const ZMQ_AUTH_URL = `https://tzmq.digitalcash.dev/api/zmq/eventsource/${zmqUuid}`;
 export const L1_VERSION_PLATFORM = 3;
 // const L1_VERSION_PLATFORM = 0;
 export const TYPE_ASSET_LOCK = 8;

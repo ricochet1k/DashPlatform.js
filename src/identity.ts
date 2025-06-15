@@ -22,6 +22,7 @@ export async function findExistingIdentity(node: NodeConnection, publicKeyHash: 
             }
         })
     } catch (e) {
+        // console.error(e, Object.entries(e));
         if ((e as any)?.code === 'NOT_FOUND') {
             // not created yet
             return null

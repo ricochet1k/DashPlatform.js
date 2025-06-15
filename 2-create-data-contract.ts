@@ -1,4 +1,4 @@
-import Fs from "node:fs/promises";
+// import Fs from "node:fs/promises";
 
 import { doubleSha256 } from "dashtx"
 import DashKeys from "dashkeys"
@@ -14,21 +14,12 @@ import { NODE_ADDRESS } from "./src/constants.ts"
 import { findExistingIdentity } from "./src/identity.ts"
 import { base58 } from "./src/util/base58.ts"
 
+
+export async function step2CreateDataContract(walletPhrase: string, walletSalt: string, identityIndex: number) {
+
 const nodeRpc = connectToNode(NODE_ADDRESS);
 
-const walletKey = await loadWallet();
-
-let identityIndex = parseInt(process.argv[2], 10);
-if (isNaN(identityIndex)) {
-  console.error("");
-  console.error("USAGE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index>`);
-  console.error("");
-  console.error("EXAMPLE");
-  console.error(`   ${process.argv[0]} ${process.argv[1]} 0`);
-  console.error("");
-  process.exit(1);
-}
+const walletKey = await loadWallet(walletPhrase, walletSalt);
 
 let hdOpts = { version: "testnet" } as const; // TODO
 
@@ -160,7 +151,7 @@ try {
     stateTransition: signedBytes,
   })
   console.log('response', response.status, response.response);
-  await Fs.writeFile('data-contract-' + newContractIDStr.slice(0, 6) + '.json', JSON.stringify({id: newContractIDStr}));
+  // await Fs.writeFile('data-contract-' + newContractIDStr.slice(0, 6) + '.json', JSON.stringify({id: newContractIDStr}));
 
 } catch (e) {
   console.error("Error: ", decodeURIComponent((e as any).message))
@@ -170,3 +161,29 @@ console.log();
 console.log('New Contract ID:', newContractIDStr)
 console.log("https://testnet.platform-explorer.com/dataContract/" + newContractIDStr)
 console.log(`https://testnet.platform-explorer.com/transaction/${toHex(transitionHash)}`);
+
+}
+
+if (typeof process === 'object' && process.argv[1] === import.meta.filename) {
+
+  import("dotenv").then(dotenv => {
+    dotenv.default.config({ path: ".env" });
+
+    let walletPhrase = process.env.DASH_WALLET_PHRASE!;
+    let walletSalt = process.env.DASH_WALLET_SALT ?? "";
+
+    let identityIndex = parseInt(process.argv[2], 10);
+    if (isNaN(identityIndex)) {
+      console.error("");
+      console.error("USAGE");
+      console.error(`   ${process.argv[0]} ${process.argv[1]} <identity-index>`);
+      console.error("");
+      console.error("EXAMPLE");
+      console.error(`   ${process.argv[0]} ${process.argv[1]} 0`);
+      console.error("");
+      process.exit(1);
+    }
+
+    step2CreateDataContract(walletPhrase, walletSalt, identityIndex);
+  });
+}

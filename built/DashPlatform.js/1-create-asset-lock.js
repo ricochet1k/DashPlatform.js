@@ -1,13 +1,13 @@
 import Fs from "node:fs/promises";
 import DashHd from "dashhd";
-import * as DashHdUtils from "./src/dashhd-utils.js";
+import * as DashHdUtils from "./src/dashhd-utils.ts";
 import DashKeys from "dashkeys";
 import * as DashTx from "dashtx";
 import * as DashPlatform from "./src/dashplatform.js";
 import * as QRCode from "./src/_qr.js";
 import * as KeyUtils from "./src/key-utils.js";
 import { createIdentityFromAssetLock } from "./2-create-identity-transition.js";
-import { loadWallet } from "./src/cli.js";
+import { loadWallet } from "./src/cli.ts";
 import { deriveAllCreateIdentityKeys } from "./src/asset_lock.js";
 import { createPlatformAssetLock } from "./src/asset_lock.js";
 // let DapiGrpc = require("@dashevo/dapi-grpc");

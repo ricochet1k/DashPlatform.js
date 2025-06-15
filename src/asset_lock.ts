@@ -7,12 +7,11 @@ import type { VERSION_PRIVATE, HexString, VERSION } from "dashkeys"
 import * as DashTx from "dashtx"
 import * as DashPlatform from "./dashplatform.js"
 import * as KeyUtils from "./key-utils.js"
-import { COIN_TYPE, L1_VERSION_PLATFORM, RPC_AUTH_URL, TYPE_ASSET_LOCK, VERSION_ASSET_LOCK, VERSIONS_TESTNET, ZMQ_AUTH_URL } from "./constants.ts"
+import { L1_VERSION_PLATFORM, RPC_AUTH_URL, TYPE_ASSET_LOCK, VERSION_ASSET_LOCK, VERSIONS_TESTNET, ZMQ_AUTH_URL } from "./constants.ts"
 import { promptQr } from "./cli.ts"
 import { TRPC } from "./rpc.ts"
 import type { AddressDelta, AddressMempoolDelta } from "./rpc.ts"
 import { createEventSource } from "eventsource-client"
-import { fromHex, toHex } from "./hex.js"
 import { base58 } from "./util/base58.ts"
 
 export async function deriveAllCreateIdentityKeys(
@@ -175,7 +174,7 @@ export async function createPlatformAssetLock(
 
     let needSats = 250 - changeSats
     promptQr(fundingInfo.address, needSats)
-    process.exit(1)
+    throw new Error("need funds");
   }
 
   // Comes from new_p2pkh

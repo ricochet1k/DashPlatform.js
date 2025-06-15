@@ -1,12 +1,12 @@
 import DashHd from "dashhd";
-import * as DashHdUtils from "./dashhd-utils.js";
+import * as DashHdUtils from "./dashhd-utils.ts";
 import * as DashBincode from "../1.8.1/generated_bincode.js";
 import DashKeys from "dashkeys";
 import * as DashTx from "dashtx";
 import * as DashPlatform from "./dashplatform.js";
 import * as KeyUtils from "./key-utils.js";
-import { COIN_TYPE, L1_VERSION_PLATFORM, rpcAuthUrl, TYPE_ASSET_LOCK, VERSION_ASSET_LOCK, VERSIONS_TESTNET, zmqAuthUrl } from "./constants.js";
-import { promptQr } from "./cli.js";
+import { COIN_TYPE, L1_VERSION_PLATFORM, RPC_AUTH_URL, TYPE_ASSET_LOCK, VERSION_ASSET_LOCK, VERSIONS_TESTNET, ZMQ_AUTH_URL } from "./constants.ts";
+import { promptQr } from "./cli.ts";
 import EventSourcePackage from "launchdarkly-eventsource";
 const EventSourceShim = EventSourcePackage.EventSource;
 /**
@@ -52,10 +52,10 @@ export async function createPlatformAssetLock(hdOpts, regFundKey, changeKey, ass
     let fundingWif = await DashHd.toWif(regFundKey.privateKey, hdOpts);
     let fundingInfo = await wifToInfo(fundingWif, "testnet");
     {
-        let fundingDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
+        let fundingDeltas = await DashTx.utils.rpc(RPC_AUTH_URL, "getaddressdeltas", {
             addresses: [fundingInfo.address],
         });
-        let memDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+        let memDeltas = await DashTx.utils.rpc(RPC_AUTH_URL, "getaddressmempool", {
             addresses: [fundingInfo.address],
         });
         let totalUses = fundingDeltas.length + memDeltas.length;
@@ -166,13 +166,13 @@ export async function createPlatformAssetLock(hdOpts, regFundKey, changeKey, ass
     console.log(`Funding Outpoint Info (BE, internal)`);
     let outpoint = await getFundingOutPoint(txSigned.transaction, vout);
     console.log(outpoint);
-    let txidHex = await DashTx.utils.rpc(rpcAuthUrl, "sendrawtransaction", txSigned.transaction);
+    let txidHex = await DashTx.utils.rpc(RPC_AUTH_URL, "sendrawtransaction", txSigned.transaction);
     console.log("DEBUG send result (txidHex) (LE, for RPC)", txidHex);
     /** @type {DashBincode.AssetLockProof} */
     let assetProof;
     {
         // TODO: These are commented out to help debugging the ChainProof version
-        let assetInstantEvent = startEventSource(zmqAuthUrl, "rawtxlocksig", createCheckDataIsProof(txSigned));
+        let assetInstantEvent = startEventSource(ZMQ_AUTH_URL, "rawtxlocksig", createCheckDataIsProof(txSigned));
         let assetChainPoll = pollAssetLockChainProof(txidHex);
         assetProof = await Promise.race([
             assetInstantEvent.promise,
@@ -373,7 +373,7 @@ async function getTransactionJson(txidHex) {
     console.log('getTransactionJson: Looking for transaction...', txidHex);
     /** @type {TransactionJson | null} */
     let txInfo = await DashTx.utils
-        .rpc(rpcAuthUrl, "getrawtransaction", txidHex, getJson)
+        .rpc(RPC_AUTH_URL, "getrawtransaction", txidHex, getJson)
         .catch(
     /** @param {Error} err */
     function (err) {
@@ -394,7 +394,7 @@ async function getTransactionJson(txidHex) {
     //  * }} 
     //  */
     // let blockInfo = await DashTx.utils
-    //   .rpc(rpcAuthUrl, "getblock", txInfo.blockhash, "1" /* verbosity */)
+    //   .rpc(RPC_AUTH_URL, "getblock", txInfo.blockhash, "1" /* verbosity */)
     //   .catch(
     //     /** @param {Error & {code?: number}} err */
     //     function (err) {
@@ -453,7 +453,7 @@ function startEventSource(url, eventName, checkData) {
     /** @type {Promise<DashBincode.AssetLockProof>} */
     let promise = new Promise(async function (resolve, reject) {
         let basicAuth = btoa(`api:null`);
-        let resp = await fetch(zmqAuthUrl, {
+        let resp = await fetch(ZMQ_AUTH_URL, {
             method: "PUT",
             headers: {
                 Authorization: `Basic ${basicAuth}`,
@@ -578,13 +578,13 @@ function startEventSource(url, eventName, checkData) {
  * @param {Array<String>} addresses
  */
 export const TODOgetUtxos = async function (addresses) {
-    // let oldDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressdeltas", {
-    let utxos = await DashTx.utils.rpc(rpcAuthUrl, "getaddressutxos", {
+    // let oldDeltas = await DashTx.utils.rpc(RPC_AUTH_URL, "getaddressdeltas", {
+    let utxos = await DashTx.utils.rpc(RPC_AUTH_URL, "getaddressutxos", {
         addresses: addresses,
     });
     console.log(`DEBUG utxos`);
     console.log(utxos);
-    let memDeltas = await DashTx.utils.rpc(rpcAuthUrl, "getaddressmempool", {
+    let memDeltas = await DashTx.utils.rpc(RPC_AUTH_URL, "getaddressmempool", {
         addresses: addresses,
     });
     let oldTotal = DashTx.sum(utxos);

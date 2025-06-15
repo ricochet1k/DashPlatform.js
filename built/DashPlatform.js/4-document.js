@@ -1,12 +1,12 @@
 // import DashHd from "dashhd";
-// import * as DashHdUtils from "./dashhd-utils.js";
+// import * as DashHdUtils from "./dashhd-utils.ts";
 // import DashKeys from "dashkeys";
 // import * as DashTx from "dashtx";
 // import * as DashPlatform from "./dashplatform.js";
 import * as Bincode from "./src/bincode.js";
 import * as DashBincode from "./1.8.1/generated_bincode.js";
 import * as KeyUtils from "./src/key-utils.js";
-import { loadWallet } from "./src/cli.js";
+import { loadWallet } from "./src/cli.ts";
 import { deriveAllCreateIdentityKeys } from "./src/asset_lock.js";
 import { toHex } from "./src/hex.js";
 async function main() {
